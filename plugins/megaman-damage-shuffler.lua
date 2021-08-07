@@ -45,6 +45,8 @@ plugin.description =
 	- Rockman 8 GB / Rockman X4 GBC
 ]]
 
+local mmds_debug = true
+
 local prevdata = {}
 local NO_MATCH = 'NONE'
 
@@ -52,12 +54,19 @@ local swap_scheduled = false
 
 local shouldSwap = function() return false end
 
+local function debug_log(format, ...)
+	if mmds_debug then
+		print(string.format('[%s f:%d] ' .. format, os.date('%H:%M:%S'), emu.framecount(), ...))
+	end
+end
+
 -- update value in prevdata and return whether the value has changed, new value, and old value
 -- value is only considered changed if it wasn't nil before
 local function update_prev(key, value)
 	local prev_value = prevdata[key]
 	prevdata[key] = value
 	local changed = prev_value ~= nil and value ~= prev_value
+	if changed then debug_log('%s changed from %s to %s', tostring(key), tostring(prev_value), tostring(value))	end
 	return changed, value, prev_value
 end
 
@@ -65,6 +74,9 @@ local function generic_swap(gamemeta)
 	return function(data)
 		-- if a method is provided and we are not in normal gameplay, don't ever swap
 		if gamemeta.gmode and not gamemeta.gmode() then
+			if mmds_debug then
+				gui.drawText(3, 30, string.format('GM: %s', tostring(gamemeta.gmode())), 0xFFFFFFFF, 0xFF000000, 16)
+			end
 			return false
 		end
 
@@ -73,6 +85,16 @@ local function generic_swap(gamemeta)
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
+
+		if mmds_debug then
+			gui.drawText(3, 30,
+				string.format(
+					gamemeta.gmode and 'HP: %s / %s\nLC: %s\nGM: %s' or 'HP: %s / %s\nLC: %s',
+					tostring(currhp), tostring(maxhp), tostring(currlc), tostring(gamemeta.gmode and gamemeta.gmode())
+				),
+				0xFFFFFFFF, 0xFF000000, 16
+			)
+		end
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
@@ -92,17 +114,20 @@ local function generic_swap(gamemeta)
 		if data.hpcountdown ~= nil and data.hpcountdown > 0 then
 			data.hpcountdown = data.hpcountdown - 1
 			if data.hpcountdown == 0 and currhp > minhp then
+				debug_log('hpcountdown elapsed, currhp %s > minhp %s', tostring(currhp), tostring(minhp))
 				return true
 			end
 		end
 
 		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
 		if prevhp ~= nil and currhp < prevhp then
-			data.hpcountdown = gamemeta.delay or 3
+			data.hpcountdown = gamemeta.delay or 3			
+			debug_log('currhp %s < minhp %s, hpcountdown set to %s', tostring(currhp), tostring(minhp), tostring(data.hpcountdown))
 		end
 
 		-- check to see if the life count went down
 		if prevlc ~= nil and currlc < prevlc then
+			debug_log('currlc %s < prevlc %s', tostring(currlc), tostring(miprevlcnhp))
 			return true
 		end
 
@@ -597,8 +622,15 @@ function plugin.on_frame(data, settings)
 
 	local schedule_swap, delay = shouldSwap(prevdata)
 	if schedule_swap and frames_since_restart > 10 then
-		swap_game_delay(delay or 3)
-		swap_scheduled = true
+		delay = delay or 3
+		if not mmds_debug then
+			swap_game_delay(delay)
+			swap_scheduled = true
+		else
+			debug_log('Damage detected, would swap in %d frames', delay)
+			prevdata = {} -- simulate fresh plugin start
+			client.pause()
+		end
 	end
 end
 
