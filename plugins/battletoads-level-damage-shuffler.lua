@@ -22,13 +22,14 @@ plugin.description =
 	
 	Put copies of the ROM into the games folder, with filenames STARTING with two-digit numbers, 01, 02, 03 ... as high as 13 to start right at the Dark Queen. Each ROM will start at the level of the game you specify in the file name.
 	
-	For example, make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once.
+	For example, make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. Mark a game as complete when you finish a level - or just play your way.
 	-------------------	
 	The plugin will check the hash of each ROM to be sure it is correct. If your ROM is not recognized, no damage swap will occur. ROMs starting with numbers outside of 01-13 will start at level 1.
 	
 	You can mix and match unpatched and bugfixed ROMs. If you plan to play in co-op, then strongly consider using the bugfix for #11, Clinger Winger, so that both players can move.
 	
-	You already have infinite continues! Optionally, you can enable infinite lives, which will make it far easier to reach and defeat bosses.
+	If you game over, you will be restarted at the level specified in the file name. In that way, you already have infinite continues! 
+	Optionally, you can enable infinite lives, which will make it far easier to reach and defeat bosses.
 	-- To prevent softlocks, the shuffler will not enable infinite lives for the second player on Clinger Winger on an unpatched ROM.
 	
 	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger.
@@ -203,6 +204,15 @@ function plugin.on_game_load(data, settings)
 	data.tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
 	
+	
+	-- ONLY APPLY THESE TO RECOGNIZED GAMES
+	-- ONLY APPLY THESE TO RECOGNIZED GAMES
+	-- ONLY APPLY THESE TO RECOGNIZED GAMES
+	
+	-- This is a temporary fix. Future versions will implement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
+	
+	if tag == "standard" or tag == "patched" then 
+	
 	-- enable Infinite Lives for Rash if checked
 	if settings.InfiniteLives == true and -- are infinite lives on?
 		mainmemory.read_u8(0x0011) > 0 and mainmemory.read_u8(0x0011) < 255 -- is Rash on?
@@ -223,6 +233,7 @@ function plugin.on_game_load(data, settings)
 			end
 	end
 	
+	end
 		
 
 	-- first time through with a bad match, tag will be nil
@@ -230,15 +241,16 @@ function plugin.on_game_load(data, settings)
 	
 	local check01_13 = tonumber(string.sub((tostring(config.current_game)),1,2))
 	
+	
 	if tag ~= nil and tag ~= NO_MATCH then
 	
-	
-
+	if tag == "standard" or tag == "patched" then 
 		if type(check01_13) ~= "number" or check01_13 > 13 or check01_13 <= 0 then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 			else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  level_names[which_level] .. ' (' .. tag .. ')')	
 		end
+	end	
 			local gamemeta = gamedata[tag]
 		local func = gamemeta.func
 		shouldSwap = func(gamemeta)
@@ -253,20 +265,28 @@ end
 function plugin.on_frame(data, settings)
 	-- run the check method for each individual game
 	if swap_scheduled then return end
-
--- This enables the Game Genie code for always moving at max speed in Clinger Winger. 
--- The bugfix makes this not work! This will only work on an unpatched ROM.
-	if settings.ClingerSpeed == true and which_level == 11 and memory.read_u8(0xA706) == 5 then
-		memory.write_u8(0xA706, 0) 
-		end
+	
+	local tag = get_game_tag()
+	
+	if tag == "standard" or tag == "patched" then 
+	
+	
+	-- This enables the Game Genie code for always moving at max speed in Clinger Winger. 
+	-- The bugfix makes this not work! This will only work on an unpatched ROM.
+		if settings.ClingerSpeed == true and which_level == 11 and memory.read_u8(0xA706) == 5 then
+			memory.write_u8(0xA706, 0) 
+			end
 		
 		
 
 	-- Set the memory value that represents the stage to the number specified by the file name.
-	if which_level ~= nil and memory.read_u8(0x8320) ~= which_level then 
-		memory.write_u8(0x8320, which_level)
-		end
+		if which_level ~= nil and memory.read_u8(0x8320) ~= which_level then 
+			memory.write_u8(0x8320, which_level)
+			end
+		
+	end
 
+	
 	local schedule_swap, delay = shouldSwap(prevdata)
 	if schedule_swap and frames_since_restart > 10 then
 		swap_game_delay(delay or 3)
