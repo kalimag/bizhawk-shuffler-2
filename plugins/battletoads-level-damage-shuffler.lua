@@ -16,7 +16,7 @@ plugin.description =
 	An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag.
 	
 	Get swapped to a different level whenever a Battletoad takes damage. Supports playing as Rash, Zitz, or both (including co-op!). You can mix and match which toad(s) you use in each level.
-		
+	
 	----PREPARATION----
 	You will need the Battletoads NTSC-U ROM. Optionally, you can patch that ROM with the bugfix patch by Ti. Find that, and its changelog, here: https://www.romhacking.net/hacks/2528/
 	
@@ -24,7 +24,7 @@ plugin.description =
 	
 	For example, make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. Mark a game as complete when you finish a level - or just play your way.
 	-------------------	
-	The plugin will check the hash of each ROM to be sure it is correct. If your ROM is not recognized, no damage swap will occur. ROMs starting with numbers outside of 01-13 will start at level 1.
+	The plugin will check the hash of each ROM to be sure it is correct. If your ROM is not recognized, no damage swap will occur. ROMs starting with numbers outside of 01-13, or non-numbers, will start at level 1.
 	
 	You can mix and match unpatched and bugfixed ROMs. If you plan to play in co-op, then strongly consider using the bugfix for #11, Clinger Winger, so that both players can move.
 	
@@ -159,7 +159,7 @@ end
 -- So, dividing the current HP value by 8, then rounding up, gives us the number of health boxes the toad has.
 
 local gamedata = {
-	['standard']={ -- Battletoads NES
+	['BT_NES']={ -- Battletoads NES
 		func=battletoads_swap,
 		rashgethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
 		zitzgethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
@@ -167,7 +167,7 @@ local gamedata = {
 		zitzgetlc=function() return mainmemory.read_u8(0x0012) end,
 		maxhp=function() return 6 end,
 	},	
-	['patched']={ -- Battletoads NES with bugfix patch
+	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
 		func=battletoads_swap,
 		rashgethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
 		zitzgethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
@@ -184,8 +184,8 @@ local backupchecks = {
 -- Added recognition of the two hashes for Battletoads (U), unmodified and patched, so that we don't need a separate .dat file for just 2 games.
 
 local function get_game_tag()
-	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "standard"
-	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "patched" 
+	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
+	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
 	end
 	
 	return nil
@@ -211,7 +211,9 @@ function plugin.on_game_load(data, settings)
 	
 	-- This is a temporary fix. Future versions will implement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
 	
-	if tag == "standard" or tag == "patched" then 
+	--BATTLETOADS NES
+	
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 	
 	-- enable Infinite Lives for Rash if checked
 	if settings.InfiniteLives == true and -- are infinite lives on?
@@ -233,6 +235,12 @@ function plugin.on_game_load(data, settings)
 			end
 	end
 	
+	-- if game was just loaded, these two addresses will = 255
+	-- after starting or continuing, they get set to 40 or 0, respectively, and stay that way
+	-- we now set these on game load, to let the player press start without sitting through the intro every time
+	if mainmemory.read_u8(0x00FD) == 255 then mainmemory.write_u8(0x00FD, 40) end
+	if mainmemory.read_u8(0x00FE) == 255 then mainmemory.write_u8(0x00FE, 0) end
+	
 	end
 		
 
@@ -244,7 +252,7 @@ function plugin.on_game_load(data, settings)
 	
 	if tag ~= nil and tag ~= NO_MATCH then
 	
-	if tag == "standard" or tag == "patched" then 
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 		if type(check01_13) ~= "number" or check01_13 > 13 or check01_13 <= 0 then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 			else
@@ -268,7 +276,7 @@ function plugin.on_frame(data, settings)
 	
 	local tag = get_game_tag()
 	
-	if tag == "standard" or tag == "patched" then 
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 	
 	
 	-- This enables the Game Genie code for always moving at max speed in Clinger Winger. 
