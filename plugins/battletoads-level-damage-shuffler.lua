@@ -1,12 +1,12 @@
 local plugin = {}
 
-plugin.name = "Battletoads NES Cross-Level Damage Shuffler"
+plugin.name = "Battletoads Cross-Level Damage Shuffler"
 plugin.author = "Phiggle"
 plugin.minversion = "2.6.2"
 plugin.settings =
 {
-	{ name='InfiniteLives', type='boolean', label='Infinite Lives' },
-	{ name='ClingerSpeed', type='boolean', label='Auto-clear Clinger Winger (unpatched ONLY)' },
+	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
+	{ name='ClingerSpeed', type='boolean', label='Auto-clear Clinger Winger NES (unpatched ONLY)' },
 }
 
 
@@ -15,26 +15,33 @@ plugin.description =
 [[
 	An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag.
 	
-	Get swapped to a different level whenever a Battletoad takes damage. Supports playing as Rash, Zitz, or both (including co-op!). You can mix and match which toad(s) you use in each level.
+	Get swapped to a different level whenever a Battletoad takes damage.
+	
+	Currently supports Battletoads (NES) NTSC-U, including co-op. Additional games are planned!
+	-- Optionally, you can patch some/all copies of Battletoads NES with the bugfix by Ti. Find that, and its features, here: https://www.romhacking.net/hacks/2528/
 	
 	----PREPARATION----
-	You will need the Battletoads NTSC-U ROM. Optionally, you can patch that ROM with the bugfix patch by Ti. Find that, and its changelog, here: https://www.romhacking.net/hacks/2528/
+	Put copies of the ROM into the games folder, with filenames STARTING with two-digit numbers, 01, 02, 03, etc. 
 	
-	Put copies of the ROM into the games folder, with filenames STARTING with two-digit numbers, 01, 02, 03 ... as high as 13 to start right at the Dark Queen. Each ROM will start at the level of the game you specify in the file name.
+	Each ROM will start at the level of the game you specify in the file name, or 1 if there is an error or nothing set. Mark a game as complete when you finish a level - or just play your way.
 	
-	For example, make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. Mark a game as complete when you finish a level - or just play your way.
+	For example, Battletoads NES goes up to 13 (Dark Queen). Make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. 
+		
+	You should set Min and Max Seconds in the shuffler high, so you don't get time swaps in addition to damage swaps.
 	-------------------	
-	The plugin will check the hash of each ROM to be sure it is correct. If your ROM is not recognized, no damage swap will occur. ROMs starting with numbers outside of 01-13, or non-numbers, will start at level 1.
 	
-	You can mix and match unpatched and bugfixed ROMs. If you plan to play in co-op, then strongly consider using the bugfix for #11, Clinger Winger, so that both players can move.
+	If your ROM is not recognized, no damage swap will occur.
+
+	If you game over, you will restart at the level specified in the ROM's file name. Continues still work as usual.
 	
-	If you game over, you will be restarted at the level specified in the file name. In that way, you already have infinite continues! 
-	Optionally, you can enable infinite lives, which will make it far easier to reach and defeat bosses.
-	-- To prevent softlocks, the shuffler will not enable infinite lives for the second player on Clinger Winger on an unpatched ROM.
+	Optionally, you can enable Infinite* Lives, which will make it far easier to reach and defeat bosses. 
+	-- It's not quite infinite. Lives refill to max ON SWAP. On your LAST game, you're done swapping, so be careful!
+	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
+	-- Infinite* lives do not activate for the second player on NES Clinger Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger Winger for some reason!
 	
-	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger.
+	Optionally, you can enable max speed and auto-clear Clinger Winger NES.
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only 1 toad can get to the boss.
-	-- You still have to beat the boss. If you use Infinite Lives, this will make Clinger Winger fairly trivial.
+	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger Winger fairly trivial.
 	
 	Enjoy?
 	
@@ -193,6 +200,18 @@ local function get_game_tag()
 end
 
 
+local function BT_NES_Zitz_Override()
+	if get_game_tag() == "BT_NES" --unpatched Battletoads NES
+		and which_level == 11 --in Clinger Winger
+		and mainmemory.read_u8(0x0011) ~= 255 --Rash is alive
+	then 
+		return true -- if all of those are true, then don't give Zitz all those lives, it'll more or less softlock you!
+	end
+	
+	return false
+end
+
+
 function plugin.on_setup(data, settings)
 	data.tags = data.tags or {}
 	
@@ -215,23 +234,22 @@ function plugin.on_game_load(data, settings)
 	
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 	
-	-- enable Infinite Lives for Rash if checked
-	if settings.InfiniteLives == true and -- are infinite lives on?
+	-- enable Infinite* Lives for Rash if checked
+	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
 		mainmemory.read_u8(0x0011) > 0 and mainmemory.read_u8(0x0011) < 255 -- is Rash on?
 		then 
-		mainmemory.write_u8(0x0011, 69) -- if so, set lives to 69.
+		mainmemory.write_u8(0x0011, 127) -- if so, set lives to 127.
 	end
 	
-	-- enable Infinite Lives for Zitz if checked 
+	-- enable Infinite* Lives for Zitz if checked 
 	-- DOES NOT APPLY IF LEVEL = 11 AND ROM IS UNPATCHED
-	if settings.InfiniteLives == true and -- are infinite lives on?
+	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
 		mainmemory.read_u8(0x0012) > 0 and mainmemory.read_u8(0x0012) < 255 -- is Zitz on?
 		then 
-			if (which_level ~= 11 -- are we outside of Clinger Winger?
-				or gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14") == true -- OR, are we patched?
-				or mainmemory.read_u8(0x0011) == 255 -- OR, is Rash off, so Zitz is solo?
-				then -- if so, set lives to 69.
-				mainmemory.write_u8(0x0012, 69)	 
+			if 
+				BT_NES_Zitz_Override() == false -- are we outside of the 2P/unpatched/on level 11 scenario?
+				then -- if so, set lives to 127.
+				mainmemory.write_u8(0x0012, 127)	 
 			end
 	end
 	
