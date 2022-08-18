@@ -72,7 +72,7 @@ if type(tonumber(which_level)) == "number" then
 
 
 
-level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
+bt_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
 "Terra Tubes", "Rat Race", "Clinger Winger", "The Revolution", "Armageddon"}
 
 
@@ -157,9 +157,9 @@ local function battletoads_swap(gamemeta)
 	end
 end
 
--- Modified version of the gamadata for Mega Mans on NES.
+-- Modified version of the gamedata for Mega Man games on NES.
 -- Battletoads NES shows 6 "boxes" that look like HP. 
--- But, each toad actually has a max HP of 47. 
+-- But, each toad actually has a max HP of 47. Each box is basically 8 HP.
 -- If your health falls 40, you go from 6 boxes to 5. Anything from 41-47 will still show 6 boxes.
 -- At 32, you have 4 boxes. At 24, 3 boxes. And so on - until a death at HP = 0.
 -- We only want to shuffle when the # of HP on screen changes, because 'light' damage (say, of only 2 HP from a chop by one of the pigs at the beginning) gets partially refilled over time.
@@ -230,6 +230,7 @@ function plugin.on_game_load(data, settings)
 	
 	-- This is a temporary fix. Future versions will implement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
 	
+	
 	--BATTLETOADS NES
 	
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
@@ -265,16 +266,16 @@ function plugin.on_game_load(data, settings)
 	-- first time through with a bad match, tag will be nil
 	-- can use this to print a debug message only the first time
 	
-	local check01_13 = tonumber(string.sub((tostring(config.current_game)),1,2))
+	local checklevel = tonumber(which_level)
 	
 	
 	if tag ~= nil and tag ~= NO_MATCH then
 	
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
-		if type(check01_13) ~= "number" or check01_13 > 13 or check01_13 <= 0 then 
+		if type(checklevel) ~= "number" or checklevel > 13 or checklevel <= 0 then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 			else
-			log_message('Level ' .. tostring(which_level) .. ': ' ..  level_names[which_level] .. ' (' .. tag .. ')')	
+			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_level_names[which_level] .. ' (' .. tag .. ')')	
 		end
 	end	
 			local gamemeta = gamedata[tag]
