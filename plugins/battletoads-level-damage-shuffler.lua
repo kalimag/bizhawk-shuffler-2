@@ -5,7 +5,7 @@ plugin.author = "Phiggle"
 plugin.minversion = "2.6.2"
 plugin.settings =
 {
-	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
+	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (Battletoads NES: see notes)' },
 	{ name='ClingerSpeed', type='boolean', label='Auto-clear Clinger Winger NES (unpatched ONLY)' },
 }
 
@@ -13,21 +13,25 @@ plugin.settings =
 
 plugin.description =
 [[
-	An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag.
-	
-	Get swapped to a different level whenever a Battletoad takes damage.
-	
+	Get swapped to a different level whenever a Battletoad takes damage. An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag (which you can use at the same time if you like!).
+		
 	Currently supports Battletoads (NES) NTSC-U, including co-op. Additional games are planned!
 	-- Optionally, you can patch some/all copies of Battletoads NES with the bugfix by Ti. Find that, and its features, here: https://www.romhacking.net/hacks/2528/
-	
-	----PREPARATION----
-	Put copies of the ROM into the games folder, with filenames STARTING with two-digit numbers, 01, 02, 03, etc. 
-	
-	Each ROM will start at the level of the game you specify in the file name, or 1 if there is an error or nothing set. Mark a game as complete when you finish a level - or just play your way.
-	
-	For example, Battletoads NES goes up to 13 (Dark Queen). Make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. 
 		
-	You should set Min and Max Seconds in the shuffler high, so you don't get time swaps in addition to damage swaps.
+	Joke games for the Chaos Shuffler for twitch.tv/the_betus that also work: 
+	-Anticipation (NES) - shuffles on incorrect player answers
+	-Captain Novolin (SNES)
+			
+	----PREPARATION----
+	-Put multiple copies of Battletoads ROMs into the games folder.
+	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
+	---For example: Battletoads NES goes up to 13 (Dark Queen). Make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. 
+	---(Other games don't need this step because they won't have level select. [Sorry.])
+	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
+	
+	Each BT ROM will start at the level number you specify in the file name, or level 1 if there is an error or nothing set. 
+	
+	Mark a game as complete when you finish a level - or just play your way.
 	-------------------	
 	
 	If your ROM is not recognized, no damage swap will occur.
@@ -39,11 +43,12 @@ plugin.description =
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger Winger for some reason!
 	
-	Optionally, you can enable max speed and auto-clear Clinger Winger NES.
+	BATTLETOADS NES:
+	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger NES.
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only 1 toad can get to the boss.
 	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger Winger fairly trivial.
 	
-	Enjoy?
+	Enjoy? Send bug reports?
 	
 ]]
 
@@ -92,54 +97,54 @@ local function battletoads_swap(gamemeta)
 	return function(data)
 
 
-		local rashcurrhp = gamemeta.rashgethp()
-		local rashcurrlc = gamemeta.rashgetlc()
-		local zitzcurrhp = gamemeta.zitzgethp()
-		local zitzcurrlc = gamemeta.zitzgetlc()
+		local p1currhp = gamemeta.p1gethp()
+		local p1currlc = gamemeta.p1getlc()
+		local p2currhp = gamemeta.p2gethp()
+		local p2currlc = gamemeta.p2getlc()
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
-		if rashcurrhp < minhp or rashcurrhp > maxhp then
+		if p1currhp < minhp or p1currhp > maxhp then
 			return false
-		elseif zitzcurrhp < minhp or zitzcurrhp > maxhp then
+		elseif p2currhp < minhp or p2currhp > maxhp then
 			return false
 		end
 
 		-- retrieve previous health and lives before backup
-		local rashprevhp = data.rashprevhp
-		local rashprevlc = data.rashprevlc
-		local zitzprevhp = data.zitzprevhp
-		local zitzprevlc = data.zitzprevlc
+		local p1prevhp = data.p1prevhp
+		local p1prevlc = data.p1prevlc
+		local p2prevhp = data.p2prevhp
+		local p2prevlc = data.p2prevlc
 
-		data.rashprevhp = rashcurrhp
-		data.rashprevlc = rashcurrlc
-		data.zitzprevhp = zitzcurrhp
-		data.zitzprevlc = zitzcurrlc
+		data.p1prevhp = p1currhp
+		data.p1prevlc = p1currlc
+		data.p2prevhp = p2currhp
+		data.p2prevlc = p2currlc
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
-		if data.rashhpcountdown ~= nil and data.rashhpcountdown > 0 then
-			data.rashhpcountdown = data.rashhpcountdown - 1
-			if data.rashhpcountdown == 0 and rashcurrhp > minhp then
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
 				return true
 			end
 		end		
 		
-		if data.zitzhpcountdown ~= nil and data.zitzhpcountdown > 0 then
-			data.zitzhpcountdown = data.zitzhpcountdown - 1
-			if data.zitzhpcountdown == 0 and zitzcurrhp > minhp then
+		if data.p2hpcountdown ~= nil and data.p2hpcountdown > 0 then
+			data.p2hpcountdown = data.p2hpcountdown - 1
+			if data.p2hpcountdown == 0 and p2currhp > minhp then
 				return true
 			end
 		end
 
 		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
-		if rashprevhp ~= nil and rashcurrhp < rashprevhp then
-			data.rashhpcountdown = gamemeta.delay or 3
-		elseif zitzprevhp ~= nil and zitzcurrhp < zitzprevhp then
-			data.zitzhpcountdown = gamemeta.delay or 3
+		if p1prevhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		elseif p2prevhp ~= nil and p2currhp < p2prevhp then
+			data.p2hpcountdown = gamemeta.delay or 3
 		end
 
 		-- check to see if the life count went down
@@ -147,15 +152,78 @@ local function battletoads_swap(gamemeta)
 		-- In Battletoads NES, when you're in 1P mode, the other toad's life counter is set to 255. When they join, lives are set to 0.
 		-- Thus, we ignore lives transitions from 255, to prevent unnecessary swaps when a toad "joins"
 		
-		if rashprevlc ~= nil and rashcurrlc < rashprevlc and rashprevlc ~= 255 then
+		if p1prevlc ~= nil and p1currlc < p1prevlc and p1prevlc ~= 255 then
 			return true
-		elseif zitzprevlc ~= nil and zitzcurrlc < zitzprevlc and zitzprevlc ~= 255 then
+		elseif p2prevlc ~= nil and p2currlc < p2prevlc and p2prevlc ~= 255 then
 			return true
 		end
 
 		return false
 	end
 end
+
+local function novolin_swap(gamemeta)
+	return function(data)
+
+
+		local p1currhp = gamemeta.p1gethp()
+		local p1currlc = gamemeta.p1getlc()
+
+		local maxhp = gamemeta.maxhp()
+		local minhp = 0
+
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		if p1currhp < minhp or p1currhp > maxhp then
+			return false
+		end
+
+		-- retrieve previous health and lives before backup
+		local p1prevhp = data.p1prevhp
+		local p1prevlc = data.p1prevlc
+
+		data.p1prevhp = p1currhp
+		data.p1prevlc = p1currlc
+
+		-- this delay ensures that when the game ticks away health for the end of a level,
+		-- we can catch its purpose and hopefully not swap, since this isnt damage related
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
+				return true
+			end
+		end		
+	
+
+		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+		if p1prevhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+
+		-- check to see if the life count went down
+		
+		if p1prevlc ~= nil and p1currlc < p1prevlc then
+			return true
+		end
+
+		return false
+	end
+end
+
+local function antic_swap(gamemeta) -- Anticipation NES has a specific address that goes to 192 when you get a letter wrong, then ticks down frame by frame to 0 or 16. Never moves up otherwise.
+	return function(data)
+
+		local p1currhp = gamemeta.botch192()
+		
+		if p1currhp == 192 then 
+			return true 
+		end
+	
+		return false 
+	end
+end
+
+
 
 -- Modified version of the gamedata for Mega Man games on NES.
 -- Battletoads NES shows 6 "boxes" that look like HP. 
@@ -168,19 +236,29 @@ end
 local gamedata = {
 	['BT_NES']={ -- Battletoads NES
 		func=battletoads_swap,
-		rashgethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
-		zitzgethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
-		rashgetlc=function() return mainmemory.read_u8(0x0011) end,
-		zitzgetlc=function() return mainmemory.read_u8(0x0012) end,
+		p1gethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
+		p2gethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
+		p1getlc=function() return mainmemory.read_u8(0x0011) end,
+		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
 		func=battletoads_swap,
-		rashgethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
-		zitzgethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
-		rashgetlc=function() return mainmemory.read_u8(0x0011) end,
-		zitzgetlc=function() return mainmemory.read_u8(0x0012) end,
+		p1gethp=function() return math.ceil(mainmemory.read_u8(0x051A)/8) end,
+		p2gethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
+		p1getlc=function() return mainmemory.read_u8(0x0011) end,
+		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		maxhp=function() return 6 end,
+	},	
+	['Novolin']={ -- Captain Novolin SNES
+		func=novolin_swap,
+		p1gethp=function() return bit.band(mainmemory.read_u8(0x0BDA), 0x7F) end,
+		p1getlc=function() return mainmemory.read_u8(0x06C3) end,
+		maxhp=function() return 4 end,
+	},	
+	['Anticipation']={ -- Anticipation NES
+		func=antic_swap,
+		botch192=function() return mainmemory.read_u8(0x00C3) end,
 	},	
 }
 
@@ -188,11 +266,14 @@ local backupchecks = {
 }
 
 
--- Added recognition of the two hashes for Battletoads (U), unmodified and patched, so that we don't need a separate .dat file for just 2 games.
+-- Added recognition of the hashes for Battletoads (U), unmodified and patched, and additional games.
+-- This is a temporary fix. Future versions will reimplement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
 
 local function get_game_tag()
 	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
 	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
+	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
+	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
 	end
 	
 	return nil
@@ -223,12 +304,13 @@ function plugin.on_game_load(data, settings)
 	data.tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
 	
+	local levelnumber = tonumber(which_level)
+	
 	
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
 	
-	-- This is a temporary fix. Future versions will implement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
 	
 	
 	--BATTLETOADS NES
@@ -261,31 +343,35 @@ function plugin.on_game_load(data, settings)
 	if mainmemory.read_u8(0x00FE) == 255 then mainmemory.write_u8(0x00FE, 0) end
 	
 	end
+	
+
 		
 
 	-- first time through with a bad match, tag will be nil
 	-- can use this to print a debug message only the first time
 	
-	local checklevel = tonumber(which_level)
-	
 	
 	if tag ~= nil and tag ~= NO_MATCH then
-	
-	if tag == "BT_NES" or tag == "BT_NES_patched" then 
-		if type(checklevel) ~= "number" or checklevel > 13 or checklevel <= 0 then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
-			else
-			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_level_names[which_level] .. ' (' .. tag .. ')')	
-		end
-	end	
-			local gamemeta = gamedata[tag]
+		local gamemeta = gamedata[tag]
 		local func = gamemeta.func
 		shouldSwap = func(gamemeta)
-	elseif tag == nil then
-		log_message(string.format('unrecognized? %s (%s)',
-			gameinfo.getromname(), gameinfo.getromhash()))
 	end
 	
+	---log stuff
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
+		if type(levelnumber) ~= "number" or levelnumber > 13 or levelnumber <= 0 then 
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		else
+			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_level_names[which_level] .. ' (' .. tag .. ')')
+		end
+		elseif tag == "Novolin" then 
+			log_message(string.format('Captain Novolin (SNES)'))
+		elseif tag == "Anticipation" then 
+			log_message(string.format('Anticipation (NES)'))
+		elseif tag == nil or tag == NO_MATCH then
+			log_message(string.format('unrecognized? %s (%s)',
+			gameinfo.getromname(), gameinfo.getromhash()))
+	end
 	
 end
 
