@@ -19,7 +19,7 @@ plugin.description =
 	-- Optionally, you can patch some/all copies of Battletoads NES with the bugfix by Ti. Find that, and its features, here: https://www.romhacking.net/hacks/2528/
 		
 	Joke games for the Chaos Shuffler for twitch.tv/the_betus that also work: 
-	-Anticipation (NES) - shuffles on incorrect player answers
+	-Anticipation (NES) - shuffles on incorrect player answers and running out of time
 	-Captain Novolin (SNES)
 			
 	----PREPARATION----
@@ -251,8 +251,8 @@ local function antic_swap(gamemeta)
 			currbuzzintime == 0 then 
 		
 		-- NOTE: will reset to 0 also when all human players are out of guesses and no one else can answer. We don't want a second swap in those cases. 
-		-- In this case, currbotchedletter will == 16, and guess time will be < 25.
-			if currbotchedletter == 16 and currtypetime < 25 then return false end 
+		-- In this case, currbotchedletter will == 0 or 16, and guess time will be < 25.
+			if currtypetime < 25 and currbotchedletter == 0 or currbotchedletter == 16 then return false end 
 			
 			return true
 		end
