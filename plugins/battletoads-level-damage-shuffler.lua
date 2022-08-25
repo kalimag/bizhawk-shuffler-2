@@ -5,7 +5,7 @@ plugin.author = "Phiggle"
 plugin.minversion = "2.6.2"
 plugin.settings =
 {
-	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (Battletoads NES: see notes)' },
+	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
 	{ name='ClingerSpeed', type='boolean', label='Auto-clear Clinger Winger NES (unpatched ONLY)' },
 }
 
@@ -67,6 +67,9 @@ local shouldSwap = function() return false end
 local which_level = string.sub((tostring(config.current_game)),1,2)
 
 -- if file name starts with a number outside of 01-13, reset the level to 1
+-- TODO: recode to accommodate different min and max levels (Battletoads SNES requires 00-07)
+-- consider moving function elsewhere if needed
+
 if type(tonumber(which_level)) == "number" then 
 	which_level = tonumber(which_level)
 		if which_level >13 or which_level <1 then which_level = 1 end
@@ -91,8 +94,10 @@ local function update_prev(key, value)
 end
 
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
--- You can play as Rash, Zitz, or both, so the shuffler needs to monitor both toads.
+-- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
 -- They have the same max HP.
+-- In BT NES, this should only swap when a "box" of health is taken away. That is taken care of by the ceil function.
+-- In BT SNES, damage should register even if a pip of health is not eliminated by an attack there.
 local function battletoads_swap(gamemeta)
 	return function(data)
 
@@ -210,13 +215,51 @@ local function novolin_swap(gamemeta)
 	end
 end
 
-local function antic_swap(gamemeta) -- Anticipation NES has a specific address that goes to 192 when you get a letter wrong, then ticks down frame by frame to 0 or 16. Never moves up otherwise.
+local function antic_swap(gamemeta) 
 	return function(data)
+	-- We will swap on 3 scenarios. They work across all players.
+	-- 1. There is a specific address that goes to 192 when a human player gets a letter wrong, then ticks down frame by frame to 0 or 16. Never moves up otherwise.
+	-- 2. There is an address that counts down the die from 6 to 0. When you run out of time, this value hits 0, and you should swap.
+	-- 3. There is an address that counts down the time to type in a guess. A CPU player will always provide a correct answer when this activates. 
+	-- However, when a human player runs out of time, this hits 0, then goes to 255. This should swap on 255, IGNORING the title screen.
+	-- THESE VARIABLES ARE SHARED IN MULTIPLAYER YAY
+	
+	
+	
+		local currbotchedletter = gamemeta.getbotchedletter() 
+		local currbuzzintime = gamemeta.getbuzzintime() 
+		local currtypetime = gamemeta.gettypetime()
 
-		local p1currhp = gamemeta.botch192()
+
+		-- retrieve previous values for botch, buzz-in, and typing time
+		local prevbotchedletter = data.prevbotchedletter
+		local prevbuzzintime = data.prevbuzzintime
+		local prevtypetime = data.prevtypetime
+
+		data.prevbotchedletter = currbotchedletter
+		data.prevbuzzintime = currbuzzintime
+		data.prevtypetime = currtypetime
+
+		--wrong letter
+		if prevbotchedletter ~= nil and currbotchedletter > prevbotchedletter then -- remember, only goes up when a wrong answer is guessed.
+			return true
+		end
 		
-		if p1currhp == 192 then 
-			return true 
+		--ran out of time to buzz in (ranges from 0-6, resets to 6 once the die appears, shuffle on drop to 0)
+		if prevbuzzintime ~= nil and 
+			currbuzzintime < prevbuzzintime and -- it'll stay on 0 for a while.
+			currbuzzintime == 0 then 
+		
+		-- NOTE: will reset to 0 also when all human players are out of guesses and no one else can answer. We don't want a second swap in those cases. 
+		-- In this case, currbotchedletter will == 16, and guess time will be < 25.
+			if currbotchedletter == 16 and currtypetime < 25 then return false end 
+			
+			return true
+		end
+		
+		--ran out of time to type answer (ranges from 0-25, goes to 255 when timer is completely done)
+		if prevtypetime ~= nil and prevtypetime == 0 and currtypetime == 255 then -- it'll stay on 255 for a while.
+			return true
 		end
 	
 		return false 
@@ -258,7 +301,9 @@ local gamedata = {
 	},	
 	['Anticipation']={ -- Anticipation NES
 		func=antic_swap,
-		botch192=function() return mainmemory.read_u8(0x00C3) end,
+		getbotchedletter=function() return mainmemory.read_u8(0x00C3) end,
+		getbuzzintime=function() return mainmemory.read_u8(0x007F) end,
+		gettypetime=function() return mainmemory.read_u8(0x0086) end,
 	},	
 }
 
@@ -344,6 +389,18 @@ function plugin.on_game_load(data, settings)
 	
 	end
 	
+	
+	--CAPTAIN NOVOLIN
+	
+	if tag == "Novolin" then 
+	
+	-- enable Infinite* Lives for Captain Novolin if checked
+		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+			mainmemory.read_u8(0x06C3) > 0 and mainmemory.read_u8(0x06C3) < 255 -- have we started playing?
+			then 
+			mainmemory.write_u8(0x06C3, 69) -- if so, set lives to 69. Nice.
+		end
+	end
 
 		
 
