@@ -15,7 +15,10 @@ plugin.description =
 [[
 	Get swapped to a different level whenever a Battletoad takes damage. An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag (which you can use at the same time if you like!).
 		
-	Currently supports Battletoads (NES) NTSC-U, including co-op. Additional games are planned!
+	Currently supports (ALL NTSC-U):
+	Battletoads (NES), 1p or 2p
+	Battletoads in Battlemaniacs (SNES), 1p or 2p
+	More games planned!
 	-- Optionally, you can patch some/all copies of Battletoads NES with the bugfix by Ti. Find that, and its features, here: https://www.romhacking.net/hacks/2528/
 		
 	Joke games for the Chaos Shuffler for twitch.tv/the_betus that also work: 
@@ -42,6 +45,7 @@ plugin.description =
 	-- It's not quite infinite. Lives refill to max ON SWAP. On your LAST game, you're done swapping, so be careful!
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger Winger for some reason!
+	-- There is no such thing as infinite lives in Anticipation.
 	
 	BATTLETOADS NES:
 	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger NES.
@@ -62,26 +66,53 @@ local shouldSwap = function() return false end
 
 
 
+
+-- Added recognition of the hashes for Battletoads (U), unmodified and patched, and additional games.
+-- This is a temporary fix. Future versions will reimplement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
+
+local function get_game_tag()
+	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
+	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
+	elseif gameinfo.getromhash() == "3041C5C2A88449CF358A57D019930849575F8F6D" then return "BT_SNES" 
+	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
+	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
+	end
+	
+	return nil
+	
+end
+
+
 -- Which level to patch into on game load?
 -- Grab the first two characters of the filename, turned into a number.
 local which_level = string.sub((tostring(config.current_game)),1,2)
 
 -- if file name starts with a number outside of 01-13, reset the level to 1
 -- TODO: recode to accommodate different min and max levels (Battletoads SNES requires 00-07)
+-- I sure am great at coding!!
 -- consider moving function elsewhere if needed
 
 if type(tonumber(which_level)) == "number" then 
 	which_level = tonumber(which_level)
+	--BT_NES
+		if get_game_tag(current_game) == "BT_NES" or "BT_NES_patched" then 
 		if which_level >13 or which_level <1 then which_level = 1 end
+		end
+	--BT_SNES
+		if get_game_tag(current_game) == "BT_SNES" then 
+		if which_level >8 or which_level <1 then which_level = 1 end
+		end
 	else 
 	which_level = 1
 	end
 
 
-
-
-bt_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
+bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
 "Terra Tubes", "Rat Race", "Clinger Winger", "The Revolution", "Armageddon"}
+
+
+bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Roller Coaster", "Bonus Stage 2", "Dark Tower"}
+
 
 
 -- update value in prevdata and return whether the value has changed, new value, and old value
@@ -104,8 +135,10 @@ local function battletoads_swap(gamemeta)
 
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
+		local p1currcont = gamemeta.p1getcont()
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
+		local p2currcont = gamemeta.p2getcont()
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
@@ -121,13 +154,17 @@ local function battletoads_swap(gamemeta)
 		-- retrieve previous health and lives before backup
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
+		local p1prevcont = data.p1prevcont
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
+		local p2prevcont = data.p2prevcont
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
+		data.p1prevcont = p1currcont
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
+		data.p2prevcont = p2currcont
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -151,7 +188,7 @@ local function battletoads_swap(gamemeta)
 		elseif p2prevhp ~= nil and p2currhp < p2prevhp then
 			data.p2hpcountdown = gamemeta.delay or 3
 		end
-
+		
 		-- check to see if the life count went down
 		
 		-- In Battletoads NES, when you're in 1P mode, the other toad's life counter is set to 255. When they join, lives are set to 0.
@@ -162,6 +199,18 @@ local function battletoads_swap(gamemeta)
 		elseif p2prevlc ~= nil and p2currlc < p2prevlc and p2prevlc ~= 255 then
 			return true
 		end
+		
+		-- In Battletoads NES and SNES, we want to swap on a continue. 
+		-- In Battletoads NES, you use a continue joining the game, so let's use the same lives ~= 255 protection to prevent an extra swap.
+		
+		if tag == "BT_NES" or tag == "BT_NES_patched" then
+		if p1prevcont ~= nil and p1currcont < p1prevcont and p1prevlc ~= 255 then
+			return true
+		elseif p2prevcont ~= nil and p2currcont < p2prevcont and p2prevlc ~= 255 then
+			return true
+		end
+		end
+		
 
 		return false
 	end
@@ -283,6 +332,8 @@ local gamedata = {
 		p2gethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
 		p1getlc=function() return mainmemory.read_u8(0x0011) end,
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
+		p1getcont=function() return mainmemory.read_u8(0x000E) end,
+		p2getcont=function() return mainmemory.read_u8(0x000F) end,
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
@@ -291,7 +342,19 @@ local gamedata = {
 		p2gethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
 		p1getlc=function() return mainmemory.read_u8(0x0011) end,
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
+		p1getcont=function() return mainmemory.read_u8(0x000E) end,
+		p2getcont=function() return mainmemory.read_u8(0x000F) end,
 		maxhp=function() return 6 end,
+	},	
+	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
+		func=battletoads_swap,
+		p1gethp=function() return mainmemory.read_u8(0x000E5E) end,
+		p2gethp=function() return mainmemory.read_u8(0x000E60) end,
+		p1getlc=function() return mainmemory.read_u8(0x000028) end,
+		p2getlc=function() return mainmemory.read_u8(0x00002A) end,
+		p1getcont=function() return mainmemory.read_u8(0x00002E) end,
+		p2getcont=function() return mainmemory.read_u8(0x00002E) end,
+		maxhp=function() return 16 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
 		func=novolin_swap,
@@ -310,20 +373,6 @@ local gamedata = {
 local backupchecks = {
 }
 
-
--- Added recognition of the hashes for Battletoads (U), unmodified and patched, and additional games.
--- This is a temporary fix. Future versions will reimplement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
-
-local function get_game_tag()
-	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
-	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
-	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
-	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
-	end
-	
-	return nil
-	
-end
 
 
 local function BT_NES_Zitz_Override()
@@ -401,6 +450,28 @@ function plugin.on_game_load(data, settings)
 			mainmemory.write_u8(0x06C3, 69) -- if so, set lives to 69. Nice.
 		end
 	end
+	
+	
+	--Battletoads in Battlemaniacs (SNES)
+	
+	if tag == "BT_SNES" then 
+	
+	-- enable Infinite* Lives for P1 (Pimple) if checked
+		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+			mainmemory.read_u8(0x000028) > 0 and mainmemory.read_u8(0x000028) < 255 -- have we started playing?
+			then 
+			mainmemory.write_u8(0x000028, 69) -- if so, set lives to 69. Nice.
+		end
+			
+	-- enable Infinite* Lives for P2 (Rash) if checked
+		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+			mainmemory.read_u8(0x00002A) > 0 and mainmemory.read_u8(0x00002A) < 255 -- have we started playing?
+			then 
+			mainmemory.write_u8(0x00002A, 69) -- if so, set lives to 69. Nice.
+		end
+	
+	end
+
 
 		
 
@@ -419,7 +490,13 @@ function plugin.on_game_load(data, settings)
 		if type(levelnumber) ~= "number" or levelnumber > 13 or levelnumber <= 0 then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 		else
-			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_level_names[which_level] .. ' (' .. tag .. ')')
+			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
+		end
+		elseif tag == "BT_SNES" then 
+		if type(levelnumber) ~= "number" or levelnumber > 7 or levelnumber <= 0 then 
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		else
+			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 		elseif tag == "Novolin" then 
 			log_message(string.format('Captain Novolin (SNES)'))
@@ -438,6 +515,8 @@ function plugin.on_frame(data, settings)
 	
 	local tag = get_game_tag()
 	
+	
+	--Battletoads NES
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 	
 	
@@ -456,6 +535,34 @@ function plugin.on_frame(data, settings)
 		
 	end
 
+	--Battletoads in Battlemaniacs (SNES)
+	
+	--Setting the level variable only works on a continue. Stupid but true! You'll just enter a glitched first level otherwise.
+	--So, time to die ASAP if you chose a level other than the first one.
+	
+	if tag == "BT_SNES" then 
+	--if current level < which_level, then 
+		--set lives to 0
+		--set health to (if >1, 1, else don't touch)
+		--once a continue is used, set level to which_level
+		--don't forget, which_level for BT_SNES starts at 0, so we subtract 1.
+	
+	
+		if which_level ~= nil and which_level > 1 then
+			if memory.read_u8(0x00002C) == 0 then
+				if memory.read_u8(0x00002E) == 2 then -- if we just started the game and opted to start on a different level,
+					memory.write_u8(0x000028, 0) -- set Pimple's lives to 0
+					memory.write_u8(0x00002A, 0) -- set Rash's lives to 0
+					if memory.read_u8(0x000E5E) > 1 then memory.write_u8(0x000E5E, 1) end -- set Pimple's health to max of 1
+					if memory.read_u8(0x000E60) > 1 then memory.write_u8(0x000E60, 1) end -- set Rash's health to max of 1
+				else memory.write_u8(0x00002C, which_level - 1) end -- once a continue is used, overwrite the level variable and don't touch the rest!
+			end
+		end
+		
+	end
+	
+	-- DOUBLE CHECK CORRECT BEHAVIOR FOR NES GAME, INCLUDING ON_FRAME. CONSIDER < rather than ~=
+	
 	
 	local schedule_swap, delay = shouldSwap(prevdata)
 	if schedule_swap and frames_since_restart > 10 then
