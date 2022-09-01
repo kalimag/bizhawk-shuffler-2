@@ -14,43 +14,47 @@ plugin.settings =
 plugin.description =
 [[
 	Get swapped to a different level whenever a Battletoad takes damage. An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag (which you can use at the same time if you like!).
+	
+	Mark a 'toads game as complete when you finish a level - or just play your way.
 		
 	Currently supports (ALL NTSC-U):
-	Battletoads (NES), 1p or 2p
+	Battletoads (NES), 1p or 2p - also works with the bugfix by Ti: https://www.romhacking.net/hacks/2528/
 	Battletoads in Battlemaniacs (SNES), 1p or 2p
 	More games planned!
-	-- Optionally, you can patch some/all copies of Battletoads NES with the bugfix by Ti. Find that, and its features, here: https://www.romhacking.net/hacks/2528/
-		
-	Joke games for the Chaos Shuffler for twitch.tv/the_betus that also work: 
-	-Anticipation (NES) - shuffles on incorrect player answers and running out of time
-	-Captain Novolin (SNES)
-			
-	----PREPARATION----
-	-Put multiple copies of Battletoads ROMs into the games folder.
-	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
-	---For example: Battletoads NES goes up to 13 (Dark Queen). Make 13 copies, starting with 01 through 13, if you want every level to be in the shuffler once. 
-	---(Other games don't need this step because they won't have level select. [Sorry.])
-	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
 	
 	Each BT ROM will start at the level number you specify in the file name, or level 1 if there is an error or nothing set. 
 	
-	Mark a game as complete when you finish a level - or just play your way.
+	If you game over, you will restart at the level specified in the ROM's file name. Continues still work as usual.
+	
+	----PREPARATION----
+	-First, set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
+	
+	-Put multiple copies of your Battletoads ROMs into the games folder.
+	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
+	-LEVEL RANGES: 01-13 for Battletoads NES, 01-08 for Battlemaniacs (SNES).
+	
+	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every NES level to be in the shuffler once. 
+	
+	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level, Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.***
 	-------------------	
 	
 	If your ROM is not recognized, no damage swap will occur.
-
-	If you game over, you will restart at the level specified in the ROM's file name. Continues still work as usual.
 	
 	Optionally, you can enable Infinite* Lives, which will make it far easier to reach and defeat bosses. 
 	-- It's not quite infinite. Lives refill to max ON SWAP. On your LAST game, you're done swapping, so be careful!
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger Winger for some reason!
-	-- There is no such thing as infinite lives in Anticipation.
 	
 	BATTLETOADS NES:
-	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger NES.
+	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger NES (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only 1 toad can get to the boss.
 	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger Winger fairly trivial.
+	
+	-------------------	
+	Joke games recognized for the Chaos Shuffler for twitch.tv/the_betus that also shuffle on damage (but no level select, sorry!):
+	-Anticipation (NES) - shuffles on incorrect player answers and running out of time. Lives are n/a.
+	-Captain Novolin (SNES) - yes, you can have infinite* Captains
+	-------------------	
 	
 	Enjoy? Send bug reports?
 	
@@ -150,6 +154,8 @@ local function battletoads_swap(gamemeta)
 		elseif p2currhp < minhp or p2currhp > maxhp then
 			return false
 		end
+		
+		
 
 		-- retrieve previous health and lives before backup
 		local p1prevhp = data.p1prevhp
@@ -436,6 +442,7 @@ function plugin.on_game_load(data, settings)
 	if mainmemory.read_u8(0x00FD) == 255 then mainmemory.write_u8(0x00FD, 40) end
 	if mainmemory.read_u8(0x00FE) == 255 then mainmemory.write_u8(0x00FE, 0) end
 	
+	-- TODO: infinite continues
 	end
 	
 	
@@ -469,7 +476,7 @@ function plugin.on_game_load(data, settings)
 			then 
 			mainmemory.write_u8(0x00002A, 69) -- if so, set lives to 69. Nice.
 		end
-	
+	-- TODO: infinite continues
 	end
 
 
@@ -529,8 +536,8 @@ function plugin.on_frame(data, settings)
 		
 
 	-- Set the memory value that represents the stage to the number specified by the file name.
-		if which_level ~= nil and memory.read_u8(0x8320) ~= which_level then 
-			memory.write_u8(0x8320, which_level)
+		if which_level ~= nil and memory.read_u8(0x8320) <= which_level then --double check that less than/equal to gets desired effect
+			memory.write_u8(0x8320, math.max(which_level, memory.read_u8(0x8320)))
 			end
 		
 	end
@@ -538,7 +545,7 @@ function plugin.on_frame(data, settings)
 	--Battletoads in Battlemaniacs (SNES)
 	
 	--Setting the level variable only works on a continue. Stupid but true! You'll just enter a glitched first level otherwise.
-	--So, time to die ASAP if you chose a level other than the first one.
+	--So, time for Pimple to die ASAP if you chose a level other than the first one.
 	
 	if tag == "BT_SNES" then 
 	--if current level < which_level, then 
@@ -550,12 +557,13 @@ function plugin.on_frame(data, settings)
 	
 		if which_level ~= nil and which_level > 1 then
 			if memory.read_u8(0x00002C) == 0 then
-				if memory.read_u8(0x00002E) == 2 then -- if we just started the game and opted to start on a different level,
+				if memory.read_u8(0x00002E) == 1 then 
+					memory.write_u8(0x00002C, which_level - 1) -- if you just used a continue, overwrite level, and you're good to go.
+					memory.write_u8(0x00002E, 2) -- refund that continue
+				elseif memory.read_u8(0x00002E) == 2 then -- otherwise, if we just started the game and did specify a different level in the filename,
 					memory.write_u8(0x000028, 0) -- set Pimple's lives to 0
-					memory.write_u8(0x00002A, 0) -- set Rash's lives to 0
-					if memory.read_u8(0x000E5E) > 1 then memory.write_u8(0x000E5E, 1) end -- set Pimple's health to max of 1
-					if memory.read_u8(0x000E60) > 1 then memory.write_u8(0x000E60, 1) end -- set Rash's health to max of 1
-				else memory.write_u8(0x00002C, which_level - 1) end -- once a continue is used, overwrite the level variable and don't touch the rest!
+					memory.write_u8(0x000E5E, 0)  -- set Pimple's health to 0
+				end 
 			end
 		end
 		
