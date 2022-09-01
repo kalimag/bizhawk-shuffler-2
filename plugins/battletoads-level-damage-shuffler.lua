@@ -135,6 +135,9 @@ end
 -- In BT SNES, damage should register even if a pip of health is not eliminated by an attack there.
 local function battletoads_swap(gamemeta)
 	return function(data)
+	
+	
+		local tag = get_game_tag()
 
 
 		local p1currhp = gamemeta.p1gethp()
@@ -206,13 +209,13 @@ local function battletoads_swap(gamemeta)
 			return true
 		end
 		
-		-- In Battletoads NES and SNES, we want to swap on a continue. 
-		-- In Battletoads NES, you use a continue joining the game, so let's use the same lives ~= 255 protection to prevent an extra swap.
+		-- In Battletoads NES, we want to swap on a continue. 
+		-- In Battletoads NES, you use a continue joining the game, so we should not swap when using the first continue (when continues = 3).
 		
 		if tag == "BT_NES" or tag == "BT_NES_patched" then
-		if p1prevcont ~= nil and p1currcont < p1prevcont and p1prevlc ~= 255 then
+		if p1prevcont ~= nil and p1prevcont < 3 and p1currcont < p1prevcont then
 			return true
-		elseif p2prevcont ~= nil and p2currcont < p2prevcont and p2prevlc ~= 255 then
+		elseif p2prevcont ~= nil and p2prevcont < 3 and p2currcont < p2prevcont then
 			return true
 		end
 		end
@@ -359,7 +362,7 @@ local gamedata = {
 		p1getlc=function() return mainmemory.read_u8(0x000028) end,
 		p2getlc=function() return mainmemory.read_u8(0x00002A) end,
 		p1getcont=function() return mainmemory.read_u8(0x00002E) end,
-		p2getcont=function() return mainmemory.read_u8(0x00002E) end,
+		p2getcont=function() return mainmemory.read_u8(0x000030) end,
 		maxhp=function() return 16 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
@@ -500,7 +503,7 @@ function plugin.on_game_load(data, settings)
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 		elseif tag == "BT_SNES" then 
-		if type(levelnumber) ~= "number" or levelnumber > 7 or levelnumber <= 0 then 
+		if type(levelnumber) ~= "number" or levelnumber > 8 or levelnumber <= 0 then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 		else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
