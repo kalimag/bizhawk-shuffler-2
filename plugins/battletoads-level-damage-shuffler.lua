@@ -31,7 +31,7 @@ plugin.description =
 	
 	-Put multiple copies of your Battletoads ROMs into the games folder.
 	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
-	-LEVEL RANGES: 01-13 for Battletoads NES, 01-08 for Battlemaniacs (SNES).
+	-LEVEL RANGES: 01-13 for Battletoads NES, 01-05 and 07-08 for Battlemaniacs (SNES). For some reason, you can't start on 6 (Bonus Stage 2) - it will bump you back to 5 (snakes).
 	
 	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every NES level to be in the shuffler once. 
 	
@@ -54,6 +54,7 @@ plugin.description =
 	Joke games recognized for the Chaos Shuffler for twitch.tv/the_betus that also shuffle on damage (but no level select, sorry!):
 	-Anticipation (NES) - shuffles on incorrect player answers and running out of time. Lives are n/a.
 	-Captain Novolin (SNES) - yes, you can have infinite* Captains
+	-Super Mario Kart (SNES) - Infinite lives will let you retry a stage over and over
 	-------------------	
 	
 	Enjoy? Send bug reports?
@@ -80,6 +81,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "3041C5C2A88449CF358A57D019930849575F8F6D" then return "BT_SNES" 
 	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
 	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
+	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
 	end
 	
 	return nil
@@ -115,7 +117,7 @@ bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arct
 "Terra Tubes", "Rat Race", "Clinger Winger", "The Revolution", "Armageddon"}
 
 
-bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Roller Coaster", "Bonus Stage 2", "Dark Tower"}
+bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Bonus Stage 2", "Roller Coaster", "Dark Tower"}
 
 
 
@@ -143,9 +145,11 @@ local function battletoads_swap(gamemeta)
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
 		local p1currcont = gamemeta.p1getcont()
+		local p1currhitonpuck = gamemeta.p1gethitonpuck()
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
 		local p2currcont = gamemeta.p2getcont()
+		local p2currhitonpuck = gamemeta.p2gethitonpuck()
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
@@ -164,16 +168,19 @@ local function battletoads_swap(gamemeta)
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
 		local p1prevcont = data.p1prevcont
+		local p1prevhitonpuck = data.p1prevhitonpuck
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
-		local p2prevcont = data.p2prevcont
+		local p2prevhitonpuck = data.p2prevhitonpuck
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
 		data.p1prevcont = p1currcont
+		data.p1prevhitonpuck = p1currhitonpuck
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
 		data.p2prevcont = p2currcont
+		data.p2prevhitonpuck = p2currhitonpuck
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -209,6 +216,27 @@ local function battletoads_swap(gamemeta)
 			return true
 		end
 		
+		
+		-- In Battletoads SNES bonus levels, your pins/domino count can go down without your health going down.
+		-- BUT NO, WE NEED TO SHUFFLE ON THOSE!! 
+		-- but not once you're dead. That countdown shouldn't count.
+		-- I CANNOT IMAGINE WHY, but this does not count up in a linear fashion.
+		
+		-- To simplify things, we will just swap when the "I've been hit" sprite is called.
+		
+		if tag == "BT_SNES" then
+			if 
+			memory.read_u8(0x00002C) == 2 or memory.read_u8(0x00002C) == 5 -- we are in the proper level, 2 or 5
+			then 
+				if p1prevhitonpuck ~= p1currhitonpuck and p1currhitonpuck == 128 -- p1 was JUST hit (prior value was not the same)
+				then return true
+					elseif p2prevhitonpuck ~= p2currhitonpuck and p2currhitonpuck == 236 -- p1 was JUST hit (prior value was not the same)
+					then return true
+				end
+			end
+		end
+				
+		
 		-- In Battletoads NES, we want to swap on a continue. 
 		-- In Battletoads NES, you use a continue joining the game, so we should not swap when using the first continue (when continues = 3).
 		
@@ -220,6 +248,7 @@ local function battletoads_swap(gamemeta)
 		end
 		end
 		
+		--- might be wise to separate NES and SNES functions in future release
 
 		return false
 	end
@@ -325,6 +354,93 @@ local function antic_swap(gamemeta)
 end
 
 
+local function smk_swap(gamemeta)
+	return function(data)
+	
+	
+		local p1currcoins = gamemeta.p1getcoins()
+		local p2currcoins = gamemeta.p2getcoins()
+		local p1currbump = gamemeta.p1getbump()
+		local p2currbump = gamemeta.p2getbump()
+		local p1currfall = gamemeta.p1getfall()
+		local p2currfall = gamemeta.p2getfall()
+		local p1currshrink = gamemeta.p1getshrink()
+		local p2currshrink = gamemeta.p2getshrink()
+	
+
+		-- retrieve previous health and lives before backup
+		local p1prevcoins = data.p1prevcoins
+		local p2prevcoins = data.p2prevcoins
+		local p1prevbump = data.p1prevbump
+		local p2prevbump = data.p2prevbump
+		local p1prevfall = data.p1prevfall
+		local p2prevfall = data.p2prevfall
+		local p1prevshrink = data.p1prevshrink
+		local p2prevshrink = data.p2prevshrink
+
+		data.p1prevcoins = p1currcoins
+		data.p2prevcoins = p2currcoins
+		data.p1prevbump = p1currbump
+		data.p2prevbump = p2currbump
+		data.p1prevfall = p1currfall
+		data.p2prevfall = p2currfall
+		data.p1prevshrink = p1currshrink
+		data.p2prevshrink = p2currshrink
+		
+		--if p1prevcoins ~= nil and p1currcoins > p1prevcoins then
+		--	return true
+		--elseif p2prevcoins ~= nil and p2currcoins > p2prevcoins then
+		--	return true
+		--end
+		
+		
+		-- if the bump value is triggered, swap. It's 0, goes up, then counts down, so we just want to know if it is greater than the previous value.
+		
+
+		if p1prevbump ~= nil and p1currbump > p1prevbump 
+			and mainmemory.read_u8(0x001086) == 0 -- p1 not invincible
+			then return true
+		end
+
+		---p2 has to be active
+		if(mainmemory.read_u8(0x0011D2)) == 2 and
+		p2prevbump ~= nil and p2currbump > p2prevbump 
+			and mainmemory.read_u8(0x001186) == 0 -- p2 not invincible
+		then return true
+		end
+
+		-- if the fall value is triggered, swap. It's usually 0, goes up, then counts down. 
+		-- This number only goes over 0 with a pitfall/Lakitu. You will reset to 0 when you can drive again.
+		-- So we just want to know if it is greater than 0 and greater than the previous value.
+		
+		if p1prevfall ~= nil and p1prevfall == 0 and p1currfall > p1prevfall and p1currfall > 5 then
+			return true
+		end
+		
+		---p2 has to be active
+		if(mainmemory.read_u8(0x0011D2)) == 2 and
+		p2prevfall ~= nil and p2prevfall == 0 and p2currfall > p2prevfall and p2currfall > 5 then
+			return true
+		end
+		
+		--- shrunk
+		
+		if p1prevshrink ~= nil and p1prevshrink == 0 and p1currshrink > p1prevshrink then
+			return true end
+		
+		---p2 has to be active
+		if(mainmemory.read_u8(0x0011D2)) == 2 and
+		p2prevshrink ~= nil and p2prevshrink == 0 and p2currshrink > p2prevshrink then
+			return true
+		end
+		
+		-- THERE ARE SOME BOGUS SWAPS THAT HAPPEN IN 1P DUE TO 2P VALUES. NEED A VAR TO REPRESENT IF A HUMAN IS CONTROLLING 2P
+		-- ONCE THAT FOUND, THEN MAKE ALL 2P SWAPS CONDITIONAL ON 2P BEING HUMAN
+
+		return false
+	end
+end
+
 
 -- Modified version of the gamedata for Mega Man games on NES.
 -- Battletoads NES shows 6 "boxes" that look like HP. 
@@ -343,6 +459,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
+		p1gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
+		p2gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
@@ -353,6 +471,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
+		p1gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
+		p2gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
 		maxhp=function() return 6 end,
 	},	
 	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
@@ -363,6 +483,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x00002A) end,
 		p1getcont=function() return mainmemory.read_u8(0x00002E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000030) end,
+		p1gethitonpuck=function() return mainmemory.read_u8(0x000AEE) end, -- this is an address for the sprite called for p1
+		p2gethitonpuck=function() return mainmemory.read_u8(0x000AF0) end, -- this is an address for the sprite called for p2
 		maxhp=function() return 16 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
@@ -376,6 +498,17 @@ local gamedata = {
 		getbotchedletter=function() return mainmemory.read_u8(0x00C3) end,
 		getbuzzintime=function() return mainmemory.read_u8(0x007F) end,
 		gettypetime=function() return mainmemory.read_u8(0x0086) end,
+	},	
+	['SMK_SNES']={ -- Super Mario Kart
+		func=smk_swap,
+		p1getcoins=function() return mainmemory.read_u8(0x000E00) end,
+		p2getcoins=function() return mainmemory.read_u8(0x000E02) end, 
+		p1getbump=function() return mainmemory.read_u8(0x00105E) end, -- if > 0 then p1 is bumping/crashing
+		p2getbump=function() return mainmemory.read_u8(0x00115E) end, -- if > 0 then p2 is bumping/crashing
+		p1getfall=function() return mainmemory.read_u8(0x0010CA) end, -- if > 2 then p1 is falling - this is also the Lakitu timer! 2 is jumping, normal or feather
+		p2getfall=function() return mainmemory.read_u8(0x0011CA) end, -- if > 2 then p2 is falling - this is also the Lakitu timer! 2 is jumping, normal or feather
+		p1getshrink=function() return mainmemory.read_u8(0x001084) end, -- if > 0 then you're small and it's counting down
+		p2getshrink=function() return mainmemory.read_u8(0x001184) end, -- if > 0 then you're small and it's counting down
 	},	
 }
 
@@ -482,7 +615,7 @@ function plugin.on_game_load(data, settings)
 	-- TODO: infinite continues
 	end
 
-
+	
 		
 
 	-- first time through with a bad match, tag will be nil
@@ -502,17 +635,21 @@ function plugin.on_game_load(data, settings)
 		else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
-		elseif tag == "BT_SNES" then 
+	elseif tag == "BT_SNES" then 
 		if type(levelnumber) ~= "number" or levelnumber > 8 or levelnumber <= 0 then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
-		else
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01-05 to 07-08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+			elseif levelnumber == 6 then
+			log_message('Level 6 (dominoes) does not work! vOv Starting on level 5 (snakes).')
+			else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
-		elseif tag == "Novolin" then 
+	elseif tag == "Novolin" then 
 			log_message(string.format('Captain Novolin (SNES)'))
-		elseif tag == "Anticipation" then 
+	elseif tag == "Anticipation" then 
 			log_message(string.format('Anticipation (NES)'))
-		elseif tag == nil or tag == NO_MATCH then
+	elseif tag == "SMK_SNES" then 
+			log_message(string.format('Super Mario Kart (SNES)'))
+	elseif tag == nil or tag == NO_MATCH then
 			log_message(string.format('unrecognized? %s (%s)',
 			gameinfo.getromname(), gameinfo.getromhash()))
 	end
@@ -565,14 +702,34 @@ function plugin.on_frame(data, settings)
 					memory.write_u8(0x00002E, 2) -- refund that continue
 				elseif memory.read_u8(0x00002E) == 2 then -- otherwise, if we just started the game and did specify a different level in the filename,
 					memory.write_u8(0x000028, 0) -- set Pimple's lives to 0
-					memory.write_u8(0x000E5E, 0)  -- set Pimple's health to 0
+					if memory.read_u8(0x000E5E) > 1 then memory.write_u8(0x000E5E, 1) end -- set Pimple's health to 1 
 				end 
 			end
+			
 		end
 		
 	end
 	
-	-- DOUBLE CHECK CORRECT BEHAVIOR FOR NES GAME, INCLUDING ON_FRAME. CONSIDER < rather than ~=
+	
+
+	--Super Mario Kart
+	
+	if tag == "SMK_SNES" then 
+	
+	-- enable Infinite* continues for both players if checked
+		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+			mainmemory.read_u8(0x000154) > 0 and mainmemory.read_u8(0x000154) < 4 -- have we started playing?
+			then 
+			mainmemory.write_u8(0x000154, 4) -- if so, set p1 continues to 4.
+		end
+		
+		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+			mainmemory.read_u8(0x000156) > 0 and mainmemory.read_u8(0x000156) < 4 -- have we started playing?
+			then 
+			mainmemory.write_u8(0x000156, 4) -- if so, set p2 continues to 4.
+		end
+		
+	end
 	
 	
 	local schedule_swap, delay = shouldSwap(prevdata)
