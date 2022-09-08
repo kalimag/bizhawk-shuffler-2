@@ -145,11 +145,11 @@ local function battletoads_swap(gamemeta)
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
 		local p1currcont = gamemeta.p1getcont()
-		local p1currhitonpuck = gamemeta.p1gethitonpuck()
+		local p1currsprite = gamemeta.p1getsprite()
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
 		local p2currcont = gamemeta.p2getcont()
-		local p2currhitonpuck = gamemeta.p2gethitonpuck()
+		local p2currsprite = gamemeta.p2getsprite()
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
@@ -168,19 +168,27 @@ local function battletoads_swap(gamemeta)
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
 		local p1prevcont = data.p1prevcont
-		local p1prevhitonpuck = data.p1prevhitonpuck
+		local p1prevsprite = data.p1prevsprite
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
-		local p2prevhitonpuck = data.p2prevhitonpuck
+		local p2prevsprite = data.p2prevsprite
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
 		data.p1prevcont = p1currcont
-		data.p1prevhitonpuck = p1currhitonpuck
+		data.p1prevsprite = p1currsprite
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
 		data.p2prevcont = p2currcont
-		data.p2prevhitonpuck = p2currhitonpuck
+		data.p2prevsprite = p2currsprite
+		
+		-- BT SNES likes to do a full 0-out of some memory values when you load a level. 
+		-- That should NOT shuffle! 
+		-- Return false if that is happening.
+		
+		if tag == "BT_SNES" and p1currhp == 0 and p2currhp == 0 and
+		p1currsprite == 0 and p2currsprite == 0 -- if both are 0, neither player is even on screen
+		then return false end
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -228,9 +236,9 @@ local function battletoads_swap(gamemeta)
 			if 
 			memory.read_u8(0x00002C) == 2 or memory.read_u8(0x00002C) == 5 -- we are in the proper level, 2 or 5
 			then 
-				if p1prevhitonpuck ~= p1currhitonpuck and p1currhitonpuck == 128 -- p1 was JUST hit (prior value was not the same)
+				if p1prevsprite ~= p1currsprite and p1currsprite == 128 -- p1 was JUST hit (prior value was not the same)
 				then return true
-					elseif p2prevhitonpuck ~= p2currhitonpuck and p2currhitonpuck == 236 -- p1 was JUST hit (prior value was not the same)
+					elseif p2prevsprite ~= p2currsprite and p2currsprite == 236 -- p1 was JUST hit (prior value was not the same)
 					then return true
 				end
 			end
@@ -459,8 +467,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
-		p1gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
-		p2gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
+		p1getsprite=function() return nil end, -- there are no bonus stages in BT NES
+		p2getsprite=function() return nil end, -- there are no bonus stages in BT NES
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
@@ -471,8 +479,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
-		p1gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
-		p2gethitonpuck=function() return nil end, -- there are no bonus stages in BT NES
+		p1getsprite=function() return nil end, -- there are no bonus stages in BT NES
+		p2getsprite=function() return nil end, -- there are no bonus stages in BT NES
 		maxhp=function() return 6 end,
 	},	
 	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
@@ -483,8 +491,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x00002A) end,
 		p1getcont=function() return mainmemory.read_u8(0x00002E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000030) end,
-		p1gethitonpuck=function() return mainmemory.read_u8(0x000AEE) end, -- this is an address for the sprite called for p1
-		p2gethitonpuck=function() return mainmemory.read_u8(0x000AF0) end, -- this is an address for the sprite called for p2
+		p1getsprite=function() return mainmemory.read_u8(0x000AEE) end, -- this is an address for the sprite called for p1
+		p2getsprite=function() return mainmemory.read_u8(0x000AF0) end, -- this is an address for the sprite called for p2
 		maxhp=function() return 16 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
