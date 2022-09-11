@@ -6,7 +6,8 @@ plugin.minversion = "2.6.2"
 plugin.settings =
 {
 	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
-	{ name='ClingerSpeed', type='boolean', label='Auto-clear Clinger Winger NES (unpatched ONLY)' },
+	{ name='ClingerSpeed', type='boolean', label='BT NES: Auto-Clinger Winger (unpatched ONLY)' },
+	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, give Pimple 1 HP'},
 }
 
 
@@ -20,6 +21,7 @@ plugin.description =
 	Currently supports (ALL NTSC-U):
 	Battletoads (NES), 1p or 2p - also works with the bugfix by Ti: https://www.romhacking.net/hacks/2528/
 	Battletoads in Battlemaniacs (SNES), 1p or 2p
+	Battletoads Double Dragon (NES and SNES), 1p or 2p
 	More games planned!
 	
 	Each BT ROM will start at the level number you specify in the file name, or level 1 if there is an error or nothing set. 
@@ -31,11 +33,14 @@ plugin.description =
 	
 	-Put multiple copies of your Battletoads ROMs into the games folder.
 	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
-	-LEVEL RANGES: 01-13 for Battletoads NES, 01-05 and 07-08 for Battlemaniacs (SNES). For some reason, you can't start on 6 (Bonus Stage 2) - it will bump you back to 5 (snakes).
+	-LEVEL RANGES: 
+	-Battletoads NES: 01-13 
+	-Battletoads Double Dragon: 01-14
+	-Battletoads in Battlemaniacs (SNES), 01-05 and 07-08. For some reason, you can't start on 6 (Bonus Stage 2) - it will bump you back to 5 (snakes).
 	
-	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every NES level to be in the shuffler once. 
+	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every BT NES level to be in the shuffler once. 
 	
-	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level, Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.***
+	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level or check "play as Rash", Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.***
 	-------------------	
 	
 	If your ROM is not recognized, no damage swap will occur.
@@ -78,7 +83,10 @@ local shouldSwap = function() return false end
 local function get_game_tag()
 	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
 	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
+	elseif gameinfo.getromhash() == "61832D0F955CFF169FF059BD557BE4F522B15B7C" then return "BTDD_NES" 
 	elseif gameinfo.getromhash() == "3041C5C2A88449CF358A57D019930849575F8F6D" then return "BT_SNES" 
+	elseif gameinfo.getromhash() == "BF56F12BDDE3E2233D7FFCAF4825B10D92632B77" then return "BTDD_SNES" 
+	elseif gameinfo.getromhash() == "0248CF714380D11E38A4C242A001E97164D477F5" then return "BTDD_SNES_patched" -- patched for level select
 	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
 	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
@@ -116,6 +124,8 @@ if type(tonumber(which_level)) == "number" then
 bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
 "Terra Tubes", "Rat Race", "Clinger Winger", "The Revolution", "Armageddon"}
 
+
+btdd_level_names = { "1-1", "1-2", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "5-1", "5-2", "6-1", "7-1"}
 
 bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Bonus Stage 2", "Roller Coaster", "Dark Tower"}
 
@@ -186,7 +196,8 @@ local function battletoads_swap(gamemeta)
 		-- That should NOT shuffle! 
 		-- Return false if that is happening.
 		
-		if tag == "BT_SNES" and p1currhp == 0 and p2currhp == 0 and
+		if tag == "BT_SNES" and 
+		p1currhp == 0 and p2currhp == 0 and --values dropped to 0
 		p1currsprite == 0 and p2currsprite == 0 -- if both are 0, neither player is even on screen
 		then return false end
 
@@ -217,10 +228,13 @@ local function battletoads_swap(gamemeta)
 		
 		-- In Battletoads NES, when you're in 1P mode, the other toad's life counter is set to 255. When they join, lives are set to 0.
 		-- Thus, we ignore lives transitions from 255, to prevent unnecessary swaps when a toad "joins"
+		-- Similarly, some garbage values above 255 exist for BTDD SNES, and swaps occur when 2p is dropped to 0 HP/lives in 1p mode.
 		
-		if p1prevlc ~= nil and p1currlc < p1prevlc and p1prevlc ~= 255 then
+		-- TODO: maxlc, like maxhp?
+		
+		if p1prevlc ~= nil and p1currlc == (p1prevlc - 1) and p1prevlc < 255 then
 			return true
-		elseif p2prevlc ~= nil and p2currlc < p2prevlc and p2prevlc ~= 255 then
+		elseif p2prevlc ~= nil and p2currlc == (p2prevlc - 1) and p2prevlc < 255 then
 			return true
 		end
 		
@@ -467,8 +481,8 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
-		p1getsprite=function() return nil end, -- there are no bonus stages in BT NES
-		p2getsprite=function() return nil end, -- there are no bonus stages in BT NES
+		p1getsprite=function() return nil end, -- N/A
+		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
@@ -479,8 +493,20 @@ local gamedata = {
 		p2getlc=function() return mainmemory.read_u8(0x0012) end,
 		p1getcont=function() return mainmemory.read_u8(0x000E) end,
 		p2getcont=function() return mainmemory.read_u8(0x000F) end,
-		p1getsprite=function() return nil end, -- there are no bonus stages in BT NES
-		p2getsprite=function() return nil end, -- there are no bonus stages in BT NES
+		p1getsprite=function() return nil end, -- N/A
+		p2getsprite=function() return nil end, -- N/A
+		maxhp=function() return 6 end,
+	},	
+	['BTDD_NES']={ -- Battletoads Double Dragon NES
+		func=battletoads_swap,
+		p1gethp=function() return math.ceil(mainmemory.read_u8(0x051B)/8) end,
+		p2gethp=function() return math.ceil(mainmemory.read_u8(0x051C)/8) end,
+		p1getlc=function() return mainmemory.read_u8(0x0011) end,
+		p2getlc=function() return mainmemory.read_u8(0x0012) end,
+		p1getcont=function() return mainmemory.read_u8(0x000E) end,
+		p2getcont=function() return mainmemory.read_u8(0x000F) end,
+		p1getsprite=function() return nil end, -- N/A 
+		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
 	},	
 	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
@@ -494,6 +520,30 @@ local gamedata = {
 		p1getsprite=function() return mainmemory.read_u8(0x000AEE) end, -- this is an address for the sprite called for p1
 		p2getsprite=function() return mainmemory.read_u8(0x000AF0) end, -- this is an address for the sprite called for p2
 		maxhp=function() return 16 end,
+	},	
+	['BTDD_SNES']={ -- Battletoads Double Dragon SNES
+		func=battletoads_swap,
+		p1gethp=function() return math.ceil(mainmemory.read_u8(0x00003A)/8) end,
+		p2gethp=function() return math.ceil(mainmemory.read_u8(0x00003C)/8) end,
+		p1getlc=function() return mainmemory.read_u8(0x000026) end,
+		p2getlc=function() return mainmemory.read_u8(0x000028) end,
+		p1getcont=function() return mainmemory.read_u8(0x000010) end,
+		p2getcont=function() return mainmemory.read_u8(0x000012) end,
+		p1getsprite=function() return nil end, -- N/A 
+		p2getsprite=function() return nil end, -- N/A
+		maxhp=function() return 6 end,
+	},	
+	['BTDD_SNES_patched']={ -- Battletoads Double Dragon SNES
+		func=battletoads_swap,
+		p1gethp=function() return math.ceil(mainmemory.read_u8(0x00003A)/8) end,
+		p2gethp=function() return math.ceil(mainmemory.read_u8(0x00003C)/8) end,
+		p1getlc=function() return mainmemory.read_u8(0x000026) end,
+		p2getlc=function() return mainmemory.read_u8(0x000028) end,
+		p1getcont=function() return mainmemory.read_u8(0x000010) end,
+		p2getcont=function() return mainmemory.read_u8(0x000012) end,
+		p1getsprite=function() return nil end, -- N/A 
+		p2getsprite=function() return nil end, -- N/A
+		maxhp=function() return 6 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
 		func=novolin_swap,
@@ -555,20 +605,20 @@ function plugin.on_game_load(data, settings)
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
 	
+	--TODO: set min and max level variable by game
 	
+	--BATTLETOADS NES AND BATTLETOADS DOUBLE DRAGON NES
 	
-	--BATTLETOADS NES
+	if tag == "BT_NES" or tag == "BT_NES_patched" or tag == "BTDD_NES" then 
 	
-	if tag == "BT_NES" or tag == "BT_NES_patched" then 
-	
-	-- enable Infinite* Lives for Rash if checked
+	-- enable Infinite* Lives for Rash (p1) if checked
 	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
 		mainmemory.read_u8(0x0011) > 0 and mainmemory.read_u8(0x0011) < 255 -- is Rash on?
 		then 
 		mainmemory.write_u8(0x0011, 127) -- if so, set lives to 127.
 	end
 	
-	-- enable Infinite* Lives for Zitz if checked 
+	-- enable Infinite* Lives for Zitz (p2) if checked 
 	-- DOES NOT APPLY IF LEVEL = 11 AND ROM IS UNPATCHED
 	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
 		mainmemory.read_u8(0x0012) > 0 and mainmemory.read_u8(0x0012) < 255 -- is Zitz on?
@@ -579,15 +629,50 @@ function plugin.on_game_load(data, settings)
 				mainmemory.write_u8(0x0012, 127)	 
 			end
 	end
+	end
 	
+	
+	if tag == "BT_NES" or tag == "BT_NES_patched" then
 	-- if game was just loaded, these two addresses will = 255
 	-- after starting or continuing, they get set to 40 or 0, respectively, and stay that way
 	-- we now set these on game load, to let the player press start without sitting through the intro every time
 	if mainmemory.read_u8(0x00FD) == 255 then mainmemory.write_u8(0x00FD, 40) end
 	if mainmemory.read_u8(0x00FE) == 255 then mainmemory.write_u8(0x00FE, 0) end
 	
-	-- TODO: infinite continues
 	end
+	
+	
+	-- Battletoads Double Dragon (SNES)
+	
+	if tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then --TODO: Improve storage system for hp/lives addresses
+	
+	
+	-- enable Infinite* Lives for p1 if checked
+	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+		mainmemory.read_u8(0x000026) > 0 and mainmemory.read_u8(0x000026) < 255 -- is p1 on?
+		then 
+		mainmemory.write_u8(0x000026, 69) -- if so, set lives to 69. Nice.
+	end
+	
+	
+	-- enable Infinite* Lives for p2 if checked
+	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
+		mainmemory.read_u8(0x000028) > 0 and mainmemory.read_u8(0x000028) < 255 -- is p2 on?
+		then 
+		mainmemory.write_u8(0x000028, 69) -- if so, set lives to 69. Nice.
+	end
+	
+	end
+	
+	
+	if tag == "BTDD_SNES_patched" then 
+	
+		if memory.read_u8(0x00001A) == 85 -- if game just started
+			then gui.drawText(0, 0, "Pick " .. btdd_level_names[which_level] .. "!")
+		end
+		
+	end
+
 	
 	
 	--CAPTAIN NOVOLIN
@@ -620,7 +705,6 @@ function plugin.on_game_load(data, settings)
 			then 
 			mainmemory.write_u8(0x00002A, 69) -- if so, set lives to 69. Nice.
 		end
-	-- TODO: infinite continues
 	end
 
 	
@@ -642,6 +726,12 @@ function plugin.on_game_load(data, settings)
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 		else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
+		end
+	elseif tag == "BTDD_NES" or tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then 
+		if type(levelnumber) ~= "number" or levelnumber > 14 or levelnumber <= 0 then 
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 14. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		else
+			log_message('Level ' .. btdd_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag == "BT_SNES" then 
 		if type(levelnumber) ~= "number" or levelnumber > 8 or levelnumber <= 0 then 
@@ -677,7 +767,7 @@ function plugin.on_frame(data, settings)
 	
 	-- This enables the Game Genie code for always moving at max speed in Clinger Winger. 
 	-- The bugfix makes this not work! This will only work on an unpatched ROM.
-		if settings.ClingerSpeed == true and which_level == 11 and memory.read_u8(0xA706) == 5 then
+		if settings.ClingerSpeed == true and which_level == 11 and memory.read_u8(0xA706) == 5 then -- TODO: replace which_level here with memory address
 			memory.write_u8(0xA706, 0) 
 			end
 		
@@ -689,7 +779,26 @@ function plugin.on_frame(data, settings)
 			end
 		
 	end
-
+	
+	--Battletoads Double Dragon NES
+	
+	if tag == "BTDD_NES" then 
+	
+		if which_level ~= nil -- just started the game!
+			then
+			if memory.read_u8(0x0017) == 0 then gui.drawText(0, 0, "Level select enabled, select " .. btdd_level_names[which_level] .. "!") end -- give the level instruction
+			memory.write_u8(0x0017, 10) -- then set Level Cheat Code to ON
+			
+			
+		end
+		
+	end
+	
+	
+	
+	
+	
+	
 	--Battletoads in Battlemaniacs (SNES)
 	
 	--Setting the level variable only works on a continue. Stupid but true! You'll just enter a glitched first level otherwise.
@@ -703,17 +812,19 @@ function plugin.on_frame(data, settings)
 		--don't forget, which_level for BT_SNES starts at 0, so we subtract 1.
 	
 	
-		if which_level ~= nil and which_level > 1 then
-			if memory.read_u8(0x00002C) == 0 then
-				if memory.read_u8(0x00002E) == 1 then 
-					memory.write_u8(0x00002C, which_level - 1) -- if you just used a continue, overwrite level, and you're good to go.
-					memory.write_u8(0x00002E, 2) -- refund that continue
+		if (which_level ~= nil and which_level > 1) or settings.BTSNESRash == true then -- if level specified and not the first level, or we want to play as Rash
+			if memory.read_u8(0x00002C) == 0 then -- we are on the first level
+				if memory.read_u8(0x00002E) == 1 then -- Pimple just lost a continue
+					memory.write_u8(0x00002C, which_level - 1) -- overwrite level, and you're good to go.
+					memory.write_u8(0x00002E, 3) -- bump the continue count above 2 to avoid an extra swap
 				elseif memory.read_u8(0x00002E) == 2 then -- otherwise, if we just started the game and did specify a different level in the filename,
 					memory.write_u8(0x000028, 0) -- set Pimple's lives to 0
-					if memory.read_u8(0x000E5E) > 1 then memory.write_u8(0x000E5E, 1) end -- set Pimple's health to 1 
+					if memory.read_u8(0x000E5E) > 1 then memory.write_u8(0x000E5E, 1) end -- set Pimple's health to 1
+					
 				end 
 			end
 			
+			if memory.read_u8(0x00002C) == which_level and memory.read_u8(0x00002E) > 2 then memory.write_u8(0x00002E, 2) end -- fix Pimple's continue count once you get into the correct level.
 		end
 		
 	end
