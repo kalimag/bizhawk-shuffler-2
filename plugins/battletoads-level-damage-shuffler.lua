@@ -333,21 +333,32 @@ local function antic_swap(gamemeta)
 	-- However, when a human player runs out of time, this hits 0, then goes to 255. This should swap on 255, IGNORING the title screen.
 	-- THESE VARIABLES ARE SHARED IN MULTIPLAYER YAY
 	
+	-- 4. We can now swap on a correct computer answer.
+	-- Found value that is "who buzzed in"
+	-- Found value for "faded out with correct answer," rolls up from 0 to 31
+	-- if the computer rang in, and that value increases to 31, SWAP
+	
+	-- human player value 00AC can be 1, 2, 3, 4 
+	
+	-- when who buzzed in > than 00AC, then we should swap if they get it right
 	
 	
 		local currbotchedletter = gamemeta.getbotchedletter() 
 		local currbuzzintime = gamemeta.getbuzzintime() 
 		local currtypetime = gamemeta.gettypetime()
+		local curranswerright = gamemeta.getanswerright()
 
 
-		-- retrieve previous values for botch, buzz-in, and typing time
+		-- retrieve previous values for botch, buzz-in, and typing time, as well as roll-up for correct answer
 		local prevbotchedletter = data.prevbotchedletter
 		local prevbuzzintime = data.prevbuzzintime
 		local prevtypetime = data.prevtypetime
+		local prevanswerright = data.prevanswerright
 
 		data.prevbotchedletter = currbotchedletter
 		data.prevbuzzintime = currbuzzintime
 		data.prevtypetime = currtypetime
+		data.prevanswerright = curranswerright
 
 		--wrong letter
 		if prevbotchedletter ~= nil and currbotchedletter > prevbotchedletter then -- remember, only goes up when a wrong answer is guessed.
@@ -370,7 +381,16 @@ local function antic_swap(gamemeta)
 		if prevtypetime ~= nil and prevtypetime == 0 and currtypetime == 255 then -- it'll stay on 255 for a while.
 			return true
 		end
-	
+		
+		--CPU correct answer swap
+		if memory.read_u8(0x046E) > -- who rang in, defaults to 0
+			memory.read_u8(0x00AC) -- how many humans, defaults to 1
+			and prevanswerright ~= nil
+			and curranswerright > prevanswerright -- this value rolls up when a card is awarded
+			and curranswerright == 31 -- and hits 31 at max
+			then return true -- swap!
+		end 
+
 		return false 
 	end
 end
@@ -556,6 +576,7 @@ local gamedata = {
 		getbotchedletter=function() return mainmemory.read_u8(0x00C3) end,
 		getbuzzintime=function() return mainmemory.read_u8(0x007F) end,
 		gettypetime=function() return mainmemory.read_u8(0x0086) end,
+		getanswerright=function() return mainmemory.read_u8(0x00A0) end,
 	},	
 	['SMK_SNES']={ -- Super Mario Kart
 		func=smk_swap,
@@ -814,6 +835,7 @@ function plugin.on_frame(data, settings)
 	
 		if (which_level ~= nil and which_level > 1) or settings.BTSNESRash == true then -- if level specified and not the first level, or we want to play as Rash
 			if memory.read_u8(0x00002C) == 0 then -- we are on the first level
+			gui.drawText(0, 0, "Deathwarp to " .. bt_snes_level_names[which_level] .. "!")
 				if memory.read_u8(0x00002E) == 1 then -- Pimple just lost a continue
 					memory.write_u8(0x00002C, which_level - 1) -- overwrite level, and you're good to go.
 					memory.write_u8(0x00002E, 3) -- bump the continue count above 2 to avoid an extra swap
