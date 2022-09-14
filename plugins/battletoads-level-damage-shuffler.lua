@@ -7,7 +7,7 @@ plugin.settings =
 {
 	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
 	{ name='ClingerSpeed', type='boolean', label='BT NES: Auto-Clinger Winger (unpatched ONLY)' },
-	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, give Pimple 1 HP'},
+	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, pick 2P, give Pimple 1 HP'},
 }
 
 
@@ -40,7 +40,8 @@ plugin.description =
 	
 	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every BT NES level to be in the shuffler once. 
 	
-	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level or check "play as Rash", Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.***
+	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level or check "play as Rash", Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.
+	***If you want to play as Rash, pick a 2P mode when you start the game, let Pimple die and don't continue. Be sure your 2p controller is mapped!
 	-------------------	
 	
 	If your ROM is not recognized, no damage swap will occur.
@@ -57,7 +58,7 @@ plugin.description =
 	
 	-------------------	
 	Joke games recognized for the Chaos Shuffler for twitch.tv/the_betus that also shuffle on damage (but no level select, sorry!):
-	-Anticipation (NES) - shuffles on incorrect player answers and running out of time. Lives are n/a.
+	-Anticipation (NES) - shuffles on incorrect player answers, correct CPU answers, and running out of time. Lives are n/a.
 	-Captain Novolin (SNES) - yes, you can have infinite* Captains
 	-Super Mario Kart (SNES) - Infinite lives will let you retry a stage over and over
 	-------------------	
