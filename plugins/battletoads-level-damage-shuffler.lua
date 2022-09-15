@@ -367,7 +367,7 @@ local function antic_swap(gamemeta)
 		end
 		
 		--ran out of time to buzz in (ranges from 0-6, resets to 6 once the die appears, shuffle on drop to 0)
-		if prevbuzzintime ~= nil and 
+		if prevbuzzintime ~= nil and prevbuzzintime ~= 255 and 
 			currbuzzintime < prevbuzzintime and -- it'll stay on 0 for a while.
 			currbuzzintime == 0 then 
 		
