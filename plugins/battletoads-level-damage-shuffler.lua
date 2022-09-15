@@ -35,8 +35,8 @@ plugin.description =
 	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
 	-LEVEL RANGES: 
 	-Battletoads NES: 01-13 
-	-Battletoads Double Dragon: 01-14
-	-Battletoads in Battlemaniacs (SNES), 01-05 and 07-08. For some reason, you can't start on 6 (Bonus Stage 2) - it will bump you back to 5 (snakes).
+	-Battletoads Double Dragon (NES, SNES): 01-14
+	-Battletoads in Battlemaniacs (SNES), 01-08
 	
 	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every BT NES level to be in the shuffler once. 
 	
@@ -100,22 +100,27 @@ end
 
 -- Which level to patch into on game load?
 -- Grab the first two characters of the filename, turned into a number.
-local which_level = string.sub((tostring(config.current_game)),1,2)
+local which_level_filename = string.sub((tostring(config.current_game)),1,2)
+local which_level = which_level_filename
 
--- if file name starts with a number outside of 01-13, reset the level to 1
--- TODO: recode to accommodate different min and max levels (Battletoads SNES requires 00-07)
+-- if file name starts with a number outside of the expected range, reset the level to 1
+-- TODO: recode to accommodate different min and max levels (Battletoads SNES requires 00-08)
 -- I sure am great at coding!!
 -- consider moving function elsewhere if needed
 
 if type(tonumber(which_level)) == "number" then 
 	which_level = tonumber(which_level)
 	--BT_NES
-		if get_game_tag(current_game) == "BT_NES" or "BT_NES_patched" then 
+		if get_game_tag(current_game) == "BT_NES" or get_game_tag(current_game) == "BT_NES_patched" then 
 		if which_level >13 or which_level <1 then which_level = 1 end
 		end
 	--BT_SNES
 		if get_game_tag(current_game) == "BT_SNES" then 
 		if which_level >8 or which_level <1 then which_level = 1 end
+		end
+	--BTDD (both)
+		if get_game_tag(current_game) == "BTDD_NES" or get_game_tag(current_game) == "BTDD_SNES" or get_game_tag(current_game) == "BTDD_SNES_patched" then 
+		if which_level >14 or which_level <1 then which_level = 1 end
 		end
 	else 
 	which_level = 1
@@ -128,7 +133,9 @@ bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arct
 
 btdd_level_names = { "1-1", "1-2", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "5-1", "5-2", "6-1", "7-1"}
 
-bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Bonus Stage 2", "Roller Coaster", "Dark Tower"}
+bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Roller Coaster", "Bonus Stage 2", "Dark Tower"}
+
+bt_snes_level_recoder = { 0, 1, 2, 3, 4, 6, 8, 7 } -- THIS GAME DOESN'T STORE LEVELS IN THE ORDER YOU PLAY THEM, COOL
 
 
 
@@ -249,7 +256,7 @@ local function battletoads_swap(gamemeta)
 		
 		if tag == "BT_SNES" then
 			if 
-			memory.read_u8(0x00002C) == 2 or memory.read_u8(0x00002C) == 5 -- we are in the proper level, 2 or 5
+			memory.read_u8(0x00002C) == 2 or memory.read_u8(0x00002C) == 8 -- we are in the proper level, 2 (Pins) or 8 (Dominoes)
 			then 
 				if p1prevsprite ~= p1currsprite and p1currsprite == 128 -- p1 was JUST hit (prior value was not the same)
 				then return true
@@ -744,22 +751,22 @@ function plugin.on_game_load(data, settings)
 	
 	---log stuff
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
-		if type(levelnumber) ~= "number" or levelnumber > 13 or levelnumber <= 0 then 
+		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 		else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag == "BTDD_NES" or tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then 
-		if type(levelnumber) ~= "number" or levelnumber > 14 or levelnumber <= 0 then 
+		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
 			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 14. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 		else
 			log_message('Level ' .. btdd_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag == "BT_SNES" then 
-		if type(levelnumber) ~= "number" or levelnumber > 8 or levelnumber <= 0 then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01-05 to 07-08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
-			elseif levelnumber == 6 then
-			log_message('Level 6 (dominoes) does not work! vOv Starting on level 5 (snakes).')
+		if tonumber(bt_snes_level_recoder[tonumber(which_level_filename)]) == nil 
+		-- or which_level ~= tonumber(bt_snes_level_recoder[which_level_filename]) 
+		then 
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01-08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
 			else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
@@ -831,14 +838,15 @@ function plugin.on_frame(data, settings)
 		--set lives to 0
 		--set health to (if >1, 1, else don't touch)
 		--once a continue is used, set level to which_level
-		--don't forget, which_level for BT_SNES starts at 0, so we subtract 1.
+		
+	local BT_SNES_level_for_memory = bt_snes_level_recoder[which_level]
 	
 	
 		if (which_level ~= nil and which_level > 1) or settings.BTSNESRash == true then -- if level specified and not the first level, or we want to play as Rash
 			if memory.read_u8(0x00002C) == 0 then -- we are on the first level
-			gui.drawText(0, 0, "Deathwarp to " .. bt_snes_level_names[which_level] .. "!")
+				if memory.read_u8(0x000E5E) > 16 then gui.drawText(0, 0, "Deathwarp to " .. bt_snes_level_names[which_level] .. "!") end -- write message only when Pimple hasn't yet game-overed, so there is a garbage number for health
 				if memory.read_u8(0x00002E) == 1 then -- Pimple just lost a continue
-					memory.write_u8(0x00002C, which_level - 1) -- overwrite level, and you're good to go.
+					memory.write_u8(0x00002C, BT_SNES_level_for_memory) -- overwrite level, and you're good to go.
 					memory.write_u8(0x00002E, 3) -- bump the continue count above 2 to avoid an extra swap
 				elseif memory.read_u8(0x00002E) == 2 then -- otherwise, if we just started the game and did specify a different level in the filename,
 					memory.write_u8(0x000028, 0) -- set Pimple's lives to 0
@@ -847,7 +855,7 @@ function plugin.on_frame(data, settings)
 				end 
 			end
 			
-			if memory.read_u8(0x00002C) == which_level and memory.read_u8(0x00002E) > 2 then memory.write_u8(0x00002E, 2) end -- fix Pimple's continue count once you get into the correct level.
+			if memory.read_u8(0x00002C) > 0 and memory.read_u8(0x00002C) == BT_SNES_level_for_memory and memory.read_u8(0x00002E) > 2 then memory.write_u8(0x00002E, 2) end -- fix Pimple's continue count once you get into the correct level.
 		end
 		
 	end
