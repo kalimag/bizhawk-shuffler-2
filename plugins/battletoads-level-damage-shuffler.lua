@@ -1,67 +1,94 @@
 local plugin = {}
 
-plugin.name = "Battletoads Cross-Level Damage Shuffler"
+plugin.name = "Battletoads Chaos Damage Shuffler"
 plugin.author = "Phiggle"
 plugin.minversion = "2.6.2"
 plugin.settings =
 {
 	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
-	{ name='ClingerSpeed', type='boolean', label='BT NES: Auto-Clinger Winger (unpatched ONLY)' },
+	{ name='ClingerSpeed', type='boolean', label='BT NES: Auto-Clinger-Winger (unpatched ONLY)' },
 	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, pick 2P, give Pimple 1 HP'},
+	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized"/"on Level 1" logs'},
 }
 
 
 
 plugin.description =
 [[
-	Get swapped to a different level whenever a Battletoad takes damage. An ill-advised modification of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag (which you can use at the same time if you like!).
+	Get swapped to a different level whenever a Battletoad takes damage. Additional games shuffle on 'damage', see below. Multiplayer shuffling supported. If your ROM is not recognized, no damage swap will occur.
 	
-	Mark a 'toads game as complete when you finish a level - or just play your way.
-		
+	See instructions to have multiple Battletoads games that start (or continue) at the level you specify.
+	
+	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag. Thank you to Diabetus for extensive playthroughs that tracked down bugs!
+	
 	Currently supports (ALL NTSC-U):
-	Battletoads (NES), 1p or 2p - also works with the bugfix by Ti: https://www.romhacking.net/hacks/2528/
-	Battletoads in Battlemaniacs (SNES), 1p or 2p
-	Battletoads Double Dragon (NES and SNES), 1p or 2p
+	-Battletoads (NES), 1p or 2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
+	-Battletoads in Battlemaniacs (SNES), 1p or 2p
+	-Battletoads-Double Dragon (NES), 1p or 2p
+	-Battletoads-Double Dragon (SNES), 1p or 2p, including if patched to use level select by default (see instructions)
+	
+	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
+	-Captain Novolin (SNES)
+	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
+	
+	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
+	
 	More games planned!
-	
-	Each BT ROM will start at the level number you specify in the file name, or level 1 if there is an error or nothing set. 
-	
-	If you game over, you will restart at the level specified in the ROM's file name. Continues still work as usual.
-	
+		
 	----PREPARATION----
-	-First, set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
+	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
 	
-	-Put multiple copies of your Battletoads ROMs into the games folder.
-	-Rename them to START with two-digit numbers, like 01, 02, 03, etc. 
-	-LEVEL RANGES: 
-	-Battletoads NES: 01-13 
-	-Battletoads Double Dragon (NES, SNES): 01-14
-	-Battletoads in Battlemaniacs (SNES), 01-08
+	-Non-Battletoads games: just put your game in the games folder.
 	
-	Example: Make 13 copies of Battletoads NES, filenames starting with 01 through 13, if you want every BT NES level to be in the shuffler once. 
+	-Battletoads games: 
+	-Put multiple copies of your ROM into the games folder - one for every starting level you want to include.
+	-Rename those files to START with two-digit numbers, like 01, 02, 03, etc., as below.
 	
-	***NOTE! Level select for Battlemaniacs (SNES) only works on a continue. If you specify a level or check "play as Rash", Pimple will be in a near-death state in level 1 to speed things up, and you won't damage shuffle until you are in the next level. Also, that continue is refunded.
-	***If you want to play as Rash, pick a 2P mode when you start the game, let Pimple die and don't continue. Be sure your 2p controller is mapped!
-	-------------------	
+	Battletoads (NES): 
+	-Level range: 01 to 13
+	-How to level select: Automatically enabled.
 	
-	If your ROM is not recognized, no damage swap will occur.
+	Battletoads in Battlemaniacs (SNES):
+	-Level range: 01 to 08
+	-How to level select: Pimple will start with 1 HP and no lives if you specify a level higher than 1, OR if you click the "I want Rash" option. Let Pimple die, and then continue (if using Pimple - it gets refunded) or don't (if playing 2P/using Rash). You get an on-screen reminder to do this, and it is gone when you shuffle back.
 	
-	Optionally, you can enable Infinite* Lives, which will make it far easier to reach and defeat bosses. 
-	-- It's not quite infinite. Lives refill to max ON SWAP. On your LAST game, you're done swapping, so be careful!
+	Battletoads-Double Dragon (NES): 
+	-Level range: 01 to 14
+	-How to level select: Level select screen is automatically enabled. A message on screen the first time will tell you which level to pick after character select.
+	
+	Battletoads-Double Dragon (SNES): 
+	-Level range: 01 to 14
+	-How to level select: A message on screen the first time will tell you what level to pick after you choose characters. But, for now, you have to enable level select yourself :( 
+	--OPTION ONE: just enter the cheat code at the character select screen. The screen blinks when it's entered correctly.
+	--OPTION TWO: Patch your ROM(s) with the Game Genie code DD6F-1923. Here is a patcher! https://www.romhacking.net/utilities/1054/
+	
+
+	----EXAMPLES AND TIPS----
+	To shuffle every single level of Battletoads NES, make 13 copies with filenames starting with 01 through 13.
+	
+	You can include one copy each of all these Battletoads games, with no special naming, to simply have damage shuffling starting from level 1.
+	
+	If you want a Battletoads-Double Dragon run without mid-level checkpoints (1-1, 2-1, 3-1, ... 7-1), then only add files that start with: 01, 03, 06, 09, 11, 13, 14.
+	
+	You could do an "all Turbo Tunnels" run with BT NES = 03, BTDD (either/both) = 05, and BT SNES = 04. Throw in Surf City (BT NES 05), Volkmire's Inferno (BT NES 07), Roller Coaster (BT SNES 06), the awful spaceship levels (BTDD 09 and 10)...
+	
+	Mark a ROM "cleared" whenever you want! I recommend you do so after completing a level.
+				
+	----OPTIONS----	
+	
+	Infinite* Lives will make it far easier to reach and defeat bosses.
+	-- It's not quite infinite. Lives refill ON SWAP. On your LAST game, you're done swapping, so be careful!
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
-	-- Infinite* lives do not activate for the second player on NES Clinger Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger Winger for some reason!
+	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
+	-- Anticipation NES does not have lives.
 	
-	BATTLETOADS NES:
-	Optionally, you can enable max speed and auto-clear the maze in Clinger Winger NES (level 11).
-	-- You MUST use an unpatched ROM. The second player will not be able to move, so only 1 toad can get to the boss.
-	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger Winger fairly trivial.
+	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
+	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
+	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger-Winger fairly trivial.
 	
-	-------------------	
-	Joke games recognized for the Chaos Shuffler for twitch.tv/the_betus that also shuffle on damage (but no level select, sorry!):
-	-Anticipation (NES) - shuffles on incorrect player answers, correct CPU answers, and running out of time. Lives are n/a.
-	-Captain Novolin (SNES) - yes, you can have infinite* Captains
-	-Super Mario Kart (SNES) - Infinite lives will let you retry a stage over and over
-	-------------------	
+	Rash 1-player mode in Battlemaniacs (SNES): see above! Start in 2p, let Pimple die to deathwarp, and make sure your 2p controller is mapped the same as 1p aside from Start.
+	
+	Suppress Logs: if you do not want the lua console log to tell you about file naming errors, or unrecognized ROMs. This can help keep the log cleaner if you are also using the Mega Man Damage Shuffler or other plugins!
 	
 	Enjoy? Send bug reports?
 	
@@ -128,7 +155,7 @@ if type(tonumber(which_level)) == "number" then
 
 
 bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
-"Terra Tubes", "Rat Race", "Clinger Winger", "The Revolution", "Armageddon"}
+"Terra Tubes", "Rat Race", "Clinger-Winger", "The Revolution", "Armageddon"}
 
 
 btdd_level_names = { "1-1", "1-2", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "5-1", "5-2", "6-1", "7-1"}
@@ -374,13 +401,15 @@ local function antic_swap(gamemeta)
 		end
 		
 		--ran out of time to buzz in (ranges from 0-6, resets to 6 once the die appears, shuffle on drop to 0)
-		if prevbuzzintime ~= nil and prevbuzzintime ~= 255 and 
+		if memory.read_u8(0x046E) <= -- who rang in, defaults to 0
+			memory.read_u8(0x00AC) -- how many humans, defaults to 1 - so, not a computer player being award spaces
+		and prevbuzzintime ~= nil and prevbuzzintime ~= 255 and 
 			currbuzzintime < prevbuzzintime and -- it'll stay on 0 for a while.
 			currbuzzintime == 0 then 
 		
 		-- NOTE: will reset to 0 also when all human players are out of guesses and no one else can answer. We don't want a second swap in those cases. 
 		-- In this case, currbotchedletter will == 0 or 16, and guess time will be < 25.
-			if currtypetime < 25 and currbotchedletter == 0 or currbotchedletter == 16 then return false end 
+			if currtypetime < 25 and (currbotchedletter == 0 or currbotchedletter == 16) then return false end 
 			
 			return true
 		end
@@ -606,8 +635,8 @@ local backupchecks = {
 
 local function BT_NES_Zitz_Override()
 	if get_game_tag() == "BT_NES" --unpatched Battletoads NES
-		and which_level == 11 --in Clinger Winger
-		and mainmemory.read_u8(0x0011) ~= 255 --Rash is alive
+		and memory.read_u8(0x000D) == 11 --in Clinger-Winger
+		and memory.read_u8(0x0011) ~= 255 --Rash is alive
 	then 
 		return true -- if all of those are true, then don't give Zitz all those lives, it'll more or less softlock you!
 	end
@@ -615,6 +644,7 @@ local function BT_NES_Zitz_Override()
 	return false
 end
 
+--TODO: Ensure Zitz lives get set down to 0 in this scenario.
 
 function plugin.on_setup(data, settings)
 	data.tags = data.tags or {}
@@ -655,7 +685,8 @@ function plugin.on_game_load(data, settings)
 			if 
 				BT_NES_Zitz_Override() == false -- are we outside of the 2P/unpatched/on level 11 scenario?
 				then -- if so, set lives to 127.
-				mainmemory.write_u8(0x0012, 127)	 
+				mainmemory.write_u8(0x0012, 127)	
+			elseif memory.read_u8(0x000D) == 11 then memory.write_u8(0x0012, 0) -- Otherwise, get Zitz to 0 lives immediately if you arrived at Clinger-Winger
 			end
 	end
 	end
@@ -702,6 +733,15 @@ function plugin.on_game_load(data, settings)
 		
 	end
 
+	if tag == "BTDD_SNES" then 
+	
+		if memory.read_u8(0x00001A) == 85 -- if game just started
+			then 
+			gui.drawText(0, 0, "Up Down Down Up X B Y A on char select (flash = ON)")
+			gui.drawText(0, 20, "Pick " .. btdd_level_names[which_level] .. "!")
+		end
+		
+	end
 	
 	
 	--CAPTAIN NOVOLIN
@@ -752,21 +792,23 @@ function plugin.on_game_load(data, settings)
 	---log stuff
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		if settings.SuppressLog ~= true then
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
 		else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag == "BTDD_NES" or tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then 
 		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 14. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		if settings.SuppressLog ~= true then
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 14. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
 		else
 			log_message('Level ' .. btdd_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag == "BT_SNES" then 
 		if tonumber(bt_snes_level_recoder[tonumber(which_level_filename)]) == nil 
-		-- or which_level ~= tonumber(bt_snes_level_recoder[which_level_filename]) 
 		then 
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01-08. Starting you on Level 1. File name is ' .. tostring(config.current_game)))
+		if settings.SuppressLog ~= true then
+			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 08. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
 			else
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
@@ -777,8 +819,9 @@ function plugin.on_game_load(data, settings)
 	elseif tag == "SMK_SNES" then 
 			log_message(string.format('Super Mario Kart (SNES)'))
 	elseif tag == nil or tag == NO_MATCH then
+		if settings.SuppressLog ~= true then
 			log_message(string.format('unrecognized? %s (%s)',
-			gameinfo.getromname(), gameinfo.getromhash()))
+			gameinfo.getromname(), gameinfo.getromhash())) end
 	end
 	
 end
@@ -791,20 +834,24 @@ function plugin.on_frame(data, settings)
 	
 	
 	--Battletoads NES
-	if tag == "BT_NES" or tag == "BT_NES_patched" then 
+	if tag == "BT_NES" then 
 	
 	
 	-- This enables the Game Genie code for always moving at max speed in Clinger Winger. 
 	-- The bugfix makes this not work! This will only work on an unpatched ROM.
-		if settings.ClingerSpeed == true and which_level == 11 and memory.read_u8(0xA706) == 5 then -- TODO: replace which_level here with memory address
+		if settings.ClingerSpeed == true and memory.read_u8(0x000D) == 11 and memory.read_u8(0xA706) == 5 then
 			memory.write_u8(0xA706, 0) 
 			end
-		
+	
+	end
+	
+	
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 		
 
-	-- Set the memory value that represents the stage to the number specified by the file name.
+	-- Set the memory value that represents the starting stage to the number specified by the file name.
 		if which_level ~= nil and memory.read_u8(0x8320) <= which_level then --double check that less than/equal to gets desired effect
-			memory.write_u8(0x8320, math.max(which_level, memory.read_u8(0x8320)))
+			memory.write_u8(0x8320, which_level)
 			end
 		
 	end
