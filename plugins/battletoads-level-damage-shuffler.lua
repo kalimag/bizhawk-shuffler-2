@@ -1,6 +1,6 @@
 local plugin = {}
 
-plugin.name = "Battletoads Chaos Damage Shuffler"
+plugin.name = "Battletoads+ Chaos Damage Shuffler"
 plugin.author = "Phiggle"
 plugin.minversion = "2.6.2"
 plugin.settings =
@@ -30,6 +30,7 @@ plugin.description =
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Captain Novolin (SNES)
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
+	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
 	
 	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
@@ -117,6 +118,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "0248CF714380D11E38A4C242A001E97164D477F5" then return "BTDD_SNES_patched" -- patched for level select
 	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
 	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
+	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
 	end
 	
@@ -352,6 +354,96 @@ local function novolin_swap(gamemeta)
 		-- check to see if the life count went down
 		
 		if p1prevlc ~= nil and p1currlc < p1prevlc then
+			return true
+		end
+
+		return false
+	end
+end
+
+local function cnd_swap(gamemeta)
+	return function(data)
+
+
+		local p1currhp1 = gamemeta.p1gethp1()
+		local p1currhp2 = gamemeta.p1gethp2()
+		local p1currhp3 = gamemeta.p1gethp3()
+		local p1currlc = gamemeta.p1getlc()
+		local p2currhp1 = gamemeta.p2gethp1()
+		local p2currhp2 = gamemeta.p2gethp2()
+		local p2currhp3 = gamemeta.p2gethp3()
+		local p2currlc = gamemeta.p2getlc()
+		
+		--convert these HP addresses to 0/1 and convert that overall value to the hp function we're used to.
+		--If the heart is there, these == 24, otherwise they == 248.
+		--I am sure there is a better way, we will look it up.
+		if p1currhp1 == 24 then p1currhp1 = 1 else p1currhp1 = 0 end
+		if p1currhp2 == 24 then p1currhp2 = 1 else p1currhp2 = 0 end
+		if p1currhp3 == 24 then p1currhp3 = 1 else p1currhp3 = 0 end
+		if p2currhp1 == 24 then p2currhp1 = 1 else p2currhp1 = 0 end
+		if p2currhp2 == 24 then p2currhp2 = 1 else p2currhp2 = 0 end
+		if p2currhp3 == 24 then p2currhp3 = 1 else p2currhp3 = 0 end
+		
+		local p1currhp = p1currhp1 + p1currhp2 + p1currhp3
+		local p2currhp = p2currhp1 + p2currhp2 + p2currhp3
+
+		-- we should now be able to use the typical shuffler functions normally.
+
+		local maxhp = gamemeta.maxhp()
+		local minhp = 0
+
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		if p1currhp < minhp or p1currhp > maxhp then
+			return false
+		elseif p2currhp < minhp or p2currhp > maxhp then
+			return false
+		end
+
+		-- retrieve previous health and lives before backup
+		local p1prevhp = data.p1prevhp
+		local p1prevlc = data.p1prevlc
+		local p2prevhp = data.p2prevhp
+		local p2prevlc = data.p2prevlc
+
+		data.p1prevhp = p1currhp
+		data.p1prevlc = p1currlc
+		data.p2prevhp = p2currhp
+		data.p2prevlc = p2currlc
+
+		-- this delay ensures that when the game ticks away health for the end of a level,
+		-- we can catch its purpose and hopefully not swap, since this isnt damage related
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
+				return true
+			end
+		end		
+	
+	
+		if data.p2hpcountdown ~= nil and data.p2hpcountdown > 0 then
+			data.p2hpcountdown = data.p2hpcountdown - 1
+			if data.p2hpcountdown == 0 and p2currhp > minhp then
+				return true
+			end
+		end		
+
+		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+		if p1prevhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+		
+		if p2prevhp ~= nil and p2currhp < p2prevhp then
+			data.p2hpcountdown = gamemeta.delay or 3
+		end
+
+		-- check to see if the life count went down
+		
+		if p1prevlc ~= nil and p1currlc < p1prevlc then
+			return true
+		end
+		
+		if p2prevlc ~= nil and p2currlc < p2prevlc then
 			return true
 		end
 
@@ -602,6 +694,21 @@ local gamedata = {
 		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
 	},	
+	['CNDRR1']={ -- Chip and Dale 1 (NES)
+		func=cnd_swap,
+		-- there is probably a better way to handle this but, each of these addresses goes from 18 to F8 (in hex) when a heart is lost.
+		-- lives tick down after last HP goes away.
+		-- 
+		p1gethp1=function() return mainmemory.read_u8(0x0210) end, 
+		p1gethp2=function() return mainmemory.read_u8(0x020C) end,
+		p1gethp3=function() return mainmemory.read_u8(0x0208) end,
+		p2gethp1=function() return mainmemory.read_u8(0x0224) end,
+		p2gethp2=function() return mainmemory.read_u8(0x0220) end,
+		p2gethp3=function() return mainmemory.read_u8(0x021C) end,
+		p1getlc=function() return mainmemory.read_u8(0x05B6) end,
+		p2getlc=function() return mainmemory.read_u8(0x05E6) end,
+		maxhp=function() return 3 end,
+	},	
 	['Novolin']={ -- Captain Novolin SNES
 		func=novolin_swap,
 		p1gethp=function() return bit.band(mainmemory.read_u8(0x0BDA), 0x7F) end,
@@ -816,6 +923,8 @@ function plugin.on_game_load(data, settings)
 			log_message(string.format('Captain Novolin (SNES)'))
 	elseif tag == "Anticipation" then 
 			log_message(string.format('Anticipation (NES)'))
+	elseif tag == "CNDRR1" then 
+			log_message(string.format('Chip and Dale Rescue Rangers 1 (NES)'))
 	elseif tag == "SMK_SNES" then 
 			log_message(string.format('Super Mario Kart (SNES)'))
 	elseif tag == nil or tag == NO_MATCH then
