@@ -31,6 +31,7 @@ plugin.description =
 	-Captain Novolin (SNES)
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
+	-Super Dodge Ball (NES), 1p or 2p, all modes
 	
 	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
@@ -82,6 +83,7 @@ plugin.description =
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
 	-- Anticipation NES does not have lives.
+	-- Lives and level select are not yet running for Chip and Dale 1 (NES).
 	
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
@@ -119,6 +121,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
 	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
 	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1" 
+	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
 	end
 	
@@ -451,6 +454,122 @@ local function cnd_swap(gamemeta)
 	end
 end
 
+local function sdbnes_swap(gamemeta)
+	
+				
+	return function(data)
+		local currhowmanyplayers = gamemeta.gethowmanyplayers()
+		local currmode = gamemeta.getmode()
+		local curronmenu = gamemeta.getonmenu()
+		local p1currhp1 = gamemeta.p1gethp1()
+		local p1currhp2 = gamemeta.p1gethp2()
+		local p1currhp3 = gamemeta.p1gethp3()
+		local p2currhp1 = gamemeta.p2gethp1()
+		local p2currhp2 = gamemeta.p2gethp2()
+		local p2currhp3 = gamemeta.p2gethp3()
+		local p1currbbplayer = gamemeta.p1getbbplayer()
+		local p2currbbplayer = gamemeta.p2getbbplayer()
+		
+
+		local maxhp = gamemeta.maxhp()
+		local minhp = 0
+		
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		
+		-- NOTE: IN SDB, ONLY p1currhp1 and p1currbbplayer seem to inherit garbage values
+		
+		if p1currhp1 < minhp or (p1currhp1 > maxhp and currmode < 2) then
+			return false
+		elseif p1currbbplayer > 33 and currmode == 2 then -- highest value for this is 33
+			return false
+		end
+		
+		local p1currhp = p1currhp1 + p1currhp2 + p1currhp3 -- team 1
+		local p2currhp = p2currhp1 + p2currhp2 + p2currhp3 -- team 2
+		
+		--consider transforming the player to 1-6 to make this easy to look up.
+		
+		local beanballplayerhps = {
+		mainmemory.read_u8(0x0323),
+		mainmemory.read_u8(0x0393),
+		mainmemory.read_u8(0x0403),
+		mainmemory.read_u8(0x035B),
+		mainmemory.read_u8(0x03CB),
+		mainmemory.read_u8(0x043B),
+		}
+		
+		--0 for 1, 16 for 2, 32 for 3, 1 for 4, 17 for 5, 33 for 6
+		local p1currhpbb= beanballplayerhps[p1currbbplayer]
+		local p2currhpbb= beanballplayerhps[p2currbbplayer]
+		--sub in the bb healths if we are in bb
+		
+		if currmode == 2 then 
+			p1currhp = p1currhpbb
+			if currhowmanyplayers == 2 then p2currhp = p2currhpbb else p2currhp = 0 end
+		end
+		
+		
+		
+		-- retrieve previous health and mode/player info from before backup
+		
+		local prevhowmanyplayers = data.prevhowmanyplayers
+		local prevonmenu = data.prevonmenu
+		local prevmode = data.prevmode
+		local p1prevhp = data.p1prevhp
+		local p2prevhp = data.p2prevhp
+		local p2prevhp = data.p2prevhp
+		local p1prevbbplayer = data.p1prevbbplayer
+		local p2prevbbplayer = data.p2prevbbplayer
+
+		data.prevhowmanyplayers = currhowmanyplayers
+		data.prevonmenu = curronmenu
+		data.prevmode = currmode
+		data.p1prevhp = p1currhp
+		data.p2prevhp = p2currhp
+		data.p1prevbbplayer = p1currbbplayer
+		data.p2prevbbplayer = p2currbbplayer
+
+		
+		--Don't swap if we are on menus, or just switched into a game, as HP values will switch all around at that point.
+		if curronmenu == 1 or prevonmenu == 1 then return false end
+
+
+
+		-- this delay ensures that when the game ticks away health for the end of a level,
+		-- we can catch its purpose and hopefully not swap, since this isnt damage related
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
+				return true
+			end
+		end		
+	
+	
+		if data.p2hpcountdown ~= nil and data.p2hpcountdown > 0 then
+			data.p2hpcountdown = data.p2hpcountdown - 1
+			if data.p2hpcountdown == 0 and p2currhp > minhp and currhowmanyplayers == 2 
+			then
+				return true
+			end
+		end		
+
+		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+		if p1prevhp ~= nil and p1currhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+		
+		if p2prevhp ~= nil and p2currhp ~= nil and p2currhp < p2prevhp and currhowmanyplayers == 2 
+		then
+			data.p2hpcountdown = gamemeta.delay or 3
+		end
+
+
+
+		return false
+	end
+end
+
 local function antic_swap(gamemeta) 
 	return function(data)
 	-- We will swap on 3 scenarios. They work across all players.
@@ -558,16 +677,15 @@ local function smk_swap(gamemeta)
 		data.p1prevshrink = p1currshrink
 		data.p2prevshrink = p2currshrink
 		
+		--POSSIBLE MOD FOR SMK SHUFFLES
 		--if p1prevcoins ~= nil and p1currcoins > p1prevcoins then
 		--	return true
 		--elseif p2prevcoins ~= nil and p2currcoins > p2prevcoins then
 		--	return true
 		--end
-		
-		
+
 		-- if the bump value is triggered, swap. It's 0, goes up, then counts down, so we just want to know if it is greater than the previous value.
 		
-
 		if p1prevbump ~= nil and p1currbump > p1prevbump 
 			and mainmemory.read_u8(0x001086) == 0 -- p1 not invincible
 			then return true
@@ -605,9 +723,6 @@ local function smk_swap(gamemeta)
 			return true
 		end
 		
-		-- THERE ARE SOME BOGUS SWAPS THAT HAPPEN IN 1P DUE TO 2P VALUES. NEED A VAR TO REPRESENT IF A HUMAN IS CONTROLLING 2P
-		-- ONCE THAT FOUND, THEN MAKE ALL 2P SWAPS CONDITIONAL ON 2P BEING HUMAN
-
 		return false
 	end
 end
@@ -708,6 +823,21 @@ local gamedata = {
 		p1getlc=function() return mainmemory.read_u8(0x05B6) end,
 		p2getlc=function() return mainmemory.read_u8(0x05E6) end,
 		maxhp=function() return 3 end,
+	},	
+	['SuperDodgeBall']={ -- Super Dodge Ball (NES)
+		func=sdbnes_swap,
+		gethowmanyplayers=function() return mainmemory.read_u8(0x006F) end, -- # humans, 1 or 2, use this to tell whether to swap if 2p team takes damage
+		getmode=function() return mainmemory.read_u8(0x06B1) end, -- mode: 0 for 1p, 1 for 2p vs, 2 for bean ball
+		p1gethp1=function() return mainmemory.read_u8(0x058B) end, 
+		p1gethp2=function() return mainmemory.read_u8(0x0553) end,
+		p1gethp3=function() return mainmemory.read_u8(0x051B) end,
+		p2gethp1=function() return mainmemory.read_u8(0x043B) end,
+		p2gethp2=function() return mainmemory.read_u8(0x0403) end,
+		p2gethp3=function() return mainmemory.read_u8(0x03CB) end,
+		p1getbbplayer=function() return (1 + math.floor(mainmemory.read_u8(0x0587)/16) + 3*(mainmemory.read_u8(0x0587) % 16)) end, -- transforming from 0, 16, 32, 1, 17, 33 format
+		p2getbbplayer=function() return (1 + math.floor(mainmemory.read_u8(0x0588)/16) + 3*(mainmemory.read_u8(0x0588) % 16)) end, -- transforming from 0, 16, 32, 1, 17, 33 format
+		getonmenu=function() return (mainmemory.read_u8(0x0070)%2) end, -- several potential values, but if it's ever odd, we're not in-game.
+		maxhp=function() return 60 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
 		func=novolin_swap,
@@ -925,6 +1055,8 @@ function plugin.on_game_load(data, settings)
 			log_message(string.format('Anticipation (NES)'))
 	elseif tag == "CNDRR1" then 
 			log_message(string.format('Chip and Dale Rescue Rangers 1 (NES)'))
+	elseif tag == "SuperDodgeBall" then 
+			log_message(string.format('Super Dodge Ball (NES)'))
 	elseif tag == "SMK_SNES" then 
 			log_message(string.format('Super Mario Kart (SNES)'))
 	elseif tag == nil or tag == NO_MATCH then
