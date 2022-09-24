@@ -9,6 +9,7 @@ plugin.settings =
 	{ name='ClingerSpeed', type='boolean', label='BT NES: Auto-Clinger-Winger (unpatched ONLY)' },
 	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, pick 2P, give Pimple 1 HP'},
 	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized"/"on Level 1" logs'},
+	{ name='grace', type='number', label='Grace period between swaps (minimum 10 frames)', default=10 },
 }
 
 
@@ -19,7 +20,9 @@ plugin.description =
 	
 	See instructions to have multiple Battletoads games that start (or continue) at the level you specify.
 	
-	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag. Thank you to Diabetus for extensive playthroughs that tracked down bugs!
+	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag. 
+	Additional ideas from the TownEater fork have been implemented.
+	Thank you to Diabetus for extensive playthroughs that tracked down bugs!
 	
 	Currently supports (ALL NTSC-U):
 	-Battletoads (NES), 1p or 2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
@@ -29,9 +32,12 @@ plugin.description =
 	
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Captain Novolin (SNES)
-	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
+	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
+	
+	CURRENTLY IN TESTING:
+	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0, should work with other revisions AND RANDOMIZER if you replace the hash in the .lua file. A proper file detect/select system is pending
 	
 	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
@@ -93,6 +99,8 @@ plugin.description =
 	
 	Suppress Logs: if you do not want the lua console log to tell you about file naming errors, or unrecognized ROMs. This can help keep the log cleaner if you are also using the Mega Man Damage Shuffler or other plugins!
 	
+	Grace period: 10 frames is the default minimum frames between swaps. Adjust up as needed. This idea originated in the TownEater fork of the damage shuffler!
+	
 	Enjoy? Send bug reports?
 	
 ]]
@@ -123,6 +131,9 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1" 
 	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
+	elseif gameinfo.getromhash() == "E7E852F0159CE612E3911164878A9B08B3CB9060" then return "LTTP" -- JP 1.0
+	elseif gameinfo.getromhash() == "6D4F10A8B10E10DBE624CB23CF03B88BB8252973" then return "LTTP" -- US release
+	-- elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "LTTP" -- YOUR SEED/REVISION
 	end
 	
 	return nil
@@ -316,8 +327,12 @@ local function battletoads_swap(gamemeta)
 	end
 end
 
-local function novolin_swap(gamemeta)
+local function singleplayer_withlives_swap(gamemeta)
 	return function(data)
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
 
 
 		local p1currhp = gamemeta.p1gethp()
@@ -364,8 +379,14 @@ local function novolin_swap(gamemeta)
 	end
 end
 
+
+
 local function cnd_swap(gamemeta)
 	return function(data)
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
 
 
 		local p1currhp1 = gamemeta.p1gethp1()
@@ -455,12 +476,15 @@ local function cnd_swap(gamemeta)
 end
 
 local function sdbnes_swap(gamemeta)
+	return function(data)
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
 	
 				
-	return function(data)
 		local currhowmanyplayers = gamemeta.gethowmanyplayers()
 		local currmode = gamemeta.getmode()
-		local curronmenu = gamemeta.getonmenu()
 		local p1currhp1 = gamemeta.p1gethp1()
 		local p1currhp2 = gamemeta.p1gethp2()
 		local p1currhp3 = gamemeta.p1gethp3()
@@ -514,16 +538,13 @@ local function sdbnes_swap(gamemeta)
 		-- retrieve previous health and mode/player info from before backup
 		
 		local prevhowmanyplayers = data.prevhowmanyplayers
-		local prevonmenu = data.prevonmenu
 		local prevmode = data.prevmode
 		local p1prevhp = data.p1prevhp
-		local p2prevhp = data.p2prevhp
 		local p2prevhp = data.p2prevhp
 		local p1prevbbplayer = data.p1prevbbplayer
 		local p2prevbbplayer = data.p2prevbbplayer
 
 		data.prevhowmanyplayers = currhowmanyplayers
-		data.prevonmenu = curronmenu
 		data.prevmode = currmode
 		data.p1prevhp = p1currhp
 		data.p2prevhp = p2currhp
@@ -531,8 +552,6 @@ local function sdbnes_swap(gamemeta)
 		data.p2prevbbplayer = p2currbbplayer
 
 		
-		--Don't swap if we are on menus, or just switched into a game, as HP values will switch all around at that point.
-		if curronmenu == 1 or prevonmenu == 1 then return false end
 
 
 
@@ -656,6 +675,8 @@ local function smk_swap(gamemeta)
 		local p2currfall = gamemeta.p2getfall()
 		local p1currshrink = gamemeta.p1getshrink()
 		local p2currshrink = gamemeta.p2getshrink()
+		local p1currlava = gamemeta.p1getlava()
+		local p2currlava = gamemeta.p2getlava()
 	
 
 		-- retrieve previous health and lives before backup
@@ -667,6 +688,8 @@ local function smk_swap(gamemeta)
 		local p2prevfall = data.p2prevfall
 		local p1prevshrink = data.p1prevshrink
 		local p2prevshrink = data.p2prevshrink
+		local p1prevlava = data.p1prevlava
+		local p2prevlava = data.p2prevlava
 
 		data.p1prevcoins = p1currcoins
 		data.p2prevcoins = p2currcoins
@@ -676,8 +699,10 @@ local function smk_swap(gamemeta)
 		data.p2prevfall = p2currfall
 		data.p1prevshrink = p1currshrink
 		data.p2prevshrink = p2currshrink
+		data.p1prevlava = p1currlava
+		data.p2prevlava = p2currlava
 		
-		--POSSIBLE MOD FOR SMK SHUFFLES
+		--POSSIBLE MOD FOR RETOOLING SMK SHUFFLES
 		--if p1prevcoins ~= nil and p1currcoins > p1prevcoins then
 		--	return true
 		--elseif p2prevcoins ~= nil and p2currcoins > p2prevcoins then
@@ -699,7 +724,7 @@ local function smk_swap(gamemeta)
 		end
 
 		-- if the fall value is triggered, swap. It's usually 0, goes up, then counts down. 
-		-- This number only goes over 0 with a pitfall/Lakitu. You will reset to 0 when you can drive again.
+		-- This number only goes over 5 with a pitfall/Lakitu. You will reset to 0 when you can drive again.
 		-- So we just want to know if it is greater than 0 and greater than the previous value.
 		
 		if p1prevfall ~= nil and p1prevfall == 0 and p1currfall > p1prevfall and p1currfall > 5 then
@@ -720,6 +745,17 @@ local function smk_swap(gamemeta)
 		---p2 has to be active
 		if(mainmemory.read_u8(0x0011D2)) == 2 and
 		p2prevshrink ~= nil and p2prevshrink == 0 and p2currshrink > p2prevshrink then
+			return true
+		end
+		
+		--- in lava
+		
+		if p1prevlava ~= nil and p1prevlava == 0 and p1currlava == 16 then
+			return true end
+		
+		---p2 has to be active
+		if(mainmemory.read_u8(0x0011D2)) == 2 and
+		p2prevlava ~= nil and p2prevlava == 0 and p2currlava == 16 then
 			return true
 		end
 		
@@ -836,14 +872,31 @@ local gamedata = {
 		p2gethp3=function() return mainmemory.read_u8(0x03CB) end,
 		p1getbbplayer=function() return (1 + math.floor(mainmemory.read_u8(0x0587)/16) + 3*(mainmemory.read_u8(0x0587) % 16)) end, -- transforming from 0, 16, 32, 1, 17, 33 format
 		p2getbbplayer=function() return (1 + math.floor(mainmemory.read_u8(0x0588)/16) + 3*(mainmemory.read_u8(0x0588) % 16)) end, -- transforming from 0, 16, 32, 1, 17, 33 format
-		getonmenu=function() return (mainmemory.read_u8(0x0070)%2) end, -- several potential values, but if it's ever odd, we're not in-game.
+		gmode=function() return (mainmemory.read_u8(0x0070)%2) == 0 end, -- several potential values, but if it's ever odd, we're not in-game.
 		maxhp=function() return 60 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
-		func=novolin_swap,
+		func=singleplayer_withlives_swap,
 		p1gethp=function() return bit.band(mainmemory.read_u8(0x0BDA), 0x7F) end,
 		p1getlc=function() return mainmemory.read_u8(0x06C3) end,
 		maxhp=function() return 4 end,
+	},	
+	['Novolin']={ -- Captain Novolin SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return bit.band(mainmemory.read_u8(0x0BDA), 0x7F) end,
+		p1getlc=function() return mainmemory.read_u8(0x06C3) end,
+		maxhp=function() return 4 end,
+	},	
+	['LTTP']={ -- LTTP SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return mainmemory.read_u8(0xF36D) end, -- single byte!
+		maxhp=function() return 160 end, -- 8 hp per heart, 20 heart containers
+		p1getlc=function() 
+			if mainmemory.read_u8(0x0010) == 18 -- this value is the "Link is in a death spiral" value - so it tells us Link hit 0 for real, not due to resets etc.
+			then return 1 else return 2
+			end
+		end,
+		gmode=function() return mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) ~= 0 end, -- 0 means we're on the title/menu, and 23 means we are saving and quitting, so don't swap on those!
 	},	
 	['Anticipation']={ -- Anticipation NES
 		func=antic_swap,
@@ -862,6 +915,9 @@ local gamedata = {
 		p2getfall=function() return mainmemory.read_u8(0x0011CA) end, -- if > 2 then p2 is falling - this is also the Lakitu timer! 2 is jumping, normal or feather
 		p1getshrink=function() return mainmemory.read_u8(0x001084) end, -- if > 0 then you're small and it's counting down
 		p2getshrink=function() return mainmemory.read_u8(0x001184) end, -- if > 0 then you're small and it's counting down
+		p1getlava=function() return mainmemory.read_u8(0x00010A) end, -- if == 16 then congrats, you're in lava 
+		p2getlava=function() return mainmemory.read_u8(0x00010C) end, -- if == 16 then congrats, you're in lava 
+		--eventual conversion to use update_prev instead? 
 	},	
 }
 
@@ -1059,6 +1115,9 @@ function plugin.on_game_load(data, settings)
 			log_message(string.format('Super Dodge Ball (NES)'))
 	elseif tag == "SMK_SNES" then 
 			log_message(string.format('Super Mario Kart (SNES)'))
+	elseif tag == "LTTP" then 
+			log_message(string.format('The Legend of Zelda: A Link to the Past (SNES)'))
+			--THIS IS GETTING UNWIELDY AND A DAT FILE IS PROBABLY IN ORDER
 	elseif tag == nil or tag == NO_MATCH then
 		if settings.SuppressLog ~= true then
 			log_message(string.format('unrecognized? %s (%s)',
@@ -1171,7 +1230,8 @@ function plugin.on_frame(data, settings)
 	
 	
 	local schedule_swap, delay = shouldSwap(prevdata)
-	if schedule_swap and frames_since_restart > 10 then
+	if schedule_swap and frames_since_restart > 10 then -- avoiding super short swaps (<10) as a precaution
+	--if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
 		swap_game_delay(delay or 3)
 		swap_scheduled = true
 	end
