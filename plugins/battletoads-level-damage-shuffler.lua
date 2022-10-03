@@ -36,8 +36,14 @@ plugin.description =
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
 	
-	CURRENTLY IN TESTING:
-	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0, should work with other revisions AND RANDOMIZER if you replace the hash in the .lua file. A proper file detect/select system is pending
+	
+	CURRENTLY IN TESTING
+	All of these should work with various revisions INCLUDING RANDOMIZERS if you replace the hash in the .lua file where instructed.
+	This will likely be broken out into its own plugin in the near future!
+	
+	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
+	-Super Metroid (SNES) - 1p, US/JP version
+	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
 	
 	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
@@ -131,9 +137,13 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1" 
 	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
+	elseif gameinfo.getromhash() == "DA957F0D63D14CB441D215462904C4FA8519C613" then return "SuperMetroid" -- US/JP 1.0
 	elseif gameinfo.getromhash() == "E7E852F0159CE612E3911164878A9B08B3CB9060" then return "LTTP" -- JP 1.0
 	elseif gameinfo.getromhash() == "6D4F10A8B10E10DBE624CB23CF03B88BB8252973" then return "LTTP" -- US release
-	-- elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "LTTP" -- YOUR SEED/REVISION
+	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "LTTP" -- YOUR SEED/REVISION FOR LTTP
+	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SuperMetroid" -- YOUR SEED/REVISION FOR SUPER METROID
+	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SMZ3" -- YOUR SMZ3 ROM
+	--MAKE MULTIPLE LINES WITH EACH HASH IF YOU ARE SHUFFLING MULTIPLE ROMS OF THESE RANDOMIZERS
 	end
 	
 	return nil
@@ -379,6 +389,64 @@ local function singleplayer_withlives_swap(gamemeta)
 	end
 end
 
+local function SMZ3_swap(gamemeta)
+	return function(data)
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
+
+
+		local p1currhp = gamemeta.p1gethp()
+		local p1currlc = gamemeta.p1getlc()
+		local currwhichgame = gamemeta.getwhichgame()
+
+		local maxhp = gamemeta.maxhp()
+		local minhp = 0
+
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		if p1currhp < minhp or p1currhp > maxhp then
+			return false
+		end
+
+		-- retrieve previous health and lives before backup
+		local p1prevhp = data.p1prevhp
+		local p1prevlc = data.p1prevlc
+		local prevwhichgame = data.prevwhichgame
+		
+		--DO NOT SWAP ON GAME CHANGE
+		if prevwhichgame ~= nil and prevwhichgame ~= currwhichgame then return false end
+
+		data.p1prevhp = p1currhp
+		data.p1prevlc = p1currlc
+		data.prevwhichgame = currwhichgame
+		
+
+		-- this delay ensures that when the game ticks away health for the end of a level,
+		-- we can catch its purpose and hopefully not swap, since this isnt damage related
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
+				return true
+			end
+		end		
+	
+
+		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+		if p1prevhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+
+		-- check to see if the life count went down
+		
+		if p1prevlc ~= nil and p1currlc < p1prevlc then
+			return true
+		end
+
+		return false
+	end
+end
 
 
 local function cnd_swap(gamemeta)
@@ -898,6 +966,44 @@ local gamedata = {
 		end,
 		gmode=function() return mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) ~= 0 end, -- 0 means we're on the title/menu, and 23 means we are saving and quitting, so don't swap on those!
 	},	
+	['SuperMetroid']={ -- Super Metroid SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u16_le(0x09C2) end,
+		maxhp=function() return 1399 end,
+		p1getlc=function() 
+			if mainmemory.read_u8(0x0998) == 25 -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
+			then return 1 else return 2
+			end
+		end,
+		gmode=function() return mainmemory.read_u8(0x0998) >= 7 and mainmemory.read_u8(0x0998) <=25 end, -- anything outside those ranges is not normal gameplay, so don't swap on health changes
+	},	
+	['SMZ3']={ -- TESTING SMZ3
+		func=SMZ3_swap,
+		p1gethp=function()
+			if memory.read_u8(0x33FE, "CARTRAM") == 255 then return memory.read_u16_le(0x09C2) -- Samus health
+			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 then return memory.read_u8(0xF36D) -- Link health
+			else return nil end
+			end, 
+		maxhp=function() 
+			if memory.read_u8(0x33FE, "CARTRAM") == 255 then return 1399 -- Samus max health
+			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 then return 160 -- Link max health
+			else return nil end
+			end,
+		p1getlc=function() 
+			if memory.read_u8(0x33FE, "CARTRAM") == 255 -- Super Metroid
+				and mainmemory.read_u8(0x0998) == 25 -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
+				then return 1 
+			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 -- LTTP
+				and mainmemory.read_u8(0x0010) == 18 -- this value is the "Link is in a death spiral" value - so it tells us Link hit 0 for real, not due to resets etc.
+				then return 1 
+			else return 2 end
+			end,
+		getwhichgame=function() return memory.read_u8(0x33FE, "CARTRAM") end,
+		gmode=function() return 
+		(memory.read_u8(0x33FE, "CARTRAM") == 255 and mainmemory.read_u8(0x0998) >= 7 and mainmemory.read_u8(0x0998) <=25) or -- actively in SM
+		(memory.read_u8(0x33FE, "CARTRAM") == 0 and mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) ~= 0) -- actively in LTTP
+		end, -- anything outside those ranges is not normal gameplay, so don't swap on health changes
+	},	
 	['Anticipation']={ -- Anticipation NES
 		func=antic_swap,
 		getbotchedletter=function() return mainmemory.read_u8(0x00C3) end,
@@ -1115,9 +1221,13 @@ function plugin.on_game_load(data, settings)
 			log_message(string.format('Super Dodge Ball (NES)'))
 	elseif tag == "SMK_SNES" then 
 			log_message(string.format('Super Mario Kart (SNES)'))
+	elseif tag == "SuperMetroid" then 
+			log_message(string.format('Super Metroid (SNES)'))
 	elseif tag == "LTTP" then 
 			log_message(string.format('The Legend of Zelda: A Link to the Past (SNES)'))
-			--THIS IS GETTING UNWIELDY AND A DAT FILE IS PROBABLY IN ORDER
+	elseif tag == "SMZ3" then 
+			log_message(string.format('SMZ3 (SNES)'))
+			--THIS IS GETTING UNWIELDY AND A DAT FILE IS IN ORDER
 	elseif tag == nil or tag == NO_MATCH then
 		if settings.SuppressLog ~= true then
 			log_message(string.format('unrecognized? %s (%s)',
