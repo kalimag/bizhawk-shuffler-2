@@ -6,6 +6,7 @@ plugin.settings =
 {
 	-- enable this feature to have health and lives synchronized across games
 	--{ name='healthsync', type='boolean', label='Synchronize Health/Lives' },
+	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized" logs'},
 }
 
 plugin.description =
@@ -585,7 +586,7 @@ function plugin.on_game_load(data, settings)
 		local gamemeta = gamedata[tag]
 		local func = gamemeta.func or generic_swap
 		shouldSwap = func(gamemeta)
-	elseif tag == nil then
+	elseif tag == nil and settings.SuppressLog ~= true then
 		log_message(string.format('unrecognized? %s (%s)',
 			gameinfo.getromname(), gameinfo.getromhash()))
 	end
