@@ -24,6 +24,10 @@ plugin.description =
 	Additional ideas from the TownEater fork have been implemented.
 	Thank you to Diabetus for extensive playthroughs that tracked down bugs!
 	
+	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
+	
+	More games planned!
+	
 	Currently supports (ALL NTSC-U):
 	-Battletoads (NES), 1p or 2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
 	-Battletoads in Battlemaniacs (SNES), 1p or 2p
@@ -45,9 +49,13 @@ plugin.description =
 	-Super Metroid (SNES) - 1p, US/JP version
 	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
 	
-	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
-	
-	More games planned!
+	ALSO CURRENTLY IN TESTING
+	-Mario Bros. (NES), 1-2p
+	-Super Mario Bros. (NES), 1-2p
+	-Super Mario Bros. 2 JP ("Lost Levels"), NES version, 1p
+	-Super Mario Bros. 2 USA (NES), 1p
+	-Super Mario Bros. 3 (NES), 1-2p (includes battle mode)
+	-Somari (NES, unlicensed), 1p
 		
 	----PREPARATION----
 	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
@@ -144,6 +152,29 @@ local function get_game_tag()
 	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SuperMetroid" -- YOUR SEED/REVISION FOR SUPER METROID
 	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SMZ3" -- YOUR SMZ3 ROM
 	--MAKE MULTIPLE LINES WITH EACH HASH IF YOU ARE SHUFFLING MULTIPLE ROMS OF THESE RANDOMIZERS
+	end
+	
+	--MARIO BLOCK
+	if gameinfo.getromhash() == "EA343F4E445A9050D4B4FBAC2C77D0693B1D0922" then return "SMB1_NES"
+	elseif gameinfo.getromhash() == "C91796D3167ED19CB817CAAA2174A299A510E37F" then return "SMB2J_NES"
+	elseif gameinfo.getromhash() == "7DF0F595B074F587C6A1D8F47E031F045D540DAE" then return "SMB2_NES"
+	elseif gameinfo.getromhash() == "9286A2DB471D51713E9B75E68B47FFBF11E2D40B" then return "MB_NES"
+	elseif gameinfo.getromhash() == "6CF18228CFB66D48B3642069979D4A5103CB8528" then return "SOMARI"
+	
+	elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
+	elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
+	elseif gameinfo.getromhash() == "EC6FA944C672A2522C8BC270A25842281C65FF5D" then return "DK3_NES"
+	elseif gameinfo.getromhash() == "A3B727119870E6BBA4C8889EF12E9703021EA9C2" then return "NOTGOLF_NES"
+	elseif gameinfo.getromhash() == "A03E7E526E79DF222E048AE22214BCA2BC49C449" then return "SMB3_NES"
+	elseif gameinfo.getromhash() == "7D95107C45D4F33649324DA2E8A3C8DDB10CDA5E" then return "SML1DX_GBC"
+	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2DX_GBC"
+	elseif gameinfo.getromhash() == "C05817C5B7DF2FBFE631563E0B37237156A8F6B6" then return "SMAS_SNES"
+	elseif gameinfo.getromhash() == "6B47BB75D16514B6A476AA0C73A683A2A4C18765" then return "SMW_SNES"
+	elseif gameinfo.getromhash() == "C807F2856F44FB84326FAC5B462340DCDD0471F8" then return "SMW2YI_SNES"
+	elseif gameinfo.getromhash() == "34612A93741F156D6E497462AB7F253CB8A959A0" then return "SMW2YI_SNES"
+	elseif gameinfo.getromhash() == "D027C03EB2FAEFA07640EC828B2A46F601F7B15F" then return "MPAINT_SNES"
+	elseif gameinfo.getromhash() == "A22713711B5CD58DFBAFC9688DADEA66C59888CE" then return "NSMB_DS"
+	elseif gameinfo.getromhash() == "9BEF1128717F958171A4AFAC3ED78EE2BB4E86CE" then return "SM64_N64"
 	end
 	
 	return nil
@@ -449,7 +480,7 @@ local function SMZ3_swap(gamemeta)
 end
 
 
-local function cnd_swap(gamemeta)
+local function twoplayers_withlives_swap(gamemeta)
 	return function(data)
 		-- if a method is provided and we are not in normal gameplay, don't ever swap
 		if gamemeta.gmode and not gamemeta.gmode() then
@@ -457,28 +488,11 @@ local function cnd_swap(gamemeta)
 		end
 
 
-		local p1currhp1 = gamemeta.p1gethp1()
-		local p1currhp2 = gamemeta.p1gethp2()
-		local p1currhp3 = gamemeta.p1gethp3()
+		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
-		local p2currhp1 = gamemeta.p2gethp1()
-		local p2currhp2 = gamemeta.p2gethp2()
-		local p2currhp3 = gamemeta.p2gethp3()
+		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
 		
-		--convert these HP addresses to 0/1 and convert that overall value to the hp function we're used to.
-		--If the heart is there, these == 24, otherwise they == 248.
-		--I am sure there is a better way, we will look it up.
-		if p1currhp1 == 24 then p1currhp1 = 1 else p1currhp1 = 0 end
-		if p1currhp2 == 24 then p1currhp2 = 1 else p1currhp2 = 0 end
-		if p1currhp3 == 24 then p1currhp3 = 1 else p1currhp3 = 0 end
-		if p2currhp1 == 24 then p2currhp1 = 1 else p2currhp1 = 0 end
-		if p2currhp2 == 24 then p2currhp2 = 1 else p2currhp2 = 0 end
-		if p2currhp3 == 24 then p2currhp3 = 1 else p2currhp3 = 0 end
-		
-		local p1currhp = p1currhp1 + p1currhp2 + p1currhp3
-		local p2currhp = p2currhp1 + p2currhp2 + p2currhp3
-
 		-- we should now be able to use the typical shuffler functions normally.
 
 		local maxhp = gamemeta.maxhp()
@@ -914,16 +928,21 @@ local gamedata = {
 		maxhp=function() return 6 end,
 	},	
 	['CNDRR1']={ -- Chip and Dale 1 (NES)
-		func=cnd_swap,
-		-- there is probably a better way to handle this but, each of these addresses goes from 18 to F8 (in hex) when a heart is lost.
-		-- lives tick down after last HP goes away.
-		-- 
-		p1gethp1=function() return mainmemory.read_u8(0x0210) end, 
-		p1gethp2=function() return mainmemory.read_u8(0x020C) end,
-		p1gethp3=function() return mainmemory.read_u8(0x0208) end,
-		p2gethp1=function() return mainmemory.read_u8(0x0224) end,
-		p2gethp2=function() return mainmemory.read_u8(0x0220) end,
-		p2gethp3=function() return mainmemory.read_u8(0x021C) end,
+		func=twoplayers_withlives_swap,
+				
+		--three addresses for hearts - if the heart is there, these == 24 (18 hex) , otherwise they == 248 (F8 hex).
+		p1gethp=function() 
+		if mainmemory.read_u8(0x0210) == 24 then return 3
+		elseif mainmemory.read_u8(0x020C) == 24 then return 2
+		elseif mainmemory.read_u8(0x0208) == 24 then return 1 
+		else return 0 end
+		end,
+		p2gethp=function() 
+		if mainmemory.read_u8(0x0224) == 24 then return 3
+		elseif mainmemory.read_u8(0x0220) == 24 then return 2
+		elseif mainmemory.read_u8(0x021C) == 24 then return 1 
+		else return 0 end
+		end, 
 		p1getlc=function() return mainmemory.read_u8(0x05B6) end,
 		p2getlc=function() return mainmemory.read_u8(0x05E6) end,
 		maxhp=function() return 3 end,
@@ -942,12 +961,6 @@ local gamedata = {
 		p2getbbplayer=function() return (1 + math.floor(mainmemory.read_u8(0x0588)/16) + 3*(mainmemory.read_u8(0x0588) % 16)) end, -- transforming from 0, 16, 32, 1, 17, 33 format
 		gmode=function() return (mainmemory.read_u8(0x0070)%2) == 0 end, -- several potential values, but if it's ever odd, we're not in-game.
 		maxhp=function() return 60 end,
-	},	
-	['Novolin']={ -- Captain Novolin SNES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return bit.band(mainmemory.read_u8(0x0BDA), 0x7F) end,
-		p1getlc=function() return mainmemory.read_u8(0x06C3) end,
-		maxhp=function() return 4 end,
 	},	
 	['Novolin']={ -- Captain Novolin SNES
 		func=singleplayer_withlives_swap,
@@ -1024,6 +1037,87 @@ local gamedata = {
 		p1getlava=function() return mainmemory.read_u8(0x00010A) end, -- if == 16 then congrats, you're in lava 
 		p2getlava=function() return mainmemory.read_u8(0x00010C) end, -- if == 16 then congrats, you're in lava 
 		--eventual conversion to use update_prev instead? 
+	},	
+	--MARIO BLOCK
+	['SMB1_NES']={ -- SMB 1 NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0756) + 1 end, -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+		p1getlc=function() return 
+		memory.read_u8(0x075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
+		+ memory.read_u8(0x0761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+		end,
+		maxhp=function() return 2 end,
+		gmode=function() return 
+		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end -- we're in the demo if timer equals 401 seconds
+	},	
+	['SMB2J_NES']={ -- SMB 2 JP, NES version (Lost Levels)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0756) + 1 end, -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+		p1getlc=function() return 
+		memory.read_u8(0x075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
+		+ memory.read_u8(0x0761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+		end,
+		maxhp=function() return 2 end,
+		gmode=function() return 
+		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end -- we're in the demo if timer equals 401 seconds
+	},	
+	['SMB2_NES']={ -- SMB2 USA NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x04C2) end,
+		p1getlc=function() return memory.read_u8(0x04ED) end,
+		maxhp=function() return 63 end,
+	},	
+	['MB_NES']={ -- Mario Bros. US NES
+		func=twoplayers_withlives_swap,
+		-- this game only uses lives
+		p1gethp=function() return 0 end, 
+		p1getlc=function() return memory.read_u8(0x0048) end,
+		p2gethp=function() return 0 end,
+		p2getlc=function() return memory.read_u8(0x004C) end,
+		maxhp=function() return 0 end,
+	},	
+	['SOMARI']={ -- Somari (unlicensed) NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 
+		memory.read_u8(0x0336)*100 + -- hundreds digit
+		memory.read_u8(0x0337)*10 + -- tens digit
+		memory.read_u8(0x0338) + 1 end, -- ones digit
+		p1getlc=function() return memory.read_u8(0x033C) end,
+		maxhp=function() return 1000 end,
+	},	
+	['SMB3_NES']={ -- SMB3 NES
+		func=twoplayers_withlives_swap,
+		p1gethp = function() 
+			if memory.read_u8(0x00ED) <= 7 
+			and memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
+				then return 3
+			else 
+				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+			end
+		end,
+		p2gethp = function() 
+			if memory.read_u8(0x00ED) <= 7 
+			or memory.read_u8(0x00ED) > 2 -- suits etc. range from 2 to 7 only
+				then return 2
+			else 
+				return memory.read_u8(0x00ED) -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data
+			end
+		end,
+		p1getlc=function() 
+			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+			then return memory.read_u8(0x0736) + 1 -- max 63?
+			else return memory.read_u8(0x0736) 
+			end
+		end, -- max 63?
+		p2getlc=function() 
+			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+			then return memory.read_u8(0x0737) + 1 -- max 63?
+			else return memory.read_u8(0x0737) 
+			end
+		end, -- max 63?
+		maxhp=function() return 7 end,
+		---battle mode 0x001D == 18?
+		---battle mode 0x04E5 == 112, if player dies, 0?
 	},	
 }
 
@@ -1228,6 +1322,8 @@ function plugin.on_game_load(data, settings)
 	elseif tag == "SMZ3" then 
 			log_message(string.format('SMZ3 (SNES)'))
 			--THIS IS GETTING UNWIELDY AND A DAT FILE IS IN ORDER
+	elseif tag ~= nil then 
+			log_message(string.format(tag))
 	elseif tag == nil or tag == NO_MATCH then
 		if settings.SuppressLog ~= true then
 			log_message(string.format('unrecognized? %s (%s)',
