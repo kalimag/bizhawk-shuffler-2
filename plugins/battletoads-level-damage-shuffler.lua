@@ -56,6 +56,8 @@ plugin.description =
 	-Super Mario Bros. 2 USA (NES), 1p
 	-Super Mario Bros. 3 (NES), 1-2p (includes battle mode)
 	-Somari (NES, unlicensed), 1p
+	-Super Mario World (SNES), 1-2p
+	-Super Mario All-Stars SNES), 1-2p, (includes SMB3 battle mode)
 		
 	----PREPARATION----
 	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
@@ -378,7 +380,9 @@ local function singleplayer_withlives_swap(gamemeta)
 
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
-
+		local currtogglecheck = 0 
+		if gamemeta.gettogglecheck ~= nil then currtogglecheck = gamemeta.gettogglecheck() end
+		
 		local maxhp = gamemeta.maxhp()
 		local minhp = 0
 
@@ -391,9 +395,15 @@ local function singleplayer_withlives_swap(gamemeta)
 		-- retrieve previous health and lives before backup
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
+		local prevtogglecheck = data.prevtogglecheck
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
+		data.prevtogglecheck = currtogglecheck
+		
+		--if we have found a toggle flag, that changes at the same time as a junk hp/lives change, then don't swap.
+		if prevtogglecheck ~= nil and prevtogglecheck ~= currtogglecheck then return false end
+		
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -516,6 +526,93 @@ local function twoplayers_withlives_swap(gamemeta)
 		data.p1prevlc = p1currlc
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
+
+		-- this delay ensures that when the game ticks away health for the end of a level,
+		-- we can catch its purpose and hopefully not swap, since this isnt damage related
+		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+			data.p1hpcountdown = data.p1hpcountdown - 1
+			if data.p1hpcountdown == 0 and p1currhp > minhp then
+				return true
+			end
+		end		
+	
+	
+		if data.p2hpcountdown ~= nil and data.p2hpcountdown > 0 then
+			data.p2hpcountdown = data.p2hpcountdown - 1
+			if data.p2hpcountdown == 0 and p2currhp > minhp then
+				return true
+			end
+		end		
+
+		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+		if p1prevhp ~= nil and p1currhp < p1prevhp then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+		
+		if p2prevhp ~= nil and p2currhp < p2prevhp then
+			data.p2hpcountdown = gamemeta.delay or 3
+		end
+
+		-- check to see if the life count went down
+		
+		if p1prevlc ~= nil and p1currlc < p1prevlc then
+			return true
+		end
+		
+		if p2prevlc ~= nil and p2currlc < p2prevlc then
+			return true
+		end
+
+		return false
+	end
+end
+
+local function SMAS_swap(gamemeta)
+	return function(data)
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
+
+
+		local p1currhp = gamemeta.p1gethp()
+		local p1currlc = gamemeta.p1getlc()
+		local p2currhp = gamemeta.p2gethp()
+		local p2currlc = gamemeta.p2getlc()
+		local currsmb2mode = gamemeta.getsmb2mode()
+		
+		-- we should now be able to use the typical shuffler functions normally.
+
+		local maxhp = gamemeta.maxhp()
+		local minhp = 0
+
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		if p1currhp < minhp or p1currhp > maxhp then
+			return false
+		elseif p2currhp < minhp or p2currhp > maxhp then
+			return false
+		end
+
+		-- retrieve previous health and lives before backup
+		local p1prevhp = data.p1prevhp
+		local p1prevlc = data.p1prevlc
+		local p2prevhp = data.p2prevhp
+		local p2prevlc = data.p2prevlc
+		local prevsmb2mode = data.prevsmb2mode
+		
+		
+
+		data.p1prevhp = p1currhp
+		data.p1prevlc = p1currlc
+		data.p2prevhp = p2currhp
+		data.p2prevlc = p2currlc
+		data.prevsmb2mode = currsmb2mode
+		
+		--DON'T SWAP WHEN WE JUST CAME OUT OF SMB2 SLOTS OR MENU
+		if currsmb2mode ~= prevsmb2mode then 
+			return false 
+		end
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -783,13 +880,6 @@ local function smk_swap(gamemeta)
 		data.p2prevshrink = p2currshrink
 		data.p1prevlava = p1currlava
 		data.p2prevlava = p2currlava
-		
-		--POSSIBLE MOD FOR RETOOLING SMK SHUFFLES
-		--if p1prevcoins ~= nil and p1currcoins > p1prevcoins then
-		--	return true
-		--elseif p2prevcoins ~= nil and p2currcoins > p2prevcoins then
-		--	return true
-		--end
 
 		-- if the bump value is triggered, swap. It's 0, goes up, then counts down, so we just want to know if it is greater than the previous value.
 		
@@ -1048,7 +1138,7 @@ local gamedata = {
 		end,
 		maxhp=function() return 2 end,
 		gmode=function() return 
-		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end -- we're in the demo if timer equals 401 seconds
+		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
 	},	
 	['SMB2J_NES']={ -- SMB 2 JP, NES version (Lost Levels)
 		func=singleplayer_withlives_swap,
@@ -1059,13 +1149,14 @@ local gamedata = {
 		end,
 		maxhp=function() return 2 end,
 		gmode=function() return 
-		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end -- we're in the demo if timer equals 401 seconds
+		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
 	},	
 	['SMB2_NES']={ -- SMB2 USA NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x04C2) end,
 		p1getlc=function() return memory.read_u8(0x04ED) end,
 		maxhp=function() return 63 end,
+		gettogglecheck=function() return memory.read_u8(0x04C3) end, -- this is the number of health bars - if it changes, as in goes back down to normal on slots
 	},	
 	['MB_NES']={ -- Mario Bros. US NES
 		func=twoplayers_withlives_swap,
@@ -1097,10 +1188,10 @@ local gamedata = {
 		end,
 		p2gethp = function() 
 			if memory.read_u8(0x00ED) <= 7 
-			or memory.read_u8(0x00ED) > 2 -- suits etc. range from 2 to 7 only
-				then return 2
+			or memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
+				then return 3
 			else 
-				return memory.read_u8(0x00ED) -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data
+				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
 			end
 		end,
 		p1getlc=function() 
@@ -1108,16 +1199,115 @@ local gamedata = {
 			then return memory.read_u8(0x0736) + 1 -- max 63?
 			else return memory.read_u8(0x0736) 
 			end
-		end, -- max 63?
+		end,
 		p2getlc=function() 
 			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
 			then return memory.read_u8(0x0737) + 1 -- max 63?
 			else return memory.read_u8(0x0737) 
 			end
-		end, -- max 63?
-		maxhp=function() return 7 end,
-		---battle mode 0x001D == 18?
-		---battle mode 0x04E5 == 112, if player dies, 0?
+		end,
+		maxhp=function() return 3 end,
+	},	
+	['SMW_SNES']={ -- Super Mario World SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() 
+			if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+			else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
+			end 
+		end,
+		p1getlc=function() return memory.read_u8(0x000DBE) end, --active player's lives
+		maxhp=function() return 3 end,
+		gmode=function() return 
+		memory.read_u8(0x000100) == 11 --game mode value for fading to overworld, this is when the lives counter changes on death
+		--the mario/luigi lives count swaps ON the overworld (12-14) so don't count that!
+		or (memory.read_u8(0x000100) > 15 and memory.read_u8(0x000100) <= 23) -- in a level, for HP checks
+		end, 
+	},	
+	['SMAS_SNES']={ -- Super Mario All Stars (SNES)
+	--to do, function to define "which game"
+		func=SMAS_swap,
+		gmode=function() return
+		memory.read_u8(0x01FF00) == 2 --SMB1
+		or memory.read_u8(0x01FF00) == 4 --SMB2j
+		or (memory.read_u8(0x01FF00) == 6 and memory.read_u8(0x000547) < 128) --SMB2 USA, 128 = slots, 255 = menu
+		or memory.read_u8(0x01FF00) == 8 -- SMB3 (including battle)
+		end,
+		getsmb2mode=function() return memory.read_u8(0x000547) end,
+		p1gethp=function()
+			if memory.read_u8(0x01FF00) == 8 --SMB3
+				then 
+					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
+						then return memory.read_u8(0x019AB) + 1 --battle health, 0 = small so add 1
+					elseif memory.read_u8(0x000747) <= 7 
+						and memory.read_u8(0x000747) > 1 -- normal mode, suits etc. range from 2 to 7 only
+						then return 3
+					else 
+						return memory.read_u8(0x000747) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+					end
+			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
+				then return math.ceil(memory.read_u8(0x0004C3)/16)
+			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
+				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			else return 0 end
+		end, 
+		p2gethp=function()
+			if memory.read_u8(0x01FF00) == 8 --SMB3
+				then 
+					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
+						then return memory.read_u8(0x019AC) + 1 --battle health, 0 = small so add 1
+					elseif memory.read_u8(0x000748) <= 7 
+					and memory.read_u8(0x000748) > 1 -- suits etc. range from 2 to 7 only
+					then return 3
+				else 
+					return memory.read_u8(0x000748) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+					end
+			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
+				then return 0
+			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
+				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			else return 0 end
+		end, 
+		maxhp=function() 
+			if memory.read_u8(0x01FF00) == 8 --SMB3 
+				then return 3
+			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
+				then return 63
+			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
+				then return 2  -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			else return 0 end
+		end,
+		p1getlc=function()
+			if memory.read_u8(0x01FF00) == 8 --SMB3 
+				then 
+					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
+						then return 5 - memory.read_u8(0x0002DB) --luigi's victory count
+					elseif memory.read_u8(0x00001D) == 18 then return memory.read_u8(0x000736) + 1 --we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+					else return memory.read_u8(0x000736) 
+					end
+			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
+				then return memory.read_u8(0x0004EE)
+			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
+				then return 
+				memory.read_u8(0x00075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
+				+ memory.read_u8(0x000761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+			else return 0 end
+		end, 
+		p2getlc=function()
+			if memory.read_u8(0x01FF00) == 8 --SMB3 
+				then 
+					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
+						then return 5 - memory.read_u8(0x0002DA) --mario's victory count
+					elseif memory.read_u8(0x00001D) == 18 then return memory.read_u8(0x000736) + 1 --we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+					else return memory.read_u8(0x000737)
+					end
+			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
+				then return 0
+			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
+				then return 
+				memory.read_u8(0x00075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
+				+ memory.read_u8(0x000761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+			else return 0 end
+		end, 
 	},	
 }
 
@@ -1436,12 +1626,10 @@ function plugin.on_frame(data, settings)
 	
 	
 	local schedule_swap, delay = shouldSwap(prevdata)
-	if schedule_swap and frames_since_restart > 10 then -- avoiding super short swaps (<10) as a precaution
-	--if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
+	if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
 		swap_game_delay(delay or 3)
 		swap_scheduled = true
 	end
-	
 	
 end
 
