@@ -59,6 +59,7 @@ plugin.description =
 	-Super Mario World (SNES), 1-2p
 	-Super Mario All-Stars SNES), 1-2p, (includes SMB3 battle mode)
 	-Super Mario Land (GB or GBC DX patch), 1p
+	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
 		
 	----PREPARATION----
 	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
@@ -169,8 +170,10 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "3A4DDB39B234A67FFB361EE7ABC3D23E0A8B1C89" then return "SML1_GB"
 	elseif gameinfo.getromhash() == "418203621B887CAA090215D97E3F509B79AFFD3E" then return "SML1_GB"
 	elseif gameinfo.getromhash() == "7D95107C45D4F33649324DA2E8A3C8DDB10CDA5E" then return "SML1_GB"
-	
-	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2DX_GBC"
+	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2_GB"
+	elseif gameinfo.getromhash() == "BBA408539ECBF8D322324956D859BC86E2A9977B" then return "SML2_GB"
+	elseif gameinfo.getromhash() == "96E3A314561FB394CDF51101F9178A32713C2313" then return "SML2_GB"
+	elseif gameinfo.getromhash() == "D11D94FA3C36B9F72E925070B66BB4F16D31001E" then return "SML2_GB"
 	
 	elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
 	elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
@@ -1331,6 +1334,19 @@ local gamedata = {
 		getsmlsize=function() return memory.read_u8(0x19, "HRAM") end,
 		getlives=function() return memory.read_u8(0x1A15, "WRAM") end,
 		getgameover=function() return memory.read_u8(0x00A4, "WRAM") end,
+	},	
+	['SML2_GB']={ -- SMB 1 NES
+		func=singleplayer_withlives_swap,
+		p1gethp = function() 
+			if memory.read_u8(0x0216, "CartRAM") < 4 
+			and memory.read_u8(0x0216, "CartRAM") > 1 -- bunny = 2, fire flower = 3
+				then return 3
+			else 
+				return memory.read_u8(0x0216, "CartRAM") + 1 -- 1 is Big Mario/Luigi, 0 is small, 4+ is junk data, adding 1 to help with swap on small not relying on life lost
+			end
+		end,
+		p1getlc=function() return memory.read_u8(0x022C, "CartRAM") end,
+		maxhp=function() return 3 end,
 	},	
 }
 
