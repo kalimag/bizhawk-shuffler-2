@@ -58,6 +58,7 @@ plugin.description =
 	-Somari (NES, unlicensed), 1p
 	-Super Mario World (SNES), 1-2p
 	-Super Mario All-Stars SNES), 1-2p, (includes SMB3 battle mode)
+	-Super Mario Land (GB or GBC DX patch), 1p
 		
 	----PREPARATION----
 	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
@@ -162,16 +163,19 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "7DF0F595B074F587C6A1D8F47E031F045D540DAE" then return "SMB2_NES"
 	elseif gameinfo.getromhash() == "9286A2DB471D51713E9B75E68B47FFBF11E2D40B" then return "MB_NES"
 	elseif gameinfo.getromhash() == "6CF18228CFB66D48B3642069979D4A5103CB8528" then return "SOMARI"
+	elseif gameinfo.getromhash() == "A03E7E526E79DF222E048AE22214BCA2BC49C449" then return "SMB3_NES"
+	elseif gameinfo.getromhash() == "C05817C5B7DF2FBFE631563E0B37237156A8F6B6" then return "SMAS_SNES"
+	elseif gameinfo.getromhash() == "6B47BB75D16514B6A476AA0C73A683A2A4C18765" then return "SMW_SNES"
+	elseif gameinfo.getromhash() == "3A4DDB39B234A67FFB361EE7ABC3D23E0A8B1C89" then return "SML1_GB"
+	elseif gameinfo.getromhash() == "418203621B887CAA090215D97E3F509B79AFFD3E" then return "SML1_GB"
+	elseif gameinfo.getromhash() == "7D95107C45D4F33649324DA2E8A3C8DDB10CDA5E" then return "SML1_GB"
+	
+	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2DX_GBC"
 	
 	elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
 	elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
 	elseif gameinfo.getromhash() == "EC6FA944C672A2522C8BC270A25842281C65FF5D" then return "DK3_NES"
 	elseif gameinfo.getromhash() == "A3B727119870E6BBA4C8889EF12E9703021EA9C2" then return "NOTGOLF_NES"
-	elseif gameinfo.getromhash() == "A03E7E526E79DF222E048AE22214BCA2BC49C449" then return "SMB3_NES"
-	elseif gameinfo.getromhash() == "7D95107C45D4F33649324DA2E8A3C8DDB10CDA5E" then return "SML1DX_GBC"
-	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2DX_GBC"
-	elseif gameinfo.getromhash() == "C05817C5B7DF2FBFE631563E0B37237156A8F6B6" then return "SMAS_SNES"
-	elseif gameinfo.getromhash() == "6B47BB75D16514B6A476AA0C73A683A2A4C18765" then return "SMW_SNES"
 	elseif gameinfo.getromhash() == "C807F2856F44FB84326FAC5B462340DCDD0471F8" then return "SMW2YI_SNES"
 	elseif gameinfo.getromhash() == "34612A93741F156D6E497462AB7F253CB8A959A0" then return "SMW2YI_SNES"
 	elseif gameinfo.getromhash() == "D027C03EB2FAEFA07640EC828B2A46F601F7B15F" then return "MPAINT_SNES"
@@ -233,6 +237,19 @@ local function update_prev(key, value)
 	local changed = prev_value ~= nil and value ~= prev_value
 	return changed, value, prev_value
 end
+
+
+local function sml1_swap(gamemeta)
+	return function()
+		local size_changed, shrinking, prev_shrinking = update_prev('shrinking', gamemeta.getsmlsize()) -- when this variable is 3, Mario is shrinking
+		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.getlives()) -- usual lives counter idea
+		local game_over_changed, game_over_bar, prev_game_over_bar = update_prev('game_over_bar', gamemeta.getgameover() ~= 57) -- this variable goes to 57 to show the GAME OVER bar		
+		return
+			(size_changed and shrinking == 3) or
+			(lives_changed and lives < prev_lives) or
+			(game_over_changed and game_over_bar)
+		end
+	end
 
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
 -- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
@@ -1308,6 +1325,12 @@ local gamedata = {
 				+ memory.read_u8(0x000761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
 			else return 0 end
 		end, 
+	},	
+	['SML1_GB']={ -- Super Mario Land, including DX hack for Game Boy Color
+		func=sml1_swap,
+		getsmlsize=function() return memory.read_u8(0x19, "HRAM") end,
+		getlives=function() return memory.read_u8(0x1A15, "WRAM") end,
+		getgameover=function() return memory.read_u8(0x00A4, "WRAM") end,
 	},	
 }
 
