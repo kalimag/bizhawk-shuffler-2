@@ -253,6 +253,17 @@ local function sml1_swap(gamemeta)
 			(game_over_changed and game_over_bar)
 		end
 	end
+	
+	
+local function somari_swap(gamemeta)
+	return function()
+		local sprite_changed, sprite, prev_sprite = update_prev('sprite', gamemeta.getsprite()) 
+		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.getlives()) -- usual lives counter idea
+		return
+			(sprite_changed and sprite == 10) or -- when this variable is 9, Somari hurt sprite is on
+			(lives_changed and lives < prev_lives) 
+		end
+	end
 
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
 -- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
@@ -1188,17 +1199,9 @@ local gamedata = {
 		maxhp=function() return 0 end,
 	},	
 	['SOMARI']={ -- Somari (unlicensed) NES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return 
-		memory.read_u8(0x0336)*100 + -- hundreds digit
-		memory.read_u8(0x0337)*10 + -- tens digit
-		memory.read_u8(0x0338) -- ones digit
-		--THIS SWAPS ON THE END OF LEVEL COUNTDOWN, NEEDS FIX
-		+ 1 end, 
-		p1getlc=function() return memory.read_u8(0x033C) end,
-		maxhp=function() return 1000 end,
-		gmode=function() return memory.read_u8(0x0084) == 0 end, -- 0 is active gameplay, 1 is title, 2+ is results screen...
-		gettogglecheck=function() return memory.read_u8(0x0084) end, -- 0 is active gameplay, 1 is title, 2+ is results screen...
+		func=somari_swap,
+		getsprite=function() return memory.read_u8(0x0016) end,
+		getlives=function() return memory.read_u8(0x033C) end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
 		func=twoplayers_withlives_swap,
