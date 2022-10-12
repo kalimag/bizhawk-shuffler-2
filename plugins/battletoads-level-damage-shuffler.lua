@@ -1227,6 +1227,7 @@ local gamedata = {
 			end
 		end,
 		maxhp=function() return 3 end,
+		gmode=function() return memory.read_u8(0x072B) ~= 0 end -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
 	},	
 	['SMW_SNES']={ -- Super Mario World SNES
 		func=singleplayer_withlives_swap,
@@ -1347,6 +1348,19 @@ local gamedata = {
 		end,
 		p1getlc=function() return memory.read_u8(0x022C, "CartRAM") end,
 		maxhp=function() return 3 end,
+	},	
+	['SMW2YI_SNES']={ -- Super Mario World 2: Yoshi's Island
+		func=singleplayer_withlives_swap,
+		p1gethp=function() 
+			if memory.read_u8(0x000CCC) > 0 then return 1 else return 2 end -- this value is >0 when yoshi is recoiling from damage
+		end,
+		p1getlc=function() return memory.read_u8(0x000379) end,
+		maxhp=function() return 2 end,
+		gmode=function() return 
+			(memory.read_u16_le(0x000118) >=15 and memory.read_u16_le(0x000118) <=20 ) or --actively in a level or on retry screen
+			(memory.read_u16_le(0x000118) == 48) --in a mini battle  
+			end,
+			--DID NOT SHUFFLE ON BEING EATEN BY PIRANHA PLANT
 	},	
 }
 
