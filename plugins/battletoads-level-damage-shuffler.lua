@@ -1192,9 +1192,13 @@ local gamedata = {
 		p1gethp=function() return 
 		memory.read_u8(0x0336)*100 + -- hundreds digit
 		memory.read_u8(0x0337)*10 + -- tens digit
-		memory.read_u8(0x0338) + 1 end, -- ones digit
+		memory.read_u8(0x0338) -- ones digit
+		--THIS SWAPS ON THE END OF LEVEL COUNTDOWN, NEEDS FIX
+		+ 1 end, 
 		p1getlc=function() return memory.read_u8(0x033C) end,
 		maxhp=function() return 1000 end,
+		gmode=function() return memory.read_u8(0x0084) == 0 end, -- 0 is active gameplay, 1 is title, 2+ is results screen...
+		gettogglecheck=function() return memory.read_u8(0x0084) end, -- 0 is active gameplay, 1 is title, 2+ is results screen...
 	},	
 	['SMB3_NES']={ -- SMB3 NES
 		func=twoplayers_withlives_swap,
