@@ -60,6 +60,7 @@ plugin.description =
 	-Super Mario All-Stars SNES), 1-2p, (includes SMB3 battle mode)
 	-Super Mario Land (GB or GBC DX patch), 1p
 	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
+	-Super Mario 64 (N64), 1p
 		
 	----PREPARATION----
 	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
@@ -1369,6 +1370,14 @@ local gamedata = {
 			end,
 			--DID NOT SHUFFLE ON BEING EATEN BY PIRANHA PLANT
 	},	
+	['SM64_N64']={ -- Super Mario 64
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x33B21E, "RDRAM") end,
+		p1getlc=function() return memory.read_u8(0x33B21D, "RDRAM") end,
+		maxhp=function() return 8 end,
+		delay=10, -- handles health ticking down from big falls, hits for >1 hp, etc.
+		gmode=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end, -- "mario status" variable, 0 if game hasn't started
+	},	
 }
 
 local backupchecks = {
@@ -1386,8 +1395,6 @@ local function BT_NES_Zitz_Override()
 	
 	return false
 end
-
---TODO: Ensure Zitz lives get set down to 0 in this scenario.
 
 function plugin.on_setup(data, settings)
 	data.tags = data.tags or {}
