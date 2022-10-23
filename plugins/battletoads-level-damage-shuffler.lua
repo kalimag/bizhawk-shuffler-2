@@ -1372,7 +1372,15 @@ local gamedata = {
 	},	
 	['SM64_N64']={ -- Super Mario 64
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x33B21E, "RDRAM") end,
+		p1gethp=function() 
+			if memory.read_u16_be(0x33B17E, "RDRAM") == 6440 or 
+			memory.read_u16_be(0x33B17E, "RDRAM") == 6444 
+			then return 0 
+			--these RAM values for "mario state" apply when Mario's being thrown out of a painting after death
+			--Mario's health gets set to 1 if he dies from falling/quicksand, not 0, so there will be two swaps (hp lost + life lost) unless we account for that
+			else return memory.read_u8(0x33B21E, "RDRAM") 
+			end
+			end,
 		p1getlc=function() return memory.read_u8(0x33B21D, "RDRAM") end,
 		maxhp=function() return 8 end,
 		delay=10, -- handles health ticking down from big falls, hits for >1 hp, etc.
