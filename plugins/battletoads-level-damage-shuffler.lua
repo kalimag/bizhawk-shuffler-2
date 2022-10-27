@@ -57,7 +57,7 @@ plugin.description =
 	-Super Mario Bros. 3 (NES), 1-2p (includes battle mode)
 	-Somari (NES, unlicensed), 1p
 	-Super Mario World (SNES), 1-2p
-	-Super Mario All-Stars SNES), 1-2p, (includes SMB3 battle mode)
+	-Super Mario All-Stars (SNES), 1-2p, with or without World (includes SMB3 battle mode)
 	-Super Mario Land (GB or GBC DX patch), 1p
 	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
 	-Super Mario 64 (N64), 1p
@@ -167,6 +167,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "6CF18228CFB66D48B3642069979D4A5103CB8528" then return "SOMARI"
 	elseif gameinfo.getromhash() == "A03E7E526E79DF222E048AE22214BCA2BC49C449" then return "SMB3_NES"
 	elseif gameinfo.getromhash() == "C05817C5B7DF2FBFE631563E0B37237156A8F6B6" then return "SMAS_SNES"
+	elseif gameinfo.getromhash() == "D245E41A2B590F7D63666B0772CBDDFB26F254A2" then return "SMAS_SNES" -- PLUS WORLD
 	elseif gameinfo.getromhash() == "6B47BB75D16514B6A476AA0C73A683A2A4C18765" then return "SMW_SNES"
 	elseif gameinfo.getromhash() == "3A4DDB39B234A67FFB361EE7ABC3D23E0A8B1C89" then return "SML1_GB"
 	elseif gameinfo.getromhash() == "418203621B887CAA090215D97E3F509B79AFFD3E" then return "SML1_GB"
@@ -565,6 +566,8 @@ local function twoplayers_withlives_swap(gamemeta)
 		local p1currlc = gamemeta.p1getlc()
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
+		local currtogglecheck = 0
+		if gamemeta.gettogglecheck ~= nil then currtogglecheck = gamemeta.gettogglecheck() end
 		
 		-- we should now be able to use the typical shuffler functions normally.
 
@@ -584,11 +587,17 @@ local function twoplayers_withlives_swap(gamemeta)
 		local p1prevlc = data.p1prevlc
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
+		local prevtogglecheck = data.prevtogglecheck
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
+		data.prevtogglecheck = currtogglecheck
+		
+		
+		--if we have found a toggle flag, that changes at the same time as a junk hp/lives change, then don't swap.
+		if prevtogglecheck ~= nil and prevtogglecheck ~= currtogglecheck then return false end
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -643,6 +652,8 @@ local function SMAS_swap(gamemeta)
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
 		local currsmb2mode = gamemeta.getsmb2mode()
+		local currtogglecheck = 0 
+		if gamemeta.gettogglecheck ~= nil then currtogglecheck = gamemeta.gettogglecheck() end
 		
 		-- we should now be able to use the typical shuffler functions normally.
 
@@ -663,6 +674,7 @@ local function SMAS_swap(gamemeta)
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
 		local prevsmb2mode = data.prevsmb2mode
+		local prevtogglecheck = data.prevtogglecheck
 		
 		
 
@@ -671,11 +683,15 @@ local function SMAS_swap(gamemeta)
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
 		data.prevsmb2mode = currsmb2mode
+		data.prevtogglecheck = currtogglecheck
 		
 		--DON'T SWAP WHEN WE JUST CAME OUT OF SMB2 SLOTS OR MENU
 		if currsmb2mode ~= prevsmb2mode then 
 			return false 
 		end
+		
+		--if we have found a toggle flag, that changes at the same time as a junk hp/lives change, then don't swap.
+		if prevtogglecheck ~= nil and prevtogglecheck ~= currtogglecheck then return false end
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
@@ -1272,6 +1288,7 @@ local gamedata = {
 		end,
 		p1getlc=function() return memory.read_u8(0x000DBE) end, --active player's lives
 		maxhp=function() return 3 end,
+		gettogglecheck=function() return memory.read_u8(0x000DB3) end, -- which player - if we swap players, then do not shuffle
 		gmode=function() return 
 		memory.read_u8(0x000100) == 11 --game mode value for fading to overworld, this is when the lives counter changes on death
 		--the mario/luigi lives count swaps ON the overworld (12-14) so don't count that!
@@ -1286,8 +1303,12 @@ local gamedata = {
 		or memory.read_u8(0x01FF00) == 4 --SMB2j
 		or (memory.read_u8(0x01FF00) == 6 and memory.read_u8(0x000547) < 128) --SMB2 USA, 128 = slots, 255 = menu
 		or memory.read_u8(0x01FF00) == 8 -- SMB3 (including battle)
+		or memory.read_u8(0x01FF00) == 10 -- Super Mario World
 		end,
 		getsmb2mode=function() return memory.read_u8(0x000547) end,
+		gettogglecheck=function() 
+		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) else return nil end
+		end, -- which SMW character
 		p1gethp=function()
 			if memory.read_u8(0x01FF00) == 8 --SMB3
 				then 
@@ -1303,6 +1324,11 @@ local gamedata = {
 				then return math.ceil(memory.read_u8(0x0004C3)/16)
 			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
 				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
+				then
+					if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+					else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
+					end
 			else return 0 end
 		end, 
 		p2gethp=function()
@@ -1320,6 +1346,11 @@ local gamedata = {
 				then return 0
 			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
 				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
+				then
+					if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+					else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
+					end
 			else return 0 end
 		end, 
 		maxhp=function() 
@@ -1329,6 +1360,8 @@ local gamedata = {
 				then return 63
 			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
 				then return 2  -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
+				then return 3
 			else return 0 end
 		end,
 		p1getlc=function()
@@ -1345,6 +1378,8 @@ local gamedata = {
 				then return 
 				memory.read_u8(0x00075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
 				+ memory.read_u8(0x000761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
+				then return memory.read_u8(0x000DBE) --active player's lives
 			else return 0 end
 		end, 
 		p2getlc=function()
@@ -1361,6 +1396,8 @@ local gamedata = {
 				then return 
 				memory.read_u8(0x00075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
 				+ memory.read_u8(0x000761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
+			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
+				then return memory.read_u8(0x000DBE) --active player's lives
 			else return 0 end
 		end, 
 	},	
