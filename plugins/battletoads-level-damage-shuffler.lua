@@ -46,7 +46,7 @@ plugin.description =
 	This will likely be broken out into its own plugin in the near future!
 	
 	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
-	-Super Metroid (SNES) - 1p, US/JP version
+	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
 	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
 	
 	ALSO CURRENTLY IN TESTING
@@ -108,7 +108,7 @@ plugin.description =
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
 	-- Anticipation NES does not have lives.
-	-- Lives and level select are not yet running for Chip and Dale 1 (NES).
+	-- Lives and level select are not yet running for Chip and Dale 1 (NES) or any "in testing" games, until further notice (that's next on the roadmap)
 	
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
@@ -462,61 +462,92 @@ local function singleplayer_withlives_swap(gamemeta)
 	end
 end
 
+
+
+local function supermetroid_swap(gamemeta)
+	return function()
+		local currhp = gamemeta.gethp()
+		
+		local invuln_changed, invuln, prev_invuln= update_prev('invuln', gamemeta.getinvuln()) -- when this variable is over 0, i-frames are on
+		local samusstate_changed, samusstate, prevsamusstate = update_prev('samusstate', gamemeta.getsamusstate()) -- this variable covers Samus states like saving, dying, normal gameplay, etc.	
+		return
+			(invuln_changed and prev_invuln == 0 and currhp > 0) or --i-frames just started
+			(samusstate_changed and samusstate == 25) -- Samus death animation just ended
+		end
+	end
+
 local function SMZ3_swap(gamemeta)
 	return function(data)
 		-- if a method is provided and we are not in normal gameplay, don't ever swap
 		if gamemeta.gmode and not gamemeta.gmode() then
 			return false
 		end
-
-
-		local p1currhp = gamemeta.p1gethp()
-		local p1currlc = gamemeta.p1getlc()
+		
+		local currlinkhp = gamemeta.getlinkhp()
+		local currsamushp = gamemeta.getsamushp()
+		local currlinklc = gamemeta.getlinklc()
 		local currwhichgame = gamemeta.getwhichgame()
-
+		
+		
+		local invuln_changed, invuln, prev_invuln= update_prev('invuln', gamemeta.getinvuln()) -- when this variable is over 0, i-frames are on
+		local samusstate_changed, samusstate, prevsamusstate = update_prev('samusstate', gamemeta.getsamusstate()) -- this variable covers Samus states like saving, dying, normal gameplay, etc.	
+		
 		local maxhp = gamemeta.maxhp()
 		local minhp = 0
+		
+		
+		--Samus swaps
+		if currwhichgame == 255 and
+			((invuln_changed and prev_invuln == 0 and currsamushp > 0) or --i-frames just started
+			(samusstate_changed and samusstate == 25)) -- Samus death animation just ended
+		then return true end
+
+		--other swaps are geared toward LTTP specifically
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
-		if p1currhp < minhp or p1currhp > maxhp then
+		if currwhichgame == 0 and (currlinkhp < minhp or currlinkhp > maxhp) then
 			return false
 		end
 
 		-- retrieve previous health and lives before backup
-		local p1prevhp = data.p1prevhp
-		local p1prevlc = data.p1prevlc
+		local prevlinkhp = data.prevlinkhp
+		local prevlinklc = data.prevlinklc
 		local prevwhichgame = data.prevwhichgame
 		
+		data.prevlinkhp = currlinkhp
+		data.prevlinklc = currlinklc
+		data.prevwhichgame = currwhichgame
+
 		--DO NOT SWAP ON GAME CHANGE
 		if prevwhichgame ~= nil and prevwhichgame ~= currwhichgame then return false end
 
-		data.p1prevhp = p1currhp
-		data.p1prevlc = p1currlc
-		data.prevwhichgame = currwhichgame
-		
 
 		-- this delay ensures that when the game ticks away health for the end of a level,
 		-- we can catch its purpose and hopefully not swap, since this isnt damage related
-		if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
-			data.p1hpcountdown = data.p1hpcountdown - 1
-			if data.p1hpcountdown == 0 and p1currhp > minhp then
-				return true
-			end
-		end		
+		if currwhichgame == 0 then 
+		
+			if data.p1hpcountdown ~= nil and data.p1hpcountdown > 0 then
+				data.p1hpcountdown = data.p1hpcountdown - 1
+				if data.p1hpcountdown == 0 and currlinkhp > minhp
+					then return true
+				end
+			end		
 	
 
-		-- if the health goes to 0, we will rely on the life count to tell us whether to swap
-		if p1prevhp ~= nil and p1currhp < p1prevhp then
-			data.p1hpcountdown = gamemeta.delay or 3
-		end
+			-- if the health goes to 0, we will rely on the life count to tell us whether to swap
+			if prevlinkhp ~= nil and currlinkhp < prevlinkhp then
+				data.p1hpcountdown = gamemeta.delay or 3
+			end
 
-		-- check to see if the life count went down
+			-- check to see if the life count went down
 		
-		if p1prevlc ~= nil and p1currlc < p1prevlc then
-			return true
-		end
+			if prevlinklc ~= nil and currlinklc < prevlinklc then
+				return true
+			end
 
+		end		
+		
 		return false
 	end
 end
@@ -1092,52 +1123,47 @@ local gamedata = {
 	},	
 	['LTTP']={ -- LTTP SNES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return mainmemory.read_u8(0xF36D) end, -- single byte!
+		p1gethp=function() 
+			if (mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) >5) then -- <=5 means we're on the title/menu, and 23 means we are saving and quitting, so don't swap on those!
+			return mainmemory.read_u8(0xF36D) 
+			else return 0 
+			end
+		end, -- single byte!
 		maxhp=function() return 160 end, -- 8 hp per heart, 20 heart containers
 		p1getlc=function() 
 			if mainmemory.read_u8(0x0010) == 18 -- this value is the "Link is in a death spiral" value - so it tells us Link hit 0 for real, not due to resets etc.
 			then return 1 else return 2
 			end
 		end,
-		gmode=function() return mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) ~= 0 end, -- 0 means we're on the title/menu, and 23 means we are saving and quitting, so don't swap on those!
 	},	
 	['SuperMetroid']={ -- Super Metroid SNES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u16_le(0x09C2) end,
-		maxhp=function() return 1399 end,
-		p1getlc=function() 
-			if mainmemory.read_u8(0x0998) == 25 -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
-			then return 1 else return 2
-			end
-		end,
-		gmode=function() return mainmemory.read_u8(0x0998) >= 7 and mainmemory.read_u8(0x0998) <=25 end, -- anything outside those ranges is not normal gameplay, so don't swap on health changes
+		func=supermetroid_swap,
+		getinvuln=function() return memory.read_u16_le(0x18A8) end, -- this value is 0 until i-frames are triggered
+		getsamusstate=function() return mainmemory.read_u8(0x0998) end, -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
+		gethp=function() return memory.read_u16_le(0x09C2) end,
 	},	
 	['SMZ3']={ -- TESTING SMZ3
 		func=SMZ3_swap,
-		p1gethp=function()
-			if memory.read_u8(0x33FE, "CARTRAM") == 255 then return memory.read_u16_le(0x09C2) -- Samus health
-			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 then return memory.read_u8(0xF36D) -- Link health
-			else return nil end
-			end, 
-		maxhp=function() 
-			if memory.read_u8(0x33FE, "CARTRAM") == 255 then return 1399 -- Samus max health
-			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 then return 160 -- Link max health
-			else return nil end
-			end,
-		p1getlc=function() 
-			if memory.read_u8(0x33FE, "CARTRAM") == 255 -- Super Metroid
-				and mainmemory.read_u8(0x0998) == 25 -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
-				then return 1 
-			elseif memory.read_u8(0x33FE, "CARTRAM") == 0 -- LTTP
+		getinvuln=function() return memory.read_u16_le(0x18A8) end, -- this value is 0 until i-frames are triggered
+		getsamusstate=function() return mainmemory.read_u8(0x0998) end, -- this value is the "game state" where the game is fading out after Samus dies. Tells us Samus hit 0 for real, not due to resets etc.
+		getsamushp=function() return mainmemory.read_u8(0x09C2) end, 
+		getlinkhp=function()
+			if memory.read_u8(0x33FE, "CARTRAM") == 0 then 
+			if (mainmemory.read_u8(0x0010) < 23 and mainmemory.read_u8(0x0010) >5)  then 
+				return memory.read_u8(0xF36D) -- Link health
+				else return 0
+				end
+			else return 0 
+			end
+		end, 
+		maxhp=function() return 160 end,
+		getlinklc=function() 
+			if memory.read_u8(0x33FE, "CARTRAM") == 0 -- LTTP
 				and mainmemory.read_u8(0x0010) == 18 -- this value is the "Link is in a death spiral" value - so it tells us Link hit 0 for real, not due to resets etc.
 				then return 1 
 			else return 2 end
 			end,
 		getwhichgame=function() return memory.read_u8(0x33FE, "CARTRAM") end,
-		gmode=function() return 
-		(memory.read_u8(0x33FE, "CARTRAM") == 255 and mainmemory.read_u8(0x0998) >= 7 and mainmemory.read_u8(0x0998) <=25) or -- actively in SM
-		(memory.read_u8(0x33FE, "CARTRAM") == 0 and mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) ~= 0) -- actively in LTTP
-		end, -- anything outside those ranges is not normal gameplay, so don't swap on health changes
 	},	
 	['Anticipation']={ -- Anticipation NES
 		func=antic_swap,
