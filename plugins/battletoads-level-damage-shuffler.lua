@@ -107,8 +107,8 @@ plugin.description =
 	-- It's not quite infinite. Lives refill ON SWAP. On your LAST game, you're done swapping, so be careful!
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
-	-- Anticipation NES does not have lives.
-	-- Lives and level select are not yet running for Chip and Dale 1 (NES) or any "in testing" games, until further notice (that's next on the roadmap)
+	-- Several games do not have 'lives' to make infinite, such as Anticipation, Super Metroid, Link to the Past, Super Dodge Ball, original Mario Bros. Nothing will change in these games with this option.
+	-- Infinite lives are not yet running for Super Mario All-Stars (with or without SMW). This is in progress.
 	
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
@@ -1112,8 +1112,14 @@ local gamedata = {
 		elseif mainmemory.read_u8(0x021C) == 24 then return 1 
 		else return 0 end
 		end, 
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x05B6,
+		p2livesaddr=0x05E6,
+		maxlives=135, -- rescue rangers counts strangely
 		p1getlc=function() return mainmemory.read_u8(0x05B6) end,
 		p2getlc=function() return mainmemory.read_u8(0x05E6) end,
+		ActiveP1=function() return mainmemory.read_u8(0x05B6) > 0 and mainmemory.read_u8(0x05B6) < 255 end,
+		ActiveP2=function() return mainmemory.read_u8(0x05E6) > 0 and mainmemory.read_u8(0x05E6) < 255 end,
 		maxhp=function() return 3 end,
 	},	
 	['SuperDodgeBall']={ -- Super Dodge Ball (NES)
@@ -1210,20 +1216,31 @@ local gamedata = {
 		memory.read_u8(0x075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
 		+ memory.read_u8(0x0761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
 		end,
+		p2getlc=function() return mainmemory.read_u8(0x0761) end,
 		maxhp=function() return 2 end,
 		gmode=function() return 
 		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x075A,
+		p2livesaddr=0x0761,
+		maxlives=8,
+		ActiveP1=function() return mainmemory.read_u8(0x075A) > 0 and mainmemory.read_u8(0x075A) < 255 end,
+		ActiveP2=function() return mainmemory.read_u8(0x0761) > 0 and mainmemory.read_u8(0x0761) < 255 end,
 	},	
 	['SMB2J_NES']={ -- SMB 2 JP, NES version (Lost Levels)
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x0756) + 1 end, -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
-		p1getlc=function() return 
-		memory.read_u8(0x075A) % 255 --mario if 1p, luigi if 2p, 255 = they game overed
-		+ memory.read_u8(0x0761) % 255 --mario if 2p, 255 = they game overed, stays at 2 if in 1p
-		end,
+		p1getlc=function() return memory.read_u8(0x075A) end,
 		maxhp=function() return 2 end,
 		gmode=function() return 
 		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x075A,
+		maxlives=8,
+		p1getlc=function() return mainmemory.read_u8(0x075A) end,
+		ActiveP1=function() return mainmemory.read_u8(0x075A) > 0 and mainmemory.read_u8(0x075A) < 255 end,
 	},	
 	['SMB2_NES']={ -- SMB2 USA NES
 		func=singleplayer_withlives_swap,
@@ -1231,6 +1248,11 @@ local gamedata = {
 		p1getlc=function() return memory.read_u8(0x04ED) end,
 		maxhp=function() return 63 end,
 		gettogglecheck=function() return memory.read_u8(0x04C3) end, -- this is the number of health bars - if it changes, as in goes back down to normal on slots
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x04ED,
+		maxlives=70,
+		ActiveP1=function() return mainmemory.read_u8(0x04ED) > 0 and mainmemory.read_u8(0x04ED) < 255 end,
 	},	
 	['MB_NES']={ -- Mario Bros. US NES
 		func=twoplayers_withlives_swap,
@@ -1245,6 +1267,11 @@ local gamedata = {
 		func=somari_swap,
 		getsprite=function() return memory.read_u8(0x0016) end,
 		getlives=function() return memory.read_u8(0x033C) end,
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x033C,
+		maxlives=5,
+		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
 		func=twoplayers_withlives_swap,
@@ -1277,7 +1304,15 @@ local gamedata = {
 			end
 		end,
 		maxhp=function() return 3 end,
-		gmode=function() return memory.read_u8(0x072B) ~= 0 end -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
+		gmode=function() return memory.read_u8(0x072B) ~= 0 end, -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
+		
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x0736,
+		p2livesaddr=0x0737,
+		maxlives=69,
+		ActiveP1=function() return mainmemory.read_u8(0x0736) > 0 and mainmemory.read_u8(0x0736) < 255 end,
+		ActiveP2=function() return mainmemory.read_u8(0x0737) > 0 and mainmemory.read_u8(0x0737) < 255 end,
 	},	
 	['SMW_SNES']={ -- Super Mario World SNES
 		func=singleplayer_withlives_swap,
@@ -1294,6 +1329,11 @@ local gamedata = {
 		--the mario/luigi lives count swaps ON the overworld (12-14) so don't count that!
 		or (memory.read_u8(0x000100) > 15 and memory.read_u8(0x000100) <= 23) -- in a level, for HP checks
 		end, 
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x000DBE,
+		maxlives=68,
+		ActiveP1=function() return mainmemory.read_u8(0x000DBE) > 0 and mainmemory.read_u8(0x000DBE) < 255 end,
 	},	
 	['SMAS_SNES']={ -- Super Mario All Stars (SNES)
 	--to do, function to define "which game"
@@ -1406,6 +1446,13 @@ local gamedata = {
 		getsmlsize=function() return memory.read_u8(0x19, "HRAM") end,
 		getlives=function() return memory.read_u8(0x1A15, "WRAM") end,
 		getgameover=function() return memory.read_u8(0x00A4, "WRAM") end,
+		
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x1A15,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=9,
+		ActiveP1=function() return memory.read_u8(0x1A15, "WRAM") > 0 and memory.read_u8(0x033C, "WRAM") < 255 end,
 	},	
 	['SML2_GB']={ -- SMB 1 NES
 		func=singleplayer_withlives_swap,
@@ -1419,6 +1466,12 @@ local gamedata = {
 		end,
 		p1getlc=function() return memory.read_u8(0x022C, "CartRAM") end,
 		maxhp=function() return 3 end,
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x022C,
+		LivesWhichRAM=function() return "CartRAM" end,
+		maxlives=9,
+		ActiveP1=function() return memory.read_u8(0x022C, "CartRAM") > 0 and memory.read_u8(0x022C, "CartRAM") < 255 end,
 	},	
 	['SMW2YI_SNES']={ -- Super Mario World 2: Yoshi's Island
 		func=singleplayer_withlives_swap,
@@ -1448,6 +1501,12 @@ local gamedata = {
 		maxhp=function() return 8 end,
 		delay=10, -- handles health ticking down from big falls, hits for >1 hp, etc.
 		gmode=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end, -- "mario status" variable, 0 if game hasn't started
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=0x33B21D,
+		LivesWhichRAM=function() return "RDRAM" end,
+		maxlives=69,
+		ActiveP1=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end,
 	},	
 }
 
@@ -1597,7 +1656,6 @@ function plugin.on_game_load(data, settings)
 		end
 	end
 
-	
 		
 
 	-- first time through with a bad match, tag will be nil
@@ -1608,6 +1666,47 @@ function plugin.on_game_load(data, settings)
 		local gamemeta = gamedata[tag]
 		local func = gamemeta.func
 		shouldSwap = func(gamemeta)
+	
+		--Infinite* Lives - set lives to max on game load 
+		local CanHaveInfiniteLives = gamemeta.CanHaveInfiniteLives
+		--we may need an optional "whichRAM" field to feed into this.
+		
+		if settings.InfiniteLives == true --is infinite lives enabled?
+			and CanHaveInfiniteLives == true --can this game can do infinite lives?
+		then 
+			local ActiveP1 = false 
+			if gamemeta.ActiveP1 then ActiveP1 = gamemeta.ActiveP1() end
+			local ActiveP2 = false 
+			if gamemeta.ActiveP2 then ActiveP2 = gamemeta.ActiveP2() end
+			local p1livesaddr = gamemeta.p1livesaddr
+			local p2livesaddr = gamemeta.p2livesaddr
+			local maxlives = gamemeta.maxlives
+			local LivesWhichRAM = nil 
+			if gamemeta.LivesWhichRAM then LivesWhichRAM = gamemeta.LivesWhichRAM() end
+		
+			-- enable Infinite* Lives for p1 if checked and able
+			if ActiveP1 == true --is p1 on?
+			and p1livesaddr ~= nil --is an address specified for p1?
+			then-- if so, set lives to max specified
+				if LivesWhichRAM then 
+					memory.writebyte(p1livesaddr, maxlives, LivesWhichRAM)
+					else 
+					memory.writebyte(p1livesaddr, maxlives) 
+				end
+			end
+	
+			-- enable Infinite* Lives for p2 if checked and able
+			if ActiveP2 == true --is p2 on?
+			and p2livesaddr ~= nil --is an address specified for p2?
+			then-- if so, set lives to max specified
+				if LivesWhichRAM then 
+					memory.writebyte(p2livesaddr, maxlives, LivesWhichRAM) 
+					else 
+					memory.writebyte(p2livesaddr, maxlives) 
+				end
+			end
+		end
+			
 	end
 	
 	---log stuff
