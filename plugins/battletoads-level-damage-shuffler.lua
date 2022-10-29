@@ -161,7 +161,9 @@ local function get_game_tag()
 	
 	--MARIO BLOCK
 	if gameinfo.getromhash() == "EA343F4E445A9050D4B4FBAC2C77D0693B1D0922" then return "SMB1_NES"
+	elseif gameinfo.getromhash() == "1E6FEC9C3B5AC2EF654B2BCB5DE2EA5F3B7BA482" then return "SMB1_NES" -- Arcade Pit edition
 	elseif gameinfo.getromhash() == "C91796D3167ED19CB817CAAA2174A299A510E37F" then return "SMB2J_NES"
+	elseif gameinfo.getromhash() == "4B051018E39113EA17FB2E801C89004A7E40F998" then return "SMB2J_NES" -- Arcade Pit edition
 	elseif gameinfo.getromhash() == "7DF0F595B074F587C6A1D8F47E031F045D540DAE" then return "SMB2_NES"
 	elseif gameinfo.getromhash() == "9286A2DB471D51713E9B75E68B47FFBF11E2D40B" then return "MB_NES"
 	elseif gameinfo.getromhash() == "6CF18228CFB66D48B3642069979D4A5103CB8528" then return "SOMARI"
@@ -248,7 +250,7 @@ local function sml1_swap(gamemeta)
 	return function()
 		local size_changed, shrinking, prev_shrinking = update_prev('shrinking', gamemeta.getsmlsize()) -- when this variable is 3, Mario is shrinking
 		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.getlives()) -- usual lives counter idea
-		local game_over_changed, game_over_bar, prev_game_over_bar = update_prev('game_over_bar', gamemeta.getgameover() ~= 57) -- this variable goes to 57 to show the GAME OVER bar		
+		local game_over_changed, game_over_bar, prev_game_over_bar = update_prev('game_over_bar', gamemeta.getgameover() ~= 57) -- this variable goes to 57 to show the GAME OVER bar
 		return
 			(size_changed and shrinking == 3) or
 			(lives_changed and lives < prev_lives) or
@@ -409,8 +411,7 @@ local function singleplayer_withlives_swap(gamemeta)
 		if gamemeta.gmode and not gamemeta.gmode() then
 			return false
 		end
-
-
+		
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
 		local currtogglecheck = 0 
@@ -645,7 +646,6 @@ local function SMAS_swap(gamemeta)
 		if gamemeta.gmode and not gamemeta.gmode() then
 			return false
 		end
-
 
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
@@ -1113,9 +1113,9 @@ local gamedata = {
 		else return 0 end
 		end, 
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x05B6,
-		p2livesaddr=0x05E6,
-		maxlives=135, -- rescue rangers counts strangely
+		p1livesaddr=function() return 0x05B6 end,
+		p2livesaddr=function() return 0x05E6 end,
+		maxlives=function() return 135 end, -- rescue rangers counts strangely
 		p1getlc=function() return mainmemory.read_u8(0x05B6) end,
 		p2getlc=function() return mainmemory.read_u8(0x05E6) end,
 		ActiveP1=function() return mainmemory.read_u8(0x05B6) > 0 and mainmemory.read_u8(0x05B6) < 255 end,
@@ -1222,9 +1222,9 @@ local gamedata = {
 		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x075A,
-		p2livesaddr=0x0761,
-		maxlives=8,
+		p1livesaddr=function() return 0x075A end,
+		p2livesaddr=function() return 0x0761 end,
+		maxlives=function() return 8 end,
 		ActiveP1=function() return mainmemory.read_u8(0x075A) > 0 and mainmemory.read_u8(0x075A) < 255 end,
 		ActiveP2=function() return mainmemory.read_u8(0x0761) > 0 and mainmemory.read_u8(0x0761) < 255 end,
 	},	
@@ -1237,8 +1237,8 @@ local gamedata = {
 		(memory.read_u8(0x07F8)*100 + memory.read_u8(0x07F9)*10 + memory.read_u8(0x07F9)) ~= 401 end, -- we're in the demo if timer equals 401 seconds
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x075A,
-		maxlives=8,
+		p1livesaddr=function() return 0x075A end,
+		maxlives=function() return 8 end,
 		p1getlc=function() return mainmemory.read_u8(0x075A) end,
 		ActiveP1=function() return mainmemory.read_u8(0x075A) > 0 and mainmemory.read_u8(0x075A) < 255 end,
 	},	
@@ -1250,8 +1250,8 @@ local gamedata = {
 		gettogglecheck=function() return memory.read_u8(0x04C3) end, -- this is the number of health bars - if it changes, as in goes back down to normal on slots
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x04ED,
-		maxlives=70,
+		p1livesaddr=function() return 0x04ED end,
+		maxlives=function() return 70 end,
 		ActiveP1=function() return mainmemory.read_u8(0x04ED) > 0 and mainmemory.read_u8(0x04ED) < 255 end,
 	},	
 	['MB_NES']={ -- Mario Bros. US NES
@@ -1269,8 +1269,8 @@ local gamedata = {
 		getlives=function() return memory.read_u8(0x033C) end,
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x033C,
-		maxlives=5,
+		p1livesaddr=function() return 0x033C end,
+		maxlives=function() return 5 end,
 		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
@@ -1308,9 +1308,9 @@ local gamedata = {
 		
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x0736,
-		p2livesaddr=0x0737,
-		maxlives=69,
+		p1livesaddr=function() return 0x0736 end,
+		p2livesaddr=function() return 0x0737 end,
+		maxlives=function() return 69 end,
 		ActiveP1=function() return mainmemory.read_u8(0x0736) > 0 and mainmemory.read_u8(0x0736) < 255 end,
 		ActiveP2=function() return mainmemory.read_u8(0x0737) > 0 and mainmemory.read_u8(0x0737) < 255 end,
 	},	
@@ -1331,29 +1331,39 @@ local gamedata = {
 		end, 
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x000DBE,
-		maxlives=68,
+		p1livesaddr=function() return 0x000DBE end,
+		maxlives=function() return 68 end,
 		ActiveP1=function() return mainmemory.read_u8(0x000DBE) > 0 and mainmemory.read_u8(0x000DBE) < 255 end,
 	},	
 	['SMAS_SNES']={ -- Super Mario All Stars (SNES)
 	--to do, function to define "which game"
-		func=SMAS_swap,
-		gmode=function() return
-		memory.read_u8(0x01FF00) == 2 --SMB1
-		or memory.read_u8(0x01FF00) == 4 --SMB2j
-		or (memory.read_u8(0x01FF00) == 6 and memory.read_u8(0x000547) < 128) --SMB2 USA, 128 = slots, 255 = menu
-		or memory.read_u8(0x01FF00) == 8 -- SMB3 (including battle)
-		or memory.read_u8(0x01FF00) == 10 -- Super Mario World
+		
+		SMAS_which_game=function() 
+		
+			if memory.read_u8(0x01FF00) == 2 then return "SMB1" end
+			if memory.read_u8(0x01FF00) == 4 then return "SMB2J" end
+			if memory.read_u8(0x01FF00) == 6 and memory.read_u8(0x000547) < 128 then return "SMB2U" end -- >128 means slots or menu
+			if memory.read_u8(0x01FF00) == 10 then return "SMW" end
+			if memory.read_u8(0x01FF00) == 8 then 
+				if memory.read_u8(0x00072B)==3 then return "SMB3Battle" else return "SMB3" end
+			end
+			return false
 		end,
-		getsmb2mode=function() return memory.read_u8(0x000547) end,
+		
+		func=SMAS_swap,
+		gmode=function() return SMAS_which_game ~= false end,
+		getsmb2mode=function() return memory.read_u8(0x0004C4) end, -- number of health bars available, changes on entering slots and can cause false swaps
 		gettogglecheck=function() 
-		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) else return nil end
+		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) else return nil end -- tells us if we are switching active character in SMW
 		end, -- which SMW character
 		p1gethp=function()
 			if memory.read_u8(0x01FF00) == 8 --SMB3
 				then 
 					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
-						then return memory.read_u8(0x019AB) + 1 --battle health, 0 = small so add 1
+						then 
+						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
+							then return memory.read_u8(0x019AB) + 1 --battle health, 0 = small so add 1
+							else return 0 end 
 					elseif memory.read_u8(0x000747) <= 7 
 						and memory.read_u8(0x000747) > 1 -- normal mode, suits etc. range from 2 to 7 only
 						then return 3
@@ -1375,7 +1385,10 @@ local gamedata = {
 			if memory.read_u8(0x01FF00) == 8 --SMB3
 				then 
 					if memory.read_u8(0x00072B) == 3 -- we are in battle mode
+						then 
+						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
 						then return memory.read_u8(0x019AC) + 1 --battle health, 0 = small so add 1
+							else return 0 end 
 					elseif memory.read_u8(0x000748) <= 7 
 					and memory.read_u8(0x000748) > 1 -- suits etc. range from 2 to 7 only
 					then return 3
@@ -1440,6 +1453,52 @@ local gamedata = {
 				then return memory.read_u8(0x000DBE) --active player's lives
 			else return 0 end
 		end, 
+		
+		CanHaveInfiniteLives=true,
+		
+		maxlives=function()
+		if memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 then return 68 -- SMB1, SMB2J
+		elseif memory.read_u8(0x01FF00) == 6 then return 69 -- SMB2U
+		elseif memory.read_u8(0x01FF00) == 8 then return 68 -- SMB3
+		elseif memory.read_u8(0x01FF00) == 10 then return 68 -- SMW
+		else return nil
+		end
+		end,
+		
+		p1livesaddr=function()
+		if memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 then return 0x00075A -- SMB1, SMB2J
+		elseif memory.read_u8(0x01FF00) == 6 then return 0x0004EE -- SMB2U
+		elseif memory.read_u8(0x01FF00) == 8 then return 0x000736 -- SMB3
+		elseif memory.read_u8(0x01FF00) == 10 then return 0x000DB4 -- SMW
+		else return nil
+		end
+		end,
+		
+		p2livesaddr=function()
+		if memory.read_u8(0x01FF00) == 2 then return 0x000761 -- SMB1
+		elseif memory.read_u8(0x01FF00) == 8 then return 0x000737 -- SMB3
+		elseif memory.read_u8(0x01FF00) == 10 then return 0x000DB5 -- SMW
+		else return nil
+		end
+		end,
+				
+		ActiveP1=function() 
+		if (memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4) then return mainmemory.read_u8(0x00075A) > 0 and mainmemory.read_u8(0x00075A) < 255 -- SMB1, SMB2J
+		elseif memory.read_u8(0x01FF00) == 6 then return  mainmemory.read_u8(0x0004EE) > 0 and mainmemory.read_u8(0x0004EE) < 255 -- SMB2U
+		elseif memory.read_u8(0x01FF00) == 8 then return  mainmemory.read_u8(0x000736) > 0 and mainmemory.read_u8(0x000736) < 255 -- SMB3
+		elseif memory.read_u8(0x01FF00) == 10 then return  mainmemory.read_u8(0x000DBE) > 0 and mainmemory.read_u8(0x000DBE) < 255 -- SMW
+		else return false
+		end
+		end,
+		
+		ActiveP2=function() 
+		if memory.read_u8(0x01FF00) == 2 then return mainmemory.read_u8(0x000761) > 0 and mainmemory.read_u8(0x000761) < 255 -- SMB1
+		elseif memory.read_u8(0x01FF00) == 8 then return mainmemory.read_u8(0x000737) > 0 and mainmemory.read_u8(0x000737) < 255 -- SMB3
+		else return false
+		end
+		end,
+		
+		
 	},	
 	['SML1_GB']={ -- Super Mario Land, including DX hack for Game Boy Color
 		func=sml1_swap,
@@ -1449,9 +1508,9 @@ local gamedata = {
 		
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x1A15,
+		p1livesaddr=function() return 0x1A15 end,
 		LivesWhichRAM=function() return "WRAM" end,
-		maxlives=9,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return memory.read_u8(0x1A15, "WRAM") > 0 and memory.read_u8(0x033C, "WRAM") < 255 end,
 	},	
 	['SML2_GB']={ -- SMB 1 NES
@@ -1468,9 +1527,9 @@ local gamedata = {
 		maxhp=function() return 3 end,
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x022C,
+		p1livesaddr=function() return 0x022C end,
 		LivesWhichRAM=function() return "CartRAM" end,
-		maxlives=9,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return memory.read_u8(0x022C, "CartRAM") > 0 and memory.read_u8(0x022C, "CartRAM") < 255 end,
 	},	
 	['SMW2YI_SNES']={ -- Super Mario World 2: Yoshi's Island
@@ -1503,9 +1562,9 @@ local gamedata = {
 		gmode=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end, -- "mario status" variable, 0 if game hasn't started
 		
 		CanHaveInfiniteLives=true,
-		p1livesaddr=0x33B21D,
+		p1livesaddr=function() return 0x33B21D end,
 		LivesWhichRAM=function() return "RDRAM" end,
-		maxlives=69,
+		maxlives=function() return 69 end,
 		ActiveP1=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end,
 	},	
 }
@@ -1669,7 +1728,6 @@ function plugin.on_game_load(data, settings)
 	
 		--Infinite* Lives - set lives to max on game load 
 		local CanHaveInfiniteLives = gamemeta.CanHaveInfiniteLives
-		--we may need an optional "whichRAM" field to feed into this.
 		
 		if settings.InfiniteLives == true --is infinite lives enabled?
 			and CanHaveInfiniteLives == true --can this game can do infinite lives?
@@ -1678,31 +1736,34 @@ function plugin.on_game_load(data, settings)
 			if gamemeta.ActiveP1 then ActiveP1 = gamemeta.ActiveP1() end
 			local ActiveP2 = false 
 			if gamemeta.ActiveP2 then ActiveP2 = gamemeta.ActiveP2() end
-			local p1livesaddr = gamemeta.p1livesaddr
-			local p2livesaddr = gamemeta.p2livesaddr
-			local maxlives = gamemeta.maxlives
-			local LivesWhichRAM = nil 
+			local p1livesaddr = nil
+			if gamemeta.p1livesaddr then p1livesaddr = gamemeta.p1livesaddr() end
+			local p2livesaddr = nil 
+			if gamemeta.p2livesaddr then p2livesaddr = gamemeta.p2livesaddr() end
+			local maxlives = nil 
+			if gamemeta.maxlives then maxlives = gamemeta.maxlives() end
+			local LivesWhichRAM = nil
 			if gamemeta.LivesWhichRAM then LivesWhichRAM = gamemeta.LivesWhichRAM() end
 		
 			-- enable Infinite* Lives for p1 if checked and able
 			if ActiveP1 == true --is p1 on?
 			and p1livesaddr ~= nil --is an address specified for p1?
 			then-- if so, set lives to max specified
-				if LivesWhichRAM then 
+				if LivesWhichRAM ~= nil then 
 					memory.writebyte(p1livesaddr, maxlives, LivesWhichRAM)
 					else 
-					memory.writebyte(p1livesaddr, maxlives) 
+					memory.writebyte(p1livesaddr, maxlives)
 				end
 			end
 	
 			-- enable Infinite* Lives for p2 if checked and able
-			if ActiveP2 == true --is p2 on?
-			and p2livesaddr ~= nil --is an address specified for p2?
+			if ActiveP2 == true --is p1 on?
+			and p2livesaddr ~= nil --is an address specified for p1?
 			then-- if so, set lives to max specified
-				if LivesWhichRAM then 
-					memory.writebyte(p2livesaddr, maxlives, LivesWhichRAM) 
+				if LivesWhichRAM ~= nil then 
+					memory.writebyte(p2livesaddr, maxlives, LivesWhichRAM)
 					else 
-					memory.writebyte(p2livesaddr, maxlives) 
+					memory.writebyte(p2livesaddr, maxlives)
 				end
 			end
 		end
