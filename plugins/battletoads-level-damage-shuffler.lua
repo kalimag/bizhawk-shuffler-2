@@ -642,8 +642,12 @@ end
 
 local function SMAS_swap(gamemeta)
 	return function(data)
-		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		-- if a method is provided and we are not in normal gameplay, don't ever swap		
 		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
+		
+		if gamemeta.getsmb3skip and gamemeta.getsmb3skip() == true then
 			return false
 		end
 
@@ -1276,35 +1280,37 @@ local gamedata = {
 	['SMB3_NES']={ -- SMB3 NES
 		func=twoplayers_withlives_swap,
 		p1gethp = function() 
-			if memory.read_u8(0x00ED) <= 7 
-			and memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
+		if math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) <= 7 -- when level done, active health gets stored from 00ED to 0746, use the higher value
+			and math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) > 1 -- suits etc. range from 2 to 7 only
 				then return 3
 			else 
-				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+				return math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
 			end
 		end,
-		p2gethp = function() 
-			if memory.read_u8(0x00ED) <= 7 
-			or memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
+		p2gethp = function() if math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) <= 7 -- when level done, active health gets stored from 00ED to 0747, use the higher value
+			or math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) > 1 -- suits etc. range from 2 to 7 only
 				then return 3
 			else 
-				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+				return math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
 			end
 		end,
 		p1getlc=function() 
 			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
-			then return memory.read_u8(0x0736) + 1 -- max 63?
+			then return memory.read_u8(0x0736) + 1
 			else return memory.read_u8(0x0736) 
 			end
 		end,
 		p2getlc=function() 
 			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
-			then return memory.read_u8(0x0737) + 1 -- max 63?
+			then return memory.read_u8(0x0737) + 1
 			else return memory.read_u8(0x0737) 
 			end
 		end,
 		maxhp=function() return 3 end,
-		gmode=function() return memory.read_u8(0x072B) ~= 0 end, -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
+		gmode=function() return memory.read_u8(0x072B) ~= 0 -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
+		and memory.read_u8(0x058C) ~= 1  --value for being damaged, wait until this goes back to 0 to swap
+		and memory.read_u8(0x0014) ~= 1 --value for fading to map, wait for this to return to 0 also
+		end,
 		
 		
 		CanHaveInfiniteLives=true,
@@ -1317,9 +1323,11 @@ local gamedata = {
 	['SMW_SNES']={ -- Super Mario World SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() 
-			if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+			if memory.read_u8(0x000071) == 9 -- dying, so we need to use the lives counter 
+				then return 0
+			elseif memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
 			else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
-			end 
+			end
 		end,
 		p1getlc=function() return memory.read_u8(0x000DBE) end, --active player's lives
 		maxhp=function() return 3 end,
@@ -1345,14 +1353,19 @@ local gamedata = {
 			if memory.read_u8(0x01FF00) == 6 and memory.read_u8(0x000547) < 128 then return "SMB2U" end -- >128 means slots or menu
 			if memory.read_u8(0x01FF00) == 10 then return "SMW" end
 			if memory.read_u8(0x01FF00) == 8 then 
-				if memory.read_u8(0x00072B)==3 then return "SMB3Battle" else return "SMB3" end
+				if memory.read_u8(0x00072B)==3 then return "SMB3Battle" 
+				else return "SMB3" end
 			end
 			return false
 		end,
 		
 		func=SMAS_swap,
-		gmode=function() return SMAS_which_game ~= false end,
+		gmode=function() return SMAS_which_game ~= false
+		end,
 		getsmb2mode=function() return memory.read_u8(0x0004C4) end, -- number of health bars available, changes on entering slots and can cause false swaps
+		getsmb3skip=function() return memory.read_u8(0x01FF00) == 8 and memory.read_u8(0x00072B) ~=3 
+			and memory.read_u8(0x00058C) == 1 end, -- "you're getting damaged" flag, which also triggers on falls in SMB3 -- wait until it clears to swap
+			--TODO: recheck if gmode can properly cover this
 		gettogglecheck=function() 
 		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) else return nil end -- tells us if we are switching active character in SMW
 		end, -- which SMW character
@@ -1373,10 +1386,15 @@ local gamedata = {
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return math.ceil(memory.read_u8(0x0004C3)/16)
 			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
-				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+				then 
+				if memory.read_u8(0x0754) == 1 --small
+					and memory.read_u8(0x070B) == 1 --animating a shrink/grow
+					then return 1 else return 2 end
 			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
 				then
-					if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+			if memory.read_u8(0x000071) == 9 -- dying, so we need to use the lives counter 
+				then return 0
+					elseif memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
 					else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
 					end
 			else return 0 end
@@ -1398,10 +1416,15 @@ local gamedata = {
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return 0
 			elseif memory.read_u8(0x01FF00) == 2 or memory.read_u8(0x01FF00) == 4 -- SMB1 or SMB2j 
-				then return memory.read_u8(0x000756) + 1 -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
+				then 
+				if memory.read_u8(0x0754) == 1 --small
+					and memory.read_u8(0x070B) == 1 --animating a shrink/grow
+					then return 1 else return 2 end
 			elseif memory.read_u8(0x01FF00) == 10 -- Super Mario World
 				then
-					if memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
+			if memory.read_u8(0x000071) == 9 -- dying, so we need to use the lives counter 
+				then return 0
+					elseif memory.read_u8(0x000019) == 2 or memory.read_u8(0x000019) == 3 then return 3 -- fire (3) or cape (2), don't shuffle if you just change powerups
 					else return memory.read_u8(0x000019) + 1 -- 1 for big, 0 for small, adding 1 to help with swap on small not relying on life lost
 					end
 			else return 0 end
