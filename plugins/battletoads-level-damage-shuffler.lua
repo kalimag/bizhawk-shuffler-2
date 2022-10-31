@@ -1280,18 +1280,21 @@ local gamedata = {
 	['SMB3_NES']={ -- SMB3 NES
 		func=twoplayers_withlives_swap,
 		p1gethp = function() 
-		if math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) <= 7 -- when level done, active health gets stored from 00ED to 0746, use the higher value
-			and math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) > 1 -- suits etc. range from 2 to 7 only
+		if memory.read_u8(0x008C) == 0 then return 0 end --value for being in gameplay, 0 is map
+		if memory.read_u8(0x00ED) <= 7 -- when level done, active health gets stored from 00ED to 0746, use the higher value
+			and memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
 				then return 3
 			else 
-				return math.max(memory.read_u8(0x00ED),memory.read_u8(0x0746)) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
 			end
 		end,
-		p2gethp = function() if math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) <= 7 -- when level done, active health gets stored from 00ED to 0747, use the higher value
-			or math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) > 1 -- suits etc. range from 2 to 7 only
+		p2gethp = function() 
+		if memory.read_u8(0x008C) == 0 then return 0 end --value for being in gameplay, 0 is map
+		if memory.read_u8(0x00ED) <= 7 -- when level done, active health gets stored from 00ED to 0747, use the higher value
+			or memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
 				then return 3
 			else 
-				return math.max(memory.read_u8(0x00ED),memory.read_u8(0x0747)) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
 			end
 		end,
 		p1getlc=function() 
