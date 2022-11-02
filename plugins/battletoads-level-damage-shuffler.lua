@@ -926,97 +926,53 @@ end
 
 
 local function smk_swap(gamemeta)
-	return function(data)
-	
-	
-		local p1currcoins = gamemeta.p1getcoins()
-		local p2currcoins = gamemeta.p2getcoins()
-		local p1currbump = gamemeta.p1getbump()
-		local p2currbump = gamemeta.p2getbump()
-		local p1currfall = gamemeta.p1getfall()
-		local p2currfall = gamemeta.p2getfall()
-		local p1currshrink = gamemeta.p1getshrink()
-		local p2currshrink = gamemeta.p2getshrink()
-		local p1currlava = gamemeta.p1getlava()
-		local p2currlava = gamemeta.p2getlava()
-	
 
-		-- retrieve previous health and lives before backup
-		local p1prevcoins = data.p1prevcoins
-		local p2prevcoins = data.p2prevcoins
-		local p1prevbump = data.p1prevbump
-		local p2prevbump = data.p2prevbump
-		local p1prevfall = data.p1prevfall
-		local p2prevfall = data.p2prevfall
-		local p1prevshrink = data.p1prevshrink
-		local p2prevshrink = data.p2prevshrink
-		local p1prevlava = data.p1prevlava
-		local p2prevlava = data.p2prevlava
-
-		data.p1prevcoins = p1currcoins
-		data.p2prevcoins = p2currcoins
-		data.p1prevbump = p1currbump
-		data.p2prevbump = p2currbump
-		data.p1prevfall = p1currfall
-		data.p2prevfall = p2currfall
-		data.p1prevshrink = p1currshrink
-		data.p2prevshrink = p2currshrink
-		data.p1prevlava = p1currlava
-		data.p2prevlava = p2currlava
-
-		-- if the bump value is triggered, swap. It's 0, goes up, then counts down, so we just want to know if it is greater than the previous value.
+return function()
+		local p1bumping, p1currbump, p1prevbump = update_prev('p1currbump', gamemeta.p1getbump()) -- if > 0, p1 is colliding with something
+		local p1coinschanged, p1currcoins, p1prevcoins = update_prev('p1currcoins', gamemeta.p1getcoins()) -- coin count p1 - if goes down on bump, we'll swap (NOT ON LAKITU FEE)
+		local p1spinningout, p1currspinout, p1prevspinout = update_prev('p1currspinout', --if we start spinning out after a collision, swap (NOT ON BAD DRIFT)
+			(gamemeta.p1getspinout() == 12 or --crash
+			gamemeta.p1getspinout() == 14 or --spin out left
+			gamemeta.p1getspinout() == 16 or -- spin out right
+			gamemeta.p1getspinout() == 26)) -- also crash 
+		local p1falling, p1currfall, p1prevfall = update_prev('p1currfall', gamemeta.p1getfall() > 2) -- >2 means you fell, 4 for pit, 6 for lava, 8 for water
+		local p1shrinking, p1currshrink, p1prevshrink = update_prev('p1currshrink', gamemeta.p1getshrink()) -- if > 0, you are shrinking, then it counts down to 0
+		local p1moled, p1currmoled, p1prevmoled = update_prev('p1currmoled', gamemeta.p1getmoled() >= 152) -- if >= 152, a mole just hopped on you, when off it drops to 24, then 0
 		
-		if p1prevbump ~= nil and p1currbump > p1prevbump 
-			and mainmemory.read_u8(0x001086) == 0 -- p1 not invincible
-			then return true
+		local p2bumping, p2currbump, p2prevbump = update_prev('p2currbump', gamemeta.p2getbump()) -- if > 0, p2 is colliding with something
+		local p2coinschanged, p2currcoins, p2prevcoins = update_prev('p2currcoins', gamemeta.p2getcoins()) -- coin count p2 - if goes down on bump, we'll swap (NOT ON LAKITU FEE)
+		local p2spinningout, p2currspinout, p2prevspinout = update_prev('p2currspinout', --if we start spinning out after a collision, swap (NOT ON BAD DRIFT)
+			(gamemeta.p2getspinout() == 12 or --crash
+			gamemeta.p2getspinout() == 14 or --spin out left
+			gamemeta.p2getspinout() == 16 or -- spin out right
+			gamemeta.p2getspinout() == 26)) -- also crash 
+		local p2falling, p2currfall, p2prevfall = update_prev('p2currfall', gamemeta.p2getfall() > 2) -- >2 means you fell, 4 for pit, 6 for lava, 8 for water
+		local p2shrinking, p2currshrink, p2prevshrink = update_prev('p2currshrink', gamemeta.p2getshrink()) -- if > 0, you are shrinking, then it counts down to 0
+		local p2moled, p2currmoled, p2prevmoled = update_prev('p2currmoled', gamemeta.p2getmoled() >= 152) -- if >= 152, a mole just hopped on you, when off it drops to 24, then 0
+		
+		local p2IsActive = gamemeta.p2getIsActive() -- 2p variables still get updated even if 2p is CPU, so we have to ignore all of those unless we are in 2p mode.
+				
+		return
+			(p1falling and p1currfall) or -- p1 just started falling into pit, lava, water
+			(p1shrinking and p1prevshrink == 0) or -- p1 just started shrinking, or got run over so frame timer dropped more than 1 unit
+			(p1moled and p1currmoled) or -- p1 just started shrinking
+			(p1bumping and -- p1 just started colliding AND EITHER
+				((p1coinschanged and p1currcoins < p1prevcoins) or -- coins dropped or
+				(p1currcoins == 0 and p1spinningout)) or  -- no coins and we just started spinning out
+				p1prevbump == 0 and p1currbump > 200) -- bump value goes this high when squished
+			or
+			p2IsActive == true and (
+			
+			(p2falling and p2currfall) or -- p2 just started falling into pit, lava, water
+			(p2shrinking and p2prevshrink == 0) or -- p2 just started shrinking, or got run over so frame timer dropped more than 1 unit
+			(p2moled and p2currmoled) or -- p2 just started shrinking
+			(p2bumping and -- p2 just started colliding AND EITHER
+				((p2coinschanged and p2currcoins < p2prevcoins) or -- coins dropped or
+				(p2currcoins == 0 and p2spinningout)) or  -- no coins and we just started spinning out
+				p2prevbump == 0 and p2currbump > 200) -- bump value goes this high when squished
+			)
 		end
-
-		---p2 has to be active
-		if(mainmemory.read_u8(0x0011D2)) == 2 and
-		p2prevbump ~= nil and p2currbump > p2prevbump 
-			and mainmemory.read_u8(0x001186) == 0 -- p2 not invincible
-		then return true
-		end
-
-		-- if the fall value is triggered, swap. It's usually 0, goes up, then counts down. 
-		-- This number only goes over 5 with a pitfall/Lakitu. You will reset to 0 when you can drive again.
-		-- So we just want to know if it is greater than 0 and greater than the previous value.
-		
-		if p1prevfall ~= nil and p1prevfall == 0 and p1currfall > p1prevfall and p1currfall > 5 then
-			return true
-		end
-		
-		---p2 has to be active
-		if(mainmemory.read_u8(0x0011D2)) == 2 and
-		p2prevfall ~= nil and p2prevfall == 0 and p2currfall > p2prevfall and p2currfall > 5 then
-			return true
-		end
-		
-		--- shrunk
-		
-		if p1prevshrink ~= nil and p1prevshrink == 0 and p1currshrink > p1prevshrink then
-			return true end
-		
-		---p2 has to be active
-		if(mainmemory.read_u8(0x0011D2)) == 2 and
-		p2prevshrink ~= nil and p2prevshrink == 0 and p2currshrink > p2prevshrink then
-			return true
-		end
-		
-		--- in lava
-		
-		if p1prevlava ~= nil and p1prevlava == 0 and p1currlava == 16 then
-			return true end
-		
-		---p2 has to be active
-		if(mainmemory.read_u8(0x0011D2)) == 2 and
-		p2prevlava ~= nil and p2prevlava == 0 and p2currlava == 16 then
-			return true
-		end
-		
-		return false
 	end
-end
 
 
 -- Modified version of the gamedata for Mega Man games on NES.
@@ -1200,17 +1156,25 @@ local gamedata = {
 	},	
 	['SMK_SNES']={ -- Super Mario Kart
 		func=smk_swap,
-		p1getcoins=function() return mainmemory.read_u8(0x000E00) end,
-		p2getcoins=function() return mainmemory.read_u8(0x000E02) end, 
 		p1getbump=function() return mainmemory.read_u8(0x00105E) end, -- if > 0 then p1 is bumping/crashing
 		p2getbump=function() return mainmemory.read_u8(0x00115E) end, -- if > 0 then p2 is bumping/crashing
-		p1getfall=function() return mainmemory.read_u8(0x0010CA) end, -- if > 2 then p1 is falling - this is also the Lakitu timer! 2 is jumping, normal or feather
-		p2getfall=function() return mainmemory.read_u8(0x0011CA) end, -- if > 2 then p2 is falling - this is also the Lakitu timer! 2 is jumping, normal or feather
-		p1getshrink=function() return mainmemory.read_u8(0x001084) end, -- if > 0 then you're small and it's counting down
-		p2getshrink=function() return mainmemory.read_u8(0x001184) end, -- if > 0 then you're small and it's counting down
+		p1getshrink=function() return mainmemory.read_u16_be(0x001084) end, -- if > 0 then you're small and it's counting down
+		p2getshrink=function() return mainmemory.read_u16_be(0x001184) end, -- if > 0 then you're small and it's counting down
 		p1getlava=function() return mainmemory.read_u8(0x00010A) end, -- if == 16 then congrats, you're in lava 
 		p2getlava=function() return mainmemory.read_u8(0x00010C) end, -- if == 16 then congrats, you're in lava 
-		--eventual conversion to use update_prev instead? 
+		p1getfall=function() return mainmemory.read_u8(0x0010A0) end, -- if > 2 falling into pit (4), lava (6), deep water (8)
+		p2getfall=function() return mainmemory.read_u8(0x0011A0) end, -- if > 2 falling into pit (4), lava (6), deep water (8)
+		
+		p1getcoins=function() return mainmemory.read_u8(0x000E00) end,
+		p2getcoins=function() return mainmemory.read_u8(0x000E02) end, 
+		p1getspinout=function() return mainmemory.read_u8(0x0010A6) end, -- 12, 14, 16, and 26 should mean you spin out
+		p2getspinout=function() return mainmemory.read_u8(0x0011A6) end, -- 12, 14, 16, and 26 should mean you spin out
+		p1getmoled=function() return mainmemory.read_u8(0x001061) end, -- >=152 means a mole jumped on
+		p2getmoled=function() return mainmemory.read_u8(0x001161) end, -- >=152 means a mole jumped on
+		p1getshrink2=function() return mainmemory.read_u8(0x001030) end, -- if ==128 then you're shrunk
+		p2getshrink2=function() return mainmemory.read_u8(0x001130) end, -- if ==128 then you're shrunk
+		
+		p2getIsActive=function() return mainmemory.read_u8(0x0011D2) == 2 end, -- if 2, you are in 2p mode
 	},	
 	--MARIO BLOCK
 	['SMB1_NES']={ -- SMB 1 NES
