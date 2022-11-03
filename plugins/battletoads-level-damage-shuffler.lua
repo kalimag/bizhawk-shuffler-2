@@ -924,6 +924,26 @@ local function antic_swap(gamemeta)
 	end
 end
 
+local function smb3_swap(gamemeta)
+return function()
+	-- if this address goes up from 0, invuln frames just got triggered.
+	local invuln_changed, invuln_curr, invuln_prev = update_prev('invuln_curr', gamemeta.getinvuln())
+	local boot_changed, boot = update_prev('boot', gamemeta.getboot()) -- Kuribo's shoe
+	
+	local p1_lives_changed, p1_lives_curr, p1_lives_prev = update_prev('p1_lives_curr', gamemeta.p1getlc())
+	local p2_lives_changed, p2_lives_curr, p2_lives_prev = update_prev('p2_lives_curr', gamemeta.p2getlc())
+		
+	-- this will return whether we are in the 2p card battle (true/false)
+	local smb3battling_changed, smb3battling_curr, smb3battling_prev = update_prev('smb3battling_curr', gamemeta.getsmb3battling())
+		
+	return 
+	(smb3battling_changed -- mode changed to/from active gameplay
+			and smb3battling_prev == true) -- we were just in battle mode)
+		or (invuln_changed and invuln_prev == 0 and not (boot_changed))
+		or (p1_lives_changed and p1_lives_curr < p1_lives_prev)
+		or (p2_lives_changed and p2_lives_curr < p2_lives_prev)
+	end
+end
 
 local function smk_swap(gamemeta)
 
@@ -1242,44 +1262,14 @@ local gamedata = {
 		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
-		func=twoplayers_withlives_swap,
-		p1gethp = function() 
-		if memory.read_u8(0x008C) == 0 then return 0 end --value for being in gameplay, 0 is map
-		if memory.read_u8(0x00ED) <= 7 -- when level done, active health gets stored from 00ED to 0746, use the higher value
-			and memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
-				then return 3
-			else 
-				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
-			end
-		end,
-		p2gethp = function() 
-		if memory.read_u8(0x008C) == 0 then return 0 end --value for being in gameplay, 0 is map
-		if memory.read_u8(0x00ED) <= 7 -- when level done, active health gets stored from 00ED to 0747, use the higher value
-			or memory.read_u8(0x00ED) > 1 -- suits etc. range from 2 to 7 only
-				then return 3
-			else 
-				return memory.read_u8(0x00ED) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
-			end
-		end,
-		p1getlc=function() 
-			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
-			then return memory.read_u8(0x0736) + 1
-			else return memory.read_u8(0x0736) 
-			end
-		end,
-		p2getlc=function() 
-			if memory.read_u8(0x001D) == 18 -- we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
-			then return memory.read_u8(0x0737) + 1
-			else return memory.read_u8(0x0737) 
-			end
-		end,
-		maxhp=function() return 3 end,
-		gmode=function() return memory.read_u8(0x072B) ~= 0 -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
-		and memory.read_u8(0x058C) ~= 1  --value for being damaged, wait until this goes back to 0 to swap
-		and memory.read_u8(0x0014) ~= 1 --value for fading to map, wait for this to return to 0 also
-		end,
-		
-		
+		func=smb3_swap,
+		getsmb3battling=function() return memory.read_u8(0x001D) == 18 end, -- 2p battle true/false
+		getinvuln=function() return memory.read_u8(0x0552) end, -- invuln frames, 0 unless triggered, then counts down by 1 per frame
+		getboot=function() return memory.read_u8(0x0577) end, -- boot flag, 1 means we're in the boot!
+		p1getlc=function() return memory.read_u8(0x0736) end,
+		p2getlc=function() return memory.read_u8(0x0737) end,
+		gmode=function() return memory.read_u8(0x072B) ~= 0 end, -- this value == number of players, == 0 on the title screen menu when cutscene is playing.
+				
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x0736 end,
 		p2livesaddr=function() return 0x0737 end,
@@ -1330,12 +1320,11 @@ local gamedata = {
 		gmode=function() return SMAS_which_game ~= false
 		end,
 		getsmb2mode=function() return memory.read_u8(0x0004C4) end, -- number of health bars available, changes on entering slots and can cause false swaps
-		getsmb3skip=function() return memory.read_u8(0x01FF00) == 8 and memory.read_u8(0x00072B) ~=3 
-			and memory.read_u8(0x00058C) == 1 end, -- "you're getting damaged" flag, which also triggers on falls in SMB3 -- wait until it clears to swap
-			--TODO: recheck if gmode can properly cover this
 		gettogglecheck=function() 
-		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) else return nil end -- tells us if we are switching active character in SMW
-		end, -- which SMW character
+		if memory.read_u8(0x01FF00) == 10 then return memory.read_u8(0x000DB3) -- tells us active character in SMW, so we know if we are switching
+		elseif memory.read_u8(0x01FF00) == 8 then return memory.read_u8(0x000577) -- tells us if we have the boot in SMB3, to not swap when we get/lose it
+		else return nil end
+		end, 
 		p1gethp=function()
 			if memory.read_u8(0x01FF00) == 8 --SMB3
 				then 
@@ -1344,11 +1333,7 @@ local gamedata = {
 						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
 							then return memory.read_u8(0x019AB) + 1 --battle health, 0 = small so add 1
 							else return 0 end 
-					elseif memory.read_u8(0x000747) <= 7 
-						and memory.read_u8(0x000747) > 1 -- normal mode, suits etc. range from 2 to 7 only
-						then return 3
-					else 
-						return memory.read_u8(0x000747) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+					elseif memory.read_u8(0x0552) > 0 then return 1 else return 2 -- if invuln frames are activated, drop health from 2 to 1
 					end
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return math.ceil(memory.read_u8(0x0004C3)/16)
@@ -1374,11 +1359,7 @@ local gamedata = {
 						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
 						then return memory.read_u8(0x019AC) + 1 --battle health, 0 = small so add 1
 							else return 0 end 
-					elseif memory.read_u8(0x000748) <= 7 
-					and memory.read_u8(0x000748) > 1 -- suits etc. range from 2 to 7 only
-					then return 3
-				else 
-					return memory.read_u8(0x000748) + 1 -- 1 is Big Mario/Luigi, 0 is small, 8+ is junk data, adding 1 to help with swap on small not relying on life lost
+					elseif memory.read_u8(0x000552) > 0 then return 1 else return 2 -- if invuln frames are activated, drop health from 2 to 1
 					end
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return 0
