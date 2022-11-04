@@ -22,7 +22,7 @@ plugin.description =
 	
 	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag. 
 	Additional ideas from the TownEater fork have been implemented.
-	Thank you to Diabetus for extensive playthroughs that tracked down bugs!
+	Thank you to Diabetus and Smight for extensive playthroughs that tracked down bugs!
 	
 	You can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
@@ -38,7 +38,7 @@ plugin.description =
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
-	-Super Mario Kart (SNES), 1p or 2p - shuffles on bumps, falls, and being shrunk
+	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls, and being shrunk
 	
 	
 	CURRENTLY IN TESTING
@@ -108,7 +108,6 @@ plugin.description =
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
 	-- Several games do not have 'lives' to make infinite, such as Anticipation, Super Metroid, Link to the Past, Super Dodge Ball, original Mario Bros. Nothing will change in these games with this option.
-	-- Infinite lives are not yet running for Super Mario All-Stars (with or without SMW). This is in progress.
 	
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
@@ -289,6 +288,10 @@ local function battletoads_swap(gamemeta)
 		local p2currlc = gamemeta.p2getlc()
 		local p2currcont = gamemeta.p2getcont()
 		local p2currsprite = gamemeta.p2getsprite()
+		
+		--togglechecks handle when health/lives drop because of a sudden change in game mode (like a level change)
+		currtogglecheck = false
+		if gamemeta.gettogglecheck ~= nil then currtogglecheck = gamemeta.gettogglecheck() end
 
 		local maxhp = gamemeta.maxhp()
 		local minhp = gamemeta.minhp or 0
@@ -301,8 +304,6 @@ local function battletoads_swap(gamemeta)
 			return false
 		end
 		
-		
-
 		-- retrieve previous health and lives before backup
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
@@ -311,6 +312,7 @@ local function battletoads_swap(gamemeta)
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
 		local p2prevsprite = data.p2prevsprite
+		local prevtogglecheck = data.prevtogglecheck
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
@@ -320,6 +322,11 @@ local function battletoads_swap(gamemeta)
 		data.p2prevlc = p2currlc
 		data.p2prevcont = p2currcont
 		data.p2prevsprite = p2currsprite
+		data.prevtogglecheck = currtogglecheck
+		
+		
+		--if we have found a toggle flag, that changes at the same time as a junk hp/lives change, then don't swap.
+		if prevtogglecheck ~= nil and prevtogglecheck ~= currtogglecheck then return false end
 		
 		-- BT SNES likes to do a full 0-out of some memory values when you load a level. 
 		-- That should NOT shuffle! 
@@ -928,7 +935,8 @@ local function smb3_swap(gamemeta)
 return function()
 	-- if this address goes up from 0, invuln frames just got triggered.
 	local invuln_changed, invuln_curr, invuln_prev = update_prev('invuln_curr', gamemeta.getinvuln())
-	local boot_changed, boot = update_prev('boot', gamemeta.getboot()) -- Kuribo's shoe
+	local boot_changed, boot = update_prev('boot', gamemeta.getboot()) -- Kuribo's shoe status
+	local statue_changed, statue = update_prev('statue', gamemeta.getstatue()) -- tanooki statue status
 	
 	local p1_lives_changed, p1_lives_curr, p1_lives_prev = update_prev('p1_lives_curr', gamemeta.p1getlc())
 	local p2_lives_changed, p2_lives_curr, p2_lives_prev = update_prev('p2_lives_curr', gamemeta.p2getlc())
@@ -939,7 +947,7 @@ return function()
 	return 
 	(smb3battling_changed -- mode changed to/from active gameplay
 			and smb3battling_prev == true) -- we were just in battle mode)
-		or (invuln_changed and invuln_prev == 0 and not (boot_changed))
+		or (invuln_changed and invuln_prev == 0 and not boot_changed and statue == 0) -- boot_changed if we dropped out of boot status, statue > 0 if statue timer counting down
 		or (p1_lives_changed and p1_lives_curr < p1_lives_prev)
 		or (p2_lives_changed and p2_lives_curr < p2_lives_prev)
 	end
@@ -1050,6 +1058,10 @@ local gamedata = {
 		p2getcont=function() return mainmemory.read_u8(0x000030) end,
 		p1getsprite=function() return mainmemory.read_u8(0x000AEE) end, -- this is an address for the sprite called for p1
 		p2getsprite=function() return mainmemory.read_u8(0x000AF0) end, -- this is an address for the sprite called for p2
+		gettogglecheck=function() return mainmemory.read_u16_le(0x000F0A) == 65535 and mainmemory.read_u16_le(0x000F0C) == 65535 end, 
+		--these addresses are the counters for # of pins/dominoes in bonus rounds
+		--they pop in or out of FFFF (65535) when entering/exiting a level, and health also drops to 0 at the same time
+		--so we won't swap on the frame that this toggles on/off!
 		maxhp=function() return 16 end,
 	},	
 	['BTDD_SNES']={ -- Battletoads Double Dragon SNES
@@ -1258,13 +1270,14 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x033C end,
-		maxlives=function() return 5 end,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
 		func=smb3_swap,
 		getsmb3battling=function() return memory.read_u8(0x001D) == 18 end, -- 2p battle true/false
 		getinvuln=function() return memory.read_u8(0x0552) end, -- invuln frames, 0 unless triggered, then counts down by 1 per frame
+		getstatue=function() return memory.read_u8(0x057A) end, -- 0 until you go into tanooki statue form, then counts down by 1 per frame
 		getboot=function() return memory.read_u8(0x0577) end, -- boot flag, 1 means we're in the boot!
 		p1getlc=function() return memory.read_u8(0x0736) end,
 		p2getlc=function() return memory.read_u8(0x0737) end,
@@ -1333,7 +1346,8 @@ local gamedata = {
 						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
 							then return memory.read_u8(0x019AB) + 1 --battle health, 0 = small so add 1
 							else return 0 end 
-					elseif memory.read_u8(0x0552) > 0 then return 1 else return 2 -- if invuln frames are activated, drop health from 2 to 1
+					elseif memory.read_u8(0x0552) > 0 and memory.read_u8(0x057A) == 0
+						then return 1 else return 2 -- if invuln frames are activated, not due to tanooki suit statue timer counting down, then drop health from 2 to 1
 					end
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return math.ceil(memory.read_u8(0x0004C3)/16)
@@ -1359,7 +1373,8 @@ local gamedata = {
 						if memory.read_u8(0x0001FB) == 7 -- actively battling, not in results screen
 						then return memory.read_u8(0x019AC) + 1 --battle health, 0 = small so add 1
 							else return 0 end 
-					elseif memory.read_u8(0x000552) > 0 then return 1 else return 2 -- if invuln frames are activated, drop health from 2 to 1
+					elseif memory.read_u8(0x0552) > 0 and memory.read_u8(0x057A) == 0
+						then return 1 else return 2 -- if invuln frames are activated, and not a tanooki statue, then drop health from 2 to 1
 					end
 			elseif memory.read_u8(0x01FF00) == 6 --SMB2 USA 
 				then return 0
