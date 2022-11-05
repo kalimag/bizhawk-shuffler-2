@@ -261,9 +261,10 @@ local function sml1_swap(gamemeta)
 local function somari_swap(gamemeta)
 	return function()
 		local sprite_changed, sprite, prev_sprite = update_prev('sprite', gamemeta.getsprite()) 
+		local shield_changed, shield, prev_shield = update_prev('shield', gamemeta.getshield())
 		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.getlives()) -- usual lives counter idea
 		return
-			(sprite_changed and sprite == 10) or -- when this variable is 9, Somari hurt sprite is on
+			(sprite_changed and sprite == 10 and shield_changed == false) or -- when this variable is 9, Somari hurt sprite is on
 			(lives_changed and lives < prev_lives) 
 		end
 	end
@@ -1267,6 +1268,7 @@ local gamedata = {
 		func=somari_swap,
 		getsprite=function() return memory.read_u8(0x0016) end,
 		getlives=function() return memory.read_u8(0x033C) end,
+		getshield=function() return memory.read_u8(0x001A) == 2 or memory.read_u8(0x001A) == 6 end,
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x033C end,
