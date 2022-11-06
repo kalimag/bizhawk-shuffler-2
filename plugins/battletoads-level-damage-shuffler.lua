@@ -1548,6 +1548,10 @@ local gamedata = {
 		maxhp=function() return 8 end,
 		delay=10, -- handles health ticking down from big falls, hits for >1 hp, etc.
 		gmode=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end, -- "mario status" variable, 0 if game hasn't started
+		gettogglecheck=function() return 
+			memory.read_u8(0x33B173, "RDRAM") > 0 and --Mario is in water or haze
+			memory.read_u8(0x33B21F, "RDRAM") > 252 -- we just reset the air timer - this should ignore health drops on losing air (0->FF on losing health, x4 speed in haze, x3 in ice water).
+			end,
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x33B21D end,
