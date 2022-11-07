@@ -426,7 +426,7 @@ local function singleplayer_withlives_swap(gamemeta)
 		if gamemeta.gettogglecheck ~= nil then currtogglecheck = gamemeta.gettogglecheck() end
 		
 		local maxhp = gamemeta.maxhp()
-		local minhp = 0
+		local minhp = gamemeta.minhp or 0
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
@@ -503,7 +503,7 @@ local function SMZ3_swap(gamemeta)
 		local samusstate_changed, samusstate, prevsamusstate = update_prev('samusstate', gamemeta.getsamusstate()) -- this variable covers Samus states like saving, dying, normal gameplay, etc.	
 		
 		local maxhp = gamemeta.maxhp()
-		local minhp = 0
+		local minhp = gamemeta.minhp or 0
 		
 		
 		--Samus swaps
@@ -581,7 +581,7 @@ local function twoplayers_withlives_swap(gamemeta)
 		-- we should now be able to use the typical shuffler functions normally.
 
 		local maxhp = gamemeta.maxhp()
-		local minhp = 0
+		local minhp = gamemeta.minhp or 0
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
@@ -670,7 +670,7 @@ local function SMAS_swap(gamemeta)
 		-- we should now be able to use the typical shuffler functions normally.
 
 		local maxhp = gamemeta.maxhp()
-		local minhp = 0
+		local minhp = gamemeta.minhp or 0
 
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
@@ -766,7 +766,7 @@ local function sdbnes_swap(gamemeta)
 		
 
 		local maxhp = gamemeta.maxhp()
-		local minhp = 0
+		local minhp = gamemeta.minhp or 0
 		
 		-- health must be within an acceptable range to count
 		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
@@ -1272,7 +1272,7 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x033C end,
-		maxlives=function() return 9 end,
+		maxlives=function() return 69 end,
 		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
@@ -1498,7 +1498,7 @@ local gamedata = {
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x1A15 end,
 		LivesWhichRAM=function() return "WRAM" end,
-		maxlives=function() return 9 end,
+		maxlives=function() return 106 end,
 		ActiveP1=function() return memory.read_u8(0x1A15, "WRAM") > 0 and memory.read_u8(0x033C, "WRAM") < 255 end,
 	},	
 	['SML2_GB']={ -- SMB 1 NES
@@ -1513,11 +1513,13 @@ local gamedata = {
 		end,
 		p1getlc=function() return memory.read_u8(0x022C, "CartRAM") end,
 		maxhp=function() return 3 end,
+		gettogglecheck=function() return memory.read_u8(0x0266, "CartRAM") == 192 end, -- did the "load the map" timer just kick in? 
+		-- If you died suddenly as >Small Mario, your health will drop to Small Mario. Don't double swap! 
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x022C end,
 		LivesWhichRAM=function() return "CartRAM" end,
-		maxlives=function() return 9 end,
+		maxlives=function() return 105 end,
 		ActiveP1=function() return memory.read_u8(0x022C, "CartRAM") > 0 and memory.read_u8(0x022C, "CartRAM") < 255 end,
 	},	
 	['SMW2YI_SNES']={ -- Super Mario World 2: Yoshi's Island
