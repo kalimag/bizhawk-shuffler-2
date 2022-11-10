@@ -1139,7 +1139,7 @@ local gamedata = {
 	['LTTP']={ -- LTTP SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() 
-			if (mainmemory.read_u8(0x0010) ~= 23 and mainmemory.read_u8(0x0010) >5) then -- <=5 means we're on the title/menu, and 23 means we are saving and quitting, so don't swap on those!
+			if (mainmemory.read_u8(0x0010) < 23 and mainmemory.read_u8(0x0010) >5) then -- <=5 means we're on the title/menu, 23 means save/quit and >23 is credits, etc. Don't swap on those!
 			return mainmemory.read_u8(0xF36D) 
 			else return 0 
 			end
@@ -1272,7 +1272,7 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x033C end,
-		maxlives=function() return 69 end,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return mainmemory.read_u8(0x033C) > 0 and mainmemory.read_u8(0x033C) < 255 end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
@@ -1552,7 +1552,7 @@ local gamedata = {
 		gmode=function() return memory.read_u8(0x33B173, "RDRAM") > 0 end, -- "mario status" variable, 0 if game hasn't started
 		gettogglecheck=function() return 
 			memory.read_u8(0x33B173, "RDRAM") > 0 and --Mario is in water or haze
-			memory.read_u8(0x33B21F, "RDRAM") > 252 -- we just reset the air timer - this should ignore health drops on losing air (0->FF on losing health, x4 speed in haze, x3 in ice water).
+			memory.read_u8(0x33B21F, "RDRAM") >= 252 -- we just reset the air timer - this should ignore health drops on losing air (0->FF on losing health, x4 speed in haze, x3 in ice water).
 			end,
 		
 		CanHaveInfiniteLives=true,
