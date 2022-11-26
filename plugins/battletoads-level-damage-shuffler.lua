@@ -26,7 +26,7 @@ plugin.description =
 	
 	If you are running this on 2.6.2, you can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
 	
-	This plugin has been updated to run on 2.6.3+, but I will need to update MMDS or understand their compatibility better to say whether they can play together without additional work!
+	This plugin has been updated to run on 2.6.3+, IF you also have grabbed the shuffler.lua from that branch from authorblues and kalimag. I have tested it out on 2.8. But, I will need to update MMDS or understand their compatibility better to say whether this plugin and MMDS can play together on 2.8 without any additional work!
 	
 	More games planned!
 	
@@ -168,7 +168,7 @@ local function get_game_tag()
 	--other supported games!
 	if gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
 	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
-	--elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1"  DISABLED FOR NOW FOR BUGFIXING
+	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1"
 	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
 	end
@@ -1119,6 +1119,7 @@ local gamedata = {
 		else return 0 end
 		end, 
 		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
 		p1livesaddr=function() return 0x05B6 end,
 		p2livesaddr=function() return 0x05E6 end,
 		maxlives=function() return 135 end, -- rescue rangers counts strangely
@@ -1521,7 +1522,7 @@ local gamedata = {
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x1A15 end,
 		LivesWhichRAM=function() return "WRAM" end,
-		maxlives=function() return 105 end,
+		maxlives=function() return 106 end,
 		ActiveP1=function() return memory.read_u8(0x1A15, "WRAM") > 0 and memory.read_u8(0x033C, "WRAM") < 255 end,
 	},	
 	['SML2_GB']={ -- SMB 1 NES
@@ -1596,11 +1597,10 @@ local gamedata = {
 		delay=30, -- because F-ZERO can drain health continuously on every frame, you want to build in some kind of sane delay before swapping.
 		gmode=function() return 
 			memory.read_u8(0x0054, "WRAM") == 2 and  -- gamestate = "racing," and 
-			memory.read_u8(0x0083, "WRAM") == 16 and  -- the zoom in is already complete, and
+			memory.read_u8(0x0055, "WRAM") == 3 and  -- the race has started, and
 			memory.read_u8(0x00C8, "WRAM") == 0 --invulnerability frames are done (0)
 		end,
 		gettogglecheck=function() return memory.read_u8(0x0054, "WRAM") end, -- if gamestate is being changed, sometimes health drops to 0, so don't swap on that frame
-		--THERE IS PROBABLY A FRAME WHERE THE LIFE COUNT DROPS ON STARTING THE RACE, LOOK FOR IT
 		
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
