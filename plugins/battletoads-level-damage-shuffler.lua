@@ -204,16 +204,15 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "96E3A314561FB394CDF51101F9178A32713C2313" then return "SML2_GB"																											 
 	elseif gameinfo.getromhash() == "D11D94FA3C36B9F72E925070B66BB4F16D31001E" then return "SML2_GB" -- DX patch
 	elseif gameinfo.getromhash() == "9BEF1128717F958171A4AFAC3ED78EE2BB4E86CE" then return "SM64_N64"
-	
-	--maybe supported someday, no promises ok?
-	elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
-	elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
-	elseif gameinfo.getromhash() == "EC6FA944C672A2522C8BC270A25842281C65FF5D" then return "DK3_NES"
-	elseif gameinfo.getromhash() == "A3B727119870E6BBA4C8889EF12E9703021EA9C2" then return "NOTGOLF_NES"
-	elseif gameinfo.getromhash() == "C807F2856F44FB84326FAC5B462340DCDD0471F8" then return "SMW2YI_SNES"
-	elseif gameinfo.getromhash() == "34612A93741F156D6E497462AB7F253CB8A959A0" then return "SMW2YI_SNES"
 	elseif gameinfo.getromhash() == "6DF570060694C5448BF13CCC0218997D2FBF21E3" then return "MPAINT_DPAD_SNES" -- joystick hack for Mario Paint
-	elseif gameinfo.getromhash() == "A22713711B5CD58DFBAFC9688DADEA66C59888CE" then return "NSMB_DS"
+	elseif gameinfo.getromhash() == "C807F2856F44FB84326FAC5B462340DCDD0471F8" then return "SMW2YI_SNES" -- Yoshi's Island only works partially, kept active for testing purposes
+	elseif gameinfo.getromhash() == "34612A93741F156D6E497462AB7F253CB8A959A0" then return "SMW2YI_SNES" -- Yoshi's Island only works partially, kept active for testing purposes
+	--maybe supported someday, no promises ok?
+	--elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
+	--elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
+	--elseif gameinfo.getromhash() == "EC6FA944C672A2522C8BC270A25842281C65FF5D" then return "DK3_NES"
+	--elseif gameinfo.getromhash() == "A3B727119870E6BBA4C8889EF12E9703021EA9C2" then return "NOTGOLF_NES"
+	--elseif gameinfo.getromhash() == "A22713711B5CD58DFBAFC9688DADEA66C59888CE" then return "NSMB_DS"
 	end
 	
 	--new games for the chaos shuffler?!?
