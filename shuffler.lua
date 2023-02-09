@@ -267,13 +267,23 @@ function save_current_game()
 	end
 
 	if config.current_game ~= nil then
-		local statename = get_savestate_file()
-		-- safety backups
-		for i = STATES_BACKUPS, 2, -1 do
-			overwrite(string.format("%s.bk%d", statename, i-1),
-				string.format("%s.bk%d", statename, i))
+		local plugin_args = { state = get_savestate_file(), prevent_save = false, prevent_backup = false }
+		invoke_plugins('before_state_save', plugin_args)
+		if plugin_args.prevent_save then
+			log_debug('plugin prevented saving state')
+			return
 		end
-		overwrite(statename, statename .. '.bk1')
+		local statename = plugin_args.state
+
+		if not plugin_args.prevent_backup then
+			-- safety backups
+			for i = STATES_BACKUPS, 2, -1 do
+				overwrite(string.format("%s.bk%d", statename, i-1),
+					string.format("%s.bk%d", statename, i))
+			end
+			overwrite(statename, statename .. '.bk1')
+		end
+
 		log_debug('save_current_game: save "%s"', statename)
 		savestate.save(statename)
 	end
@@ -297,10 +307,11 @@ local function on_game_load()
 	frames_since_restart = 0
 	running = true
 
-	local state = get_savestate_file()
-	if file_exists(state) then
-		log_debug('on_game_load: load state "%s"', state)
-		savestate.load(state)
+	local plugin_args = { state = get_savestate_file(), prevent_load = false }
+	invoke_plugins('before_state_load', plugin_args)
+	if not plugin_args.prevent_load and file_exists(plugin_args.state) then
+		log_debug('on_game_load: load state "%s"', plugin_args.state)
+		savestate.load(plugin_args.state)
 	end
 
 	-- update swap counter for this game
