@@ -227,6 +227,16 @@ function get_games_list(force)
 	return games
 end
 
+local function invoke_plugins(event_name, ...)
+	for _,plugin in ipairs(plugins) do
+		local callback = plugin[event_name]
+		if type(callback) == 'function' then
+			local pdata = config.plugins[plugin._module]
+			callback(pdata.state, pdata.settings, ...)
+		end
+	end
+end
+
 -- delete savestates folder
 function delete_savestates()
 	local cmd = string.format('rm -rf "%s"', STATES_FOLDER)
@@ -313,12 +323,7 @@ local function on_game_load()
 
 	update_next_swap_time()
 
-	for _,plugin in ipairs(plugins) do
-		if plugin.on_game_load ~= nil then
-			local pdata = config.plugins[plugin._module]
-			plugin.on_game_load(pdata.state, pdata.settings)
-		end
-	end
+	invoke_plugins('on_game_load')
 
 	save_config(config, 'shuffler-src/config.lua')
 end
@@ -392,12 +397,7 @@ function swap_game(next_game, is_gui_callback)
 
 	-- swap_game() is used for the first load, so check if a game is loaded
 	if config.current_game ~= nil then
-		for _,plugin in ipairs(plugins) do
-			if plugin.on_game_save ~= nil then
-				local pdata = config.plugins[plugin._module]
-				plugin.on_game_save(pdata.state, pdata.settings)
-			end
-		end
+		invoke_plugins('on_game_save')
 	end
 
 	-- at this point, save the game and update the new "current" game after
@@ -528,12 +528,8 @@ function mark_complete()
 	-- mark the game as complete in the config file rather than moving files around
 	table.insert(config.completed_games, config.current_game)
 	log_message(config.current_game .. ' marked complete')
-	for _,plugin in ipairs(plugins) do
-		if plugin.on_complete ~= nil then
-			local pdata = config.plugins[plugin._module]
-			plugin.on_complete(pdata.state, pdata.settings)
-		end
-	end
+
+	invoke_plugins('on_complete')
 
 	-- update list of completed games in file
 	output_completed()
@@ -691,12 +687,7 @@ while true do
 		end
 
 		-- let plugins do operations each frame
-		for _,plugin in ipairs(plugins) do
-			if plugin.on_frame ~= nil then
-				local pdata = config.plugins[plugin._module]
-				plugin.on_frame(pdata.state, pdata.settings)
-			end
-		end
+		invoke_plugins('on_frame')
 
 		-- calculate input "rises" by subtracting the previously held inputs from the inputs on this frame
 		local input_rise = input.get()
