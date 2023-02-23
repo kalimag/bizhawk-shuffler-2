@@ -2,7 +2,7 @@ local plugin = {}
 
 plugin.name = "Battletoads+ Chaos Damage Shuffler"
 plugin.author = "Phiggle"
-plugin.minversion = "2.6.2"
+plugin.minversion = "2.6.3"
 plugin.settings =
 {
 	{ name='InfiniteLives', type='boolean', label='Infinite* Lives (see notes)' },
@@ -24,24 +24,17 @@ plugin.description =
 	Additional ideas from the TownEater fork have been implemented.
 	Thank you to Diabetus and Smight for extensive playthroughs that tracked down bugs!
 	
-	If you are running this on 2.6.2, you can run the Mega Man Damage Shuffler plugin at the same time, with no conflicts.
-	
-	This plugin has been updated to run on 2.6.3+, IF you also have grabbed the shuffler.lua from that branch from authorblues and kalimag. I have tested it out on 2.8. But, I will need to update MMDS or understand their compatibility better to say whether this plugin and MMDS can play together on 2.8 without any additional work!
-	
-	More games planned!
+	This plugin has been updated to run on 2.6.3+. I have left in legacy compatibility with 2.6.2, but will likely remove this once testing shows everything is fine on 2.8.
 	
 	Currently supports (ALL NTSC-U):
+	
+	BATTLETOADS
 	-Battletoads (NES), 1p or 2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
 	-Battletoads in Battlemaniacs (SNES), 1p or 2p
 	-Battletoads-Double Dragon (NES), 1p or 2p
 	-Battletoads-Double Dragon (SNES), 1p or 2p, including if patched to use level select by default (see instructions)
-	
-	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
-	-Captain Novolin (SNES)
-	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
-	-Super Dodge Ball (NES), 1p or 2p, all modes
-	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls, and being shrunk
-	
+		
+	MARIOS
 	-Mario Bros. (NES), 1-2p
 	-Super Mario Bros. (NES), 1-2p
 	-Super Mario Bros. 2 JP ("Lost Levels"), NES version, 1p
@@ -54,17 +47,7 @@ plugin.description =
 	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
 	-Super Mario 64 (N64), 1p
 	
-	
-	CURRENTLY IN TESTING
-	All of these should work with various revisions INCLUDING RANDOMIZERS if you replace the hash in the .lua file where instructed.
-	This will likely be broken out into its own plugin in the near future!
-	
-	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
-	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
-	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
-	
-	ALSO CURRENTLY IN TESTING
-	-F-Zero (SNES), 1p
+	CASTLEVANIAS
 	-Castlevania (NES), 1p
 	-Castlevania II (NES), 1p
 	-Castlevania III (NES), 1p
@@ -72,8 +55,24 @@ plugin.description =
 	-Castlevania: Dracula X (SNES), 1p
 	-Castlevania: Bloodlines (Genesis/Mega Drive), 1p
 	-Castlevania: Rondo of Blood (TG16-CD), 1p
-	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
+	
+	ADDITIONAL GOODIES
+	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
+	-Captain Novolin (SNES)
+	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
+	-F-Zero (SNES), 1p
 	-Kirby's Adventure (SNES), 1p
+	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
+	-Super Dodge Ball (NES), 1p or 2p, all modes
+	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
+	
+	THE LINK/SAMUS BLOCK
+	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
+	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
+	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
+	
+	These three should work with various revisions INCLUDING RANDOMIZERS if you replace the hash in the .lua file where instructed.
+	This will likely be broken out into its own plugin in the near future!
 	
 		
 	----PREPARATION----
@@ -228,6 +227,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "3BDAEAFA81AA17C91A8B42D0FA8C5B26E3FD6B80" then return "DRACULAX_SNES"
 	elseif gameinfo.getromhash() == "F324E7C8C3AD102ECDCCA011ECC494F6F345D768" then return "KIRBY_NES"
 	elseif gameinfo.getromhash() == "E099D688760FF0CE114CA8A9FD083E31E41CFADE" then return "KIRBY_NES"
+	elseif gameinfo.getromhash() == "743D60EE1536B0C7C24DBB8BA39D14ED5937C0D5" then return "DemonsCrest"
 	end
 	
 	return nil
@@ -278,6 +278,16 @@ local function somari_swap(gamemeta)
 		end
 	end
 
+
+local function demonscrest_swap(gamemeta)
+	return function()
+		local hp_changed, hp, prev_hp = update_prev('hp', gamemeta.p1gethp()) 
+		local living_changed, living, prev_living = update_prev('living', gamemeta.p1getliving())
+		return
+			(hp_changed and hp < prev_hp) or -- when this variable is 9, Somari hurt sprite is on
+			(living_changed and living == 45 and prev_living == 1) -- we just transitioned from the "you died" sprite
+		end
+	end
 
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
 -- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
@@ -993,7 +1003,7 @@ return function()
 				
 		return
 			(p1falling and p1currfall) or -- p1 just started falling into pit, lava, water
-			(p1shrinking and p1prevshrink == 0) or -- p1 just started shrinking, or got run over so frame timer dropped more than 1 unit
+			--(p1shrinking and p1prevshrink == 0) or -- p1 just started shrinking, or got run over so frame timer dropped more than 1 unit
 			(p1moled and p1currmoled) or -- p1 just started shrinking
 			(p1bumping and -- p1 just started colliding AND EITHER
 				((p1coinschanged and p1currcoins < p1prevcoins) or -- coins dropped or
@@ -1003,7 +1013,7 @@ return function()
 			p2IsActive == true and (
 			
 			(p2falling and p2currfall) or -- p2 just started falling into pit, lava, water
-			(p2shrinking and p2prevshrink == 0) or -- p2 just started shrinking, or got run over so frame timer dropped more than 1 unit
+			--(p2shrinking and p2prevshrink == 0) or -- p2 just started shrinking, or got run over so frame timer dropped more than 1 unit
 			(p2moled and p2currmoled) or -- p2 just started shrinking
 			(p2bumping and -- p2 just started colliding AND EITHER
 				((p2coinschanged and p2currcoins < p2prevcoins) or -- coins dropped or
@@ -1740,6 +1750,14 @@ local gamedata = {
 		p1livesaddr=function() return 0x0599 end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+	},	
+	['DemonsCrest']={ -- Demon's Crest (SNES)
+		func=demonscrest_swap,
+		p1gethp=function() return memory.read_u8(0x1062, "WRAM") end,
+		p1getliving=function() return memory.read_u8(0x00E7, "WRAM") end,
+		maxhp=function() return 4 end,
+		
+		CanHaveInfiniteLives=false
 	},	
 }
 
