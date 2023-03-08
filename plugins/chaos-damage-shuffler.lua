@@ -60,7 +60,9 @@ plugin.description =
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
+	-Demon's Crest (SNES), 1p
 	-F-Zero (SNES), 1p
+	-Family Feud (SNES), 1p or 2p
 	-Kirby's Adventure (SNES), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
@@ -140,6 +142,7 @@ plugin.description =
 
 local NO_MATCH = 'NONE'
 
+local tags = {}
 local prevdata
 local swap_scheduled
 local shouldSwap
@@ -228,6 +231,8 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "F324E7C8C3AD102ECDCCA011ECC494F6F345D768" then return "KIRBY_NES"
 	elseif gameinfo.getromhash() == "E099D688760FF0CE114CA8A9FD083E31E41CFADE" then return "KIRBY_NES"
 	elseif gameinfo.getromhash() == "743D60EE1536B0C7C24DBB8BA39D14ED5937C0D5" then return "DemonsCrest"
+	elseif gameinfo.getromhash() == "3F20C2C8749CCEE3A53732B41AE026BF3AAA2158" then return "FamilyFeud_SNES"
+	elseif gameinfo.getromhash() == "8556B6545B78022FE55705A83C3E751C463F56C7" then return "FamilyFeud_SNES"
 	end
 	
 	return nil
@@ -284,11 +289,21 @@ local function demonscrest_swap(gamemeta)
 		local hp_changed, hp, prev_hp = update_prev('hp', gamemeta.p1gethp()) 
 		local living_changed, living, prev_living = update_prev('living', gamemeta.p1getliving())
 		return
-			(hp_changed and hp < prev_hp) or -- when this variable is 9, Somari hurt sprite is on
-			(living_changed and living == 45 and prev_living == 1) -- we just transitioned from the "you died" sprite
+			(hp_changed and hp < prev_hp) or -- Firebrand just took damage
+			(living_changed and living == 45 and prev_living == 1) -- Firebrand just died
 		end
 	end
 
+local function FamilyFeud_SNES_swap(gamemeta)
+	return function()
+		local strike_changed, strike, prev_strike = update_prev('strike', gamemeta.getstrike()) 
+		local player_changed, player, prev_player = update_prev('player', gamemeta.getwhichplayer())
+		return
+			(strike_changed and strike == 1) and  -- we just got a strike or 0
+			(player < 2) -- It's player 1 or 2, not the CPU
+		end
+	end
+	
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
 -- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
 -- They have the same max HP.
@@ -1257,6 +1272,7 @@ local gamedata = {
 		maxlives=function() return 8 end,
 		ActiveP1=function() return memory.read_u8(0x075A, "RAM") > 0 and memory.read_u8(0x075A, "RAM") < 255 end,
 		ActiveP2=function() return memory.read_u8(0x0761, "RAM") > 0 and memory.read_u8(0x0761, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['SMB2J_NES']={ -- SMB 2 JP, NES version (Lost Levels)
 		func=singleplayer_withlives_swap,
@@ -1271,6 +1287,7 @@ local gamedata = {
 		maxlives=function() return 8 end,
 		p1getlc=function() return memory.read_u8(0x075A, "RAM") end,
 		ActiveP1=function() return memory.read_u8(0x075A, "RAM") > 0 and memory.read_u8(0x075A, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['SMB2_NES']={ -- SMB2 USA NES
 		func=singleplayer_withlives_swap,
@@ -1283,6 +1300,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x04ED end,
 		maxlives=function() return 70 end,
 		ActiveP1=function() return memory.read_u8(0x04ED, "RAM") > 0 and memory.read_u8(0x04ED, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['MB_NES']={ -- Mario Bros. US NES
 		func=twoplayers_withlives_swap,
@@ -1303,6 +1321,7 @@ local gamedata = {
 		maxlives=function() return 9 end,
 		maxlives=function() return "RAM" end,
 		ActiveP1=function() return memory.read_u8(0x033C, "RAM") > 0 and memory.read_u8(0x033C, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['SMB3_NES']={ -- SMB3 NES
 		func=smb3_swap,
@@ -1320,6 +1339,7 @@ local gamedata = {
 		maxlives=function() return 69 end,
 		ActiveP1=function() return memory.read_u8(0x0736, "RAM") > 0 and memory.read_u8(0x0736, "RAM") < 255 end,
 		ActiveP2=function() return memory.read_u8(0x0737, "RAM") > 0 and memory.read_u8(0x0737, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['SMW_SNES']={ -- Super Mario World SNES
 		func=singleplayer_withlives_swap,
@@ -1755,10 +1775,16 @@ local gamedata = {
 		func=demonscrest_swap,
 		p1gethp=function() return memory.read_u8(0x1062, "WRAM") end,
 		p1getliving=function() return memory.read_u8(0x00E7, "WRAM") end,
-		maxhp=function() return 4 end,
 		
 		CanHaveInfiniteLives=false
 	},	
+	['FamilyFeud_SNES']={ -- Demon's Crest (SNES)
+		func=FamilyFeud_SNES_swap,
+		getstrike=function() return memory.read_u8(0x020E, "WRAM") end,
+		getwhichplayer=function() return memory.read_u8(0x08DF, "WRAM") end,
+		
+		CanHaveInfiniteLives=false
+	},		
 }
 
 local backupchecks = {
@@ -1777,19 +1803,14 @@ local function BT_NES_Zitz_Override()
 	return false
 end
 
-function plugin.on_setup(data, settings)
-	data.tags = data.tags or {}
-	
-
-end
 
 function plugin.on_game_load(data, settings)
 	prevdata = {}
 	swap_scheduled = false
 	shouldSwap = function() return false end
 	
-	local tag = get_game_tag()
-	data.tags[gameinfo.getromhash()] = tag or NO_MATCH
+	local tag = tags[gameinfo.getromhash()] or get_game_tag()
+	tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
 	
 -- returns the number of games left in the shuffler
@@ -2012,10 +2033,10 @@ if type(tonumber(which_level)) == "number" then
 			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag ~= nil then 
-			log_message('game match: ' .. string.format(tag))
+			log_message('Chaos Shuffler: recognized as ' .. string.format(tag))
 	elseif tag == nil or tag == NO_MATCH then
 		if settings.SuppressLog ~= true then
-			log_message(string.format('unrecognized? %s (%s)',
+			log_message(string.format('Chaos Shuffler: unrecognized? %s (%s)',
 			gameinfo.getromname(), gameinfo.getromhash())) end
 	end
 	
