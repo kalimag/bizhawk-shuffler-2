@@ -65,6 +65,7 @@ plugin.description =
 	-Family Feud (SNES), 1p or 2p
 	-Kirby's Adventure (SNES), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
+	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	
@@ -233,6 +234,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "743D60EE1536B0C7C24DBB8BA39D14ED5937C0D5" then return "DemonsCrest"
 	elseif gameinfo.getromhash() == "3F20C2C8749CCEE3A53732B41AE026BF3AAA2158" then return "FamilyFeud_SNES"
 	elseif gameinfo.getromhash() == "8556B6545B78022FE55705A83C3E751C463F56C7" then return "FamilyFeud_SNES"
+	elseif gameinfo.getromhash() == "5DB2C9E02D3551292A0218F73875F9F08318ECB9" then return "Monopoly_NES"
 	end
 	
 	return nil
@@ -1037,6 +1039,308 @@ return function()
 			)
 		end
 	end
+	
+local function fzero_snes_swap(gamemeta)
+
+		--alternative option for F-Zero swapping, currently testing this out
+		--0x00F5 is "collided with a wall", pops up to 9 then drops by 1 every frame back down to 0.
+		--We don't want a swap on just being "in" the wall or grazing it, necessarily. 
+		--0x00E9 is "hitting a guardrail" and is separate from colliding with the wall.
+		--So, you can say "no swaps" on hitting a guardrail == true when colliding with wall == false.
+		--can experiment with "invuln frames just popped from 0" AND either wall bump or other bump?
+		
+	return function()
+	
+		if 	memory.read_u8(0x0054, "WRAM") == 2 and  -- gamestate = "racing," and 
+			memory.read_u8(0x0055, "WRAM") == 3 and  -- the race has started, and
+			memory.read_u8(0x00C8, "WRAM") == 0 --invulnerability frames are done (0)
+		then return false end -- don't swap when all of those are true	
+		
+		local hitwall_changed, hittingwall, prev_hittingwall = update_prev('hittingwall', gamemeta.gethittingwall()) -- when this variable pops up from 0, you're hitting a wall.
+		local invuln_changed, invuln, prev_invuln = update_prev('invuln', gamemeta.getinvuln()) -- this pops up from 0 if you get i-frames, only goes up slightly for being in a wall
+		local bump_changed, bump, prev_bump = update_prev('bump', gamemeta.getbump()) -- this variable pops up if you are bounced by another car, a mine, etc.
+		return
+			(hitwall_changed and prev_hittingwall == 0) or
+			(invuln_changed and invuln > prev_invuln and invuln >6) or
+			(bump_changed and prev_bump == 0)
+		end
+
+end
+	
+local function Monopoly_NES_swap(gamemeta)
+
+-- goals: swap when you lose money, go to jail, or go bankrupt
+-- don't swap if: setting options at start of game, buying a property, winning an auction, trading, building on a property
+				
+	return function(data)
+			
+	local Auctioning_changed, Auctioning, prev_Auctioning = update_prev('Auctioning', gamemeta.getAuctioning()) -- auction goes from 2 to 0 once completed
+	local TradeAccepted_changed, TradeAccepted, prev_TradeAccepted = update_prev('TradeAccepted', gamemeta.getTradeAccepted()) -- both traders go to "1" when accepted
+	local BuildingTimer_changed, BuildingTimer, prev_BuildingTimer = update_prev('BuildingTimer', gamemeta.getBuildingTimer()) -- "anyone else building?" timer, on == 1/true, off == 0
+	
+	
+		local currUnowned = gamemeta.getUnowned()
+		local currAuctioning = gamemeta.getAuctioning()
+		local currInEditor = gamemeta.getInEditor()
+			
+		local p1currHuman = gamemeta.getp1Human()
+		local p2currHuman = gamemeta.getp2Human()
+		local p3currHuman = gamemeta.getp3Human()
+		local p4currHuman = gamemeta.getp4Human()
+		local p5currHuman = gamemeta.getp5Human()
+		local p6currHuman = gamemeta.getp6Human()
+		local p7currHuman = gamemeta.getp7Human()
+		local p8currHuman = gamemeta.getp8Human()
+		
+		local p1currInJail = gamemeta.getp1InJail()
+		local p2currInJail = gamemeta.getp2InJail()
+		local p3currInJail = gamemeta.getp3InJail()
+		local p4currInJail = gamemeta.getp4InJail()
+		local p5currInJail = gamemeta.getp5InJail()
+		local p6currInJail = gamemeta.getp6InJail()
+		local p7currInJail = gamemeta.getp7InJail()
+		local p8currInJail = gamemeta.getp8InJail()
+		
+		local p1currBankrupt = gamemeta.getp1Bankrupt()
+		local p2currBankrupt = gamemeta.getp2Bankrupt()
+		local p3currBankrupt = gamemeta.getp3Bankrupt()
+		local p4currBankrupt = gamemeta.getp4Bankrupt()
+		local p5currBankrupt = gamemeta.getp5Bankrupt()
+		local p6currBankrupt = gamemeta.getp6Bankrupt()
+		local p7currBankrupt = gamemeta.getp7Bankrupt()
+		local p8currBankrupt = gamemeta.getp8Bankrupt()
+		
+		local p1currMoney = gamemeta.getp1Money()
+		local p2currMoney = gamemeta.getp2Money()
+		local p3currMoney = gamemeta.getp3Money()
+		local p4currMoney = gamemeta.getp4Money()
+		local p5currMoney = gamemeta.getp5Money()
+		local p6currMoney = gamemeta.getp6Money()
+		local p7currMoney = gamemeta.getp7Money()
+		local p8currMoney = gamemeta.getp8Money()
+		
+
+		-- retrieve previous human/jail/bankrupt/money before backup
+		
+		
+		local prevUnowned = gamemeta.prevUnowned
+		local prevAuctioning = gamemeta.prevAuctioning
+		local prevInEditor = gamemeta.prevInEditor
+		
+		
+		local p1prevHuman = data.p1prevHuman
+		local p2prevHuman = data.p2prevHuman
+		local p3prevHuman = data.p3prevHuman
+		local p4prevHuman = data.p4prevHuman
+		local p5prevHuman = data.p5prevHuman
+		local p6prevHuman = data.p6prevHuman
+		local p7prevHuman = data.p7prevHuman
+		local p8prevHuman = data.p8prevHuman
+		
+		local p1prevInJail = data.p1prevInJail
+		local p2prevInJail = data.p2prevInJail
+		local p3prevInJail = data.p3prevInJail
+		local p4prevInJail = data.p4prevInJail
+		local p5prevInJail = data.p5prevInJail
+		local p6prevInJail = data.p6prevInJail
+		local p7prevInJail = data.p7prevInJail
+		local p8prevInJail = data.p8prevInJail
+		
+		local p1prevBankrupt = data.p1prevBankrupt
+		local p2prevBankrupt = data.p2prevBankrupt
+		local p3prevBankrupt = data.p3prevBankrupt
+		local p4prevBankrupt = data.p4prevBankrupt
+		local p5prevBankrupt = data.p5prevBankrupt
+		local p6prevBankrupt = data.p6prevBankrupt
+		local p7prevBankrupt = data.p7prevBankrupt
+		local p8prevBankrupt = data.p8prevBankrupt
+		
+		local p1prevMoney = data.p1prevMoney
+		local p2prevMoney = data.p2prevMoney
+		local p3prevMoney = data.p3prevMoney
+		local p4prevMoney = data.p4prevMoney
+		local p5prevMoney = data.p5prevMoney
+		local p6prevMoney = data.p6prevMoney
+		local p7prevMoney = data.p7prevMoney
+		local p8prevMoney = data.p8prevMoney
+		
+		data.prevUnowned = currUnowned
+		data.prevAuctioning = currAuctioning
+		data.prevInEditor = currInEditor
+		
+		data.p1prevHuman = p1currHuman
+		data.p2prevHuman = p2currHuman
+		data.p3prevHuman = p3currHuman
+		data.p4prevHuman = p4currHuman
+		data.p5prevHuman = p5currHuman
+		data.p6prevHuman = p6currHuman
+		data.p7prevHuman = p7currHuman
+		data.p8prevHuman = p8currHuman
+	
+		data.p1prevInJail = p1currInJail
+		data.p2prevInJail = p2currInJail
+		data.p3prevInJail = p3currInJail
+		data.p4prevInJail = p4currInJail
+		data.p5prevInJail = p5currInJail
+		data.p6prevInJail = p6currInJail
+		data.p7prevInJail = p7currInJail
+		data.p8prevInJail = p8currInJail
+
+		data.p1prevBankrupt = p1currBankrupt
+		data.p2prevBankrupt = p2currBankrupt
+		data.p3prevBankrupt = p3currBankrupt
+		data.p4prevBankrupt = p4currBankrupt
+		data.p5prevBankrupt = p5currBankrupt
+		data.p6prevBankrupt = p6currBankrupt
+		data.p7prevBankrupt = p7currBankrupt
+		data.p8prevBankrupt = p8currBankrupt
+
+		data.p1prevMoney = p1currMoney
+		data.p2prevMoney = p2currMoney
+		data.p3prevMoney = p3currMoney
+		data.p4prevMoney = p4currMoney
+		data.p5prevMoney = p5currMoney
+		data.p6prevMoney = p6currMoney
+		data.p7prevMoney = p7currMoney
+		data.p8prevMoney = p8currMoney		
+		
+		
+		
+	
+	
+		
+		
+	--start by ruling out times to swap
+		if currUnowned == 21 or
+			currInEditor == 1 or
+			(Auctioning_changed == true and prev_Auctioning == 2) == true or
+			(TradeAccepted_changed == true and TradeAccepted == 2) == true or
+			(BuildingTimer_changed == true and prev_BuildingTimer == 1)
+		then return false end -- don't swap when any of those are true	
+		
+		
+	--Now, we assume that money going down, player going bankrupt, player jail counter going up for a human means we swap	
+
+	-- implement delay so that we can catch the cause of the swap
+		if data.p1countdown ~= nil and data.p1countdown > 0 then
+			data.p1countdown = data.p1countdown - 1
+			if data.p1countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p2countdown ~= nil and data.p2countdown > 0 then
+			data.p2countdown = data.p2countdown - 1
+			if data.p2countdown == 0 then
+				return true
+			end
+		end	
+	
+		if data.p3countdown ~= nil and data.p3countdown > 0 then
+			data.p3countdown = data.p3countdown - 1
+			if data.p3countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p4countdown ~= nil and data.p4countdown > 0 then
+			data.p4countdown = data.p4countdown - 1
+			if data.p4countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p5countdown ~= nil and data.p5countdown > 0 then
+			data.p5countdown = data.p5countdown - 1
+			if data.p5countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p6countdown ~= nil and data.p6countdown > 0 then
+			data.p6countdown = data.p6countdown - 1
+			if data.p6countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p7countdown ~= nil and data.p7countdown > 0 then
+			data.p7countdown = data.p7countdown - 1
+			if data.p7countdown == 0 then
+				return true
+			end
+		end	
+		
+		if data.p8countdown ~= nil and data.p8countdown > 0 then
+			data.p8countdown = data.p8countdown - 1
+			if data.p8countdown == 0 then
+				return true
+			end
+		end	
+	
+
+		-- if money goes down, or jail counter goes up, or bankrupt hits true for a human, start the countdown
+		if 
+		p1prevHuman ~= nil and p1currHuman == 0 and 
+		((p1prevMoney ~= nil and p1currMoney < p1prevMoney) or 
+		(p1prevInJail ~= nil and p1currInJail > p1prevInJail) or 
+		(p1prevBankrupt ~= nil and p1currBankrupt == 255 and p1prevBankrupt == 0)) == true
+		then
+			data.p1countdown = gamemeta.delay
+		elseif 
+		p2prevHuman ~= nil and p2currHuman == 0 and 
+		((p2prevMoney ~= nil and p2currMoney < p2prevMoney) or 
+		(p2prevInJail ~= nil and p2currInJail > p2prevInJail) or 
+		(p2prevBankrupt ~= nil and p2currBankrupt == 255 and p2prevBankrupt == 0)) == true
+		then
+			data.p2countdown = gamemeta.delay
+		elseif 
+		p3prevHuman ~= nil and p3currHuman == 0 and 
+		((p3prevMoney ~= nil and p3currMoney < p3prevMoney) or 
+		(p3prevInJail ~= nil and p3currInJail > p3prevInJail) or 
+		(p3prevBankrupt ~= nil and p3currBankrupt == 255 and p3prevBankrupt == 0)) == true
+		then
+			data.p3countdown = gamemeta.delay
+		elseif 
+		p4prevHuman ~= nil and p4currHuman == 0 and 
+		((p4prevMoney ~= nil and p4currMoney < p4prevMoney) or 
+		(p4prevInJail ~= nil and p4currInJail > p4prevInJail) or 
+		(p4prevBankrupt ~= nil and p4currBankrupt == 255 and p4prevBankrupt == 0)) == true
+		then
+			data.p4countdown = gamemeta.delay
+		elseif 
+		p5prevHuman ~= nil and p5currHuman == 0 and 
+		((p5prevMoney ~= nil and p5currMoney < p5prevMoney) or 
+		(p5prevInJail ~= nil and p5currInJail > p5prevInJail) or 
+		(p5prevBankrupt ~= nil and p5currBankrupt == 255 and p5prevBankrupt == 0)) == true
+		then
+			data.p5countdown = gamemeta.delay
+		elseif 
+		p6prevHuman ~= nil and p6currHuman == 0 and 
+		((p6prevMoney ~= nil and p6currMoney < p6prevMoney) or 
+		(p6prevInJail ~= nil and p6currInJail > p6prevInJail) or 
+		(p6prevBankrupt ~= nil and p6currBankrupt == 255 and p6prevBankrupt == 0)) == true
+		then
+			data.p6countdown = gamemeta.delay
+		elseif 
+		p7prevHuman ~= nil and p7currHuman == 0 and 
+		((p7prevMoney ~= nil and p7currMoney < p7prevMoney) or 
+		(p7prevInJail ~= nil and p7currInJail > p7prevInJail) or 
+		(p7prevBankrupt ~= nil and p7currBankrupt == 255 and p7prevBankrupt == 0)) == true
+		then
+			data.p7countdown = gamemeta.delay
+		elseif 
+		p8prevHuman ~= nil and p8currHuman == 0 and 
+		((p8prevMoney ~= nil and p8currMoney < p8prevMoney) or 
+		(p8prevInJail ~= nil and p8currInJail > p8prevInJail) or 
+		(p8prevBankrupt ~= nil and p8currBankrupt == 255 and p8prevBankrupt == 0)) == true
+		then
+			data.p8countdown = gamemeta.delay
+		end
+		
+	end
+
+end
 
 
 -- Modified version of the gamedata for Mega Man games on NES.
@@ -1630,7 +1934,12 @@ local gamedata = {
 			memory.read_u8(0x00C8, "WRAM") == 0 --invulnerability frames are done (0)
 		end,
 		gettogglecheck=function() return memory.read_u8(0x0054, "WRAM") end, -- if gamestate is being changed, sometimes health drops to 0, so don't swap on that frame
-		
+		--FUTURE POSSIBLE REVISION
+		--func=fzero_snes_swap,
+		--gethittingwall=function() return memory.read_u8(0x00F5, "WRAM") end,
+		--getinvuln=function() return memory.read_u8(0x00C8, "WRAM") end,
+		--getbump=function() return memory.read_u8(0x00E0, "WRAM") end,
+		--delay=30, -- because F-ZERO can drain health continuously on every frame, you want to build in some kind of sane delay before swapping. WILL REQUIRE IMPLEMENTING A COUNTDOWN
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x0059 end,
@@ -1778,10 +2087,64 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=false
 	},	
-	['FamilyFeud_SNES']={ -- Demon's Crest (SNES)
+	['FamilyFeud_SNES']={ -- Family Feud (SNES)
 		func=FamilyFeud_SNES_swap,
 		getstrike=function() return memory.read_u8(0x020E, "WRAM") end,
 		getwhichplayer=function() return memory.read_u8(0x08DF, "WRAM") end,
+		
+		CanHaveInfiniteLives=false
+	},		
+	['Monopoly_NES']={ -- Monopoly (NES)
+		func=Monopoly_NES_swap,
+		
+		delay=120,
+				
+		--DON'T SWAP ON ANY OF THESE
+		getUnowned=function() return memory.read_u8(0x005A, "RAM") end, -- if 21, player has rolled onto an unowned property.
+		getAuctioning=function() return memory.read_u8(0x04D2, "RAM") end, -- if 2, an auction is in progress.
+		getInEditor=function() return memory.read_u8(0x0067, "RAM") end, -- if 1, we are editing the game before starting, so don't swap when money values change
+		getTradeAccepted=function() return memory.read_u8(0x0576, "RAM") + memory.read_u8(0x0577, "RAM") end, -- if 1 and 1, both have accepted the deal
+		getBuildingTimer=function() return memory.read_u8(0x0593, "RAM") end, -- if 1, someone bought houses/hotels and the building scene is about to happen
+		
+		--PLAYER CASH TOTALS
+		getp1Money=function() return memory.read_u8(0x03C5, "RAM")*10000 + memory.read_u8(0x03C6, "RAM")*1000 + memory.read_u8(0x03C7, "RAM")*100 + memory.read_u8(0x03C8, "RAM")*10 + memory.read_u8(0x03C9, "RAM") end, 
+		getp2Money=function() return memory.read_u8(0x03CA, "RAM")*10000 + memory.read_u8(0x03CB, "RAM")*1000 + memory.read_u8(0x03CC, "RAM")*100 + memory.read_u8(0x03CD, "RAM")*10 + memory.read_u8(0x03CE, "RAM") end, 
+		getp3Money=function() return memory.read_u8(0x03CF, "RAM")*10000 + memory.read_u8(0x03D0, "RAM")*1000 + memory.read_u8(0x03D1, "RAM")*100 + memory.read_u8(0x03D2, "RAM")*10 + memory.read_u8(0x03D3, "RAM") end, 
+		getp4Money=function() return memory.read_u8(0x03D4, "RAM")*10000 + memory.read_u8(0x03D5, "RAM")*1000 + memory.read_u8(0x03D6, "RAM")*100 + memory.read_u8(0x03D7, "RAM")*10 + memory.read_u8(0x03D8, "RAM") end, 
+		getp5Money=function() return memory.read_u8(0x03D9, "RAM")*10000 + memory.read_u8(0x03DA, "RAM")*1000 + memory.read_u8(0x03DB, "RAM")*100 + memory.read_u8(0x03DC, "RAM")*10 + memory.read_u8(0x03DD, "RAM") end, 
+		getp6Money=function() return memory.read_u8(0x03DE, "RAM")*10000 + memory.read_u8(0x03DF, "RAM")*1000 + memory.read_u8(0x03E0, "RAM")*100 + memory.read_u8(0x03E1, "RAM")*10 + memory.read_u8(0x03E2, "RAM") end, 
+		getp7Money=function() return memory.read_u8(0x03E3, "RAM")*10000 + memory.read_u8(0x03E4, "RAM")*1000 + memory.read_u8(0x03E5, "RAM")*100 + memory.read_u8(0x03E6, "RAM")*10 + memory.read_u8(0x03E7, "RAM") end, 
+		getp8Money=function() return memory.read_u8(0x03E8, "RAM")*10000 + memory.read_u8(0x03E9, "RAM")*1000 + memory.read_u8(0x03EA, "RAM")*100 + memory.read_u8(0x03EB, "RAM")*10 + memory.read_u8(0x03EC, "RAM") end, 
+		
+		--IS PLAYER HUMAN
+		getp1Human=function() return memory.read_u8(0x033C, "RAM") end, 
+		getp2Human=function() return memory.read_u8(0x033D, "RAM") end, 
+		getp3Human=function() return memory.read_u8(0x033E, "RAM") end, 
+		getp4Human=function() return memory.read_u8(0x033F, "RAM") end, 
+		getp5Human=function() return memory.read_u8(0x0340, "RAM") end, 
+		getp6Human=function() return memory.read_u8(0x0341, "RAM") end, 
+		getp7Human=function() return memory.read_u8(0x0342, "RAM") end, 
+		getp8Human=function() return memory.read_u8(0x0343, "RAM") end, 
+		
+		--IS PLAYER IN JAIL - this goes up 1, 2, 3 for # turns in jail, 0 if you're out
+		getp1InJail=function() return memory.read_u8(0x042C, "RAM") end, 
+		getp2InJail=function() return memory.read_u8(0x042D, "RAM") end, 
+		getp3InJail=function() return memory.read_u8(0x042E, "RAM") end, 
+		getp4InJail=function() return memory.read_u8(0x042f, "RAM") end, 
+		getp5InJail=function() return memory.read_u8(0x0430, "RAM") end, 
+		getp6InJail=function() return memory.read_u8(0x0431, "RAM") end, 
+		getp7InJail=function() return memory.read_u8(0x0432, "RAM") end, 
+		getp8InJail=function() return memory.read_u8(0x0433, "RAM") end, 
+		
+		--IS PLAYER BANKRUPT -- 255 means player is out of the game, if it wasn't 255 to start with, they just went bankrupt
+		getp1Bankrupt=function() return memory.read_u8(0x032C, "RAM") end, 
+		getp2Bankrupt=function() return memory.read_u8(0x032D, "RAM") end, 
+		getp3Bankrupt=function() return memory.read_u8(0x032E, "RAM") end, 
+		getp4Bankrupt=function() return memory.read_u8(0x032F, "RAM") end, 
+		getp5Bankrupt=function() return memory.read_u8(0x0330, "RAM") end, 
+		getp6Bankrupt=function() return memory.read_u8(0x0331, "RAM") end, 
+		getp7Bankrupt=function() return memory.read_u8(0x0332, "RAM") end, 
+		getp8Bankrupt=function() return memory.read_u8(0x0333, "RAM") end, 
 		
 		CanHaveInfiniteLives=false
 	},		
