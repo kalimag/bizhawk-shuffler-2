@@ -24,8 +24,6 @@ plugin.description =
 	Additional ideas from the TownEater fork have been implemented.
 	Thank you to Diabetus and Smight for extensive playthroughs that tracked down bugs!
 	
-	This plugin has been updated to run on 2.6.3+. I have left in legacy compatibility with 2.6.2, but will likely remove this once testing shows everything is fine on 2.8.
-	
 	Currently supports (ALL NTSC-U):
 	
 	BATTLETOADS
@@ -50,7 +48,7 @@ plugin.description =
 	CASTLEVANIAS
 	-Castlevania (NES), 1p
 	-Castlevania II (NES), 1p
-	-Castlevania III (NES), 1p
+	-Castlevania III (NES, or Famicom with translation patch), 1p
 	-Super Castlevania IV (SNES), 1p
 	-Castlevania: Dracula X (SNES), 1p
 	-Castlevania: Bloodlines (Genesis/Mega Drive), 1p
@@ -58,6 +56,7 @@ plugin.description =
 	
 	ADDITIONAL GOODIES
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
+	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
 	-Demon's Crest (SNES), 1p
@@ -174,7 +173,8 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1"
 	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
 	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
-	end
+	elseif gameinfo.getromhash() == "0BA01C0ED12703D31FB5A01A9B5FA1DFB760B972" then return "SMK_SNES" 
+	end -- 3 lap hack
 	
 	--Super Metroid and Link to the Past
 	if gameinfo.getromhash() == "DA957F0D63D14CB441D215462904C4FA8519C613" then return "SuperMetroid" -- US/JP 1.0
@@ -220,7 +220,9 @@ local function get_game_tag()
 	
 	--new games for the chaos shuffler?!?
 	if gameinfo.getromhash() == "D3EFD32B68F1FE37A82DB9D9929B7CA7CC1A3AF4" then return "FZERO_SNES"
+	elseif gameinfo.getromhash() == "A582DF3B880A0C8DDC1CDA358C96E306C1E222BB" then return "FZERO_SNES" -- 3 lap hack
 	elseif gameinfo.getromhash() == "A31B8BD5B370A9103343C866F3C2B2998E889341" then return "CV1_NES"
+	elseif gameinfo.getromhash() == "A685322FFAFAF8CCB20A78F8E0F9756B154F0772" then return "CV1_NES" -- death counter hack (needs rework for shuffle on death, however)
 	elseif gameinfo.getromhash() == "D6B96FD98AE480C694A103FE9A5D7D84EEAFB6F7" then return "CV2_NES" -- may want to track down the improvement hack hash
 	elseif gameinfo.getromhash() == "F91281D5D9CC26BCF6FB4DE2F5BE086BC633D49B" then return "CV3_NES" 
 	elseif gameinfo.getromhash() == "A0F3B31D4E3B0D2CA2E8A34F91F14AD99A5AD11F" then return "CV3_FAMI" --famicom version
@@ -235,6 +237,7 @@ local function get_game_tag()
 	elseif gameinfo.getromhash() == "3F20C2C8749CCEE3A53732B41AE026BF3AAA2158" then return "FamilyFeud_SNES"
 	elseif gameinfo.getromhash() == "8556B6545B78022FE55705A83C3E751C463F56C7" then return "FamilyFeud_SNES"
 	elseif gameinfo.getromhash() == "5DB2C9E02D3551292A0218F73875F9F08318ECB9" then return "Monopoly_NES"
+	elseif gameinfo.getromhash() == "9F6FF6264E0361E074F9CFEE2EC4976866A781C5" then return "BUBSY1_SNES"
 	end
 	
 	return nil
@@ -1073,14 +1076,7 @@ local function Monopoly_NES_swap(gamemeta)
 -- don't swap if: setting options at start of game, buying a property, winning an auction, trading, building on a property
 				
 	return function(data)
-			
-	local Auctioning_changed, Auctioning, prev_Auctioning = update_prev('Auctioning', gamemeta.getAuctioning()) -- auction goes from 2 to 0 once completed
-	local TradeAccepted_changed, TradeAccepted, prev_TradeAccepted = update_prev('TradeAccepted', gamemeta.getTradeAccepted()) -- both traders go to "1" when accepted
-	local BuildingTimer_changed, BuildingTimer, prev_BuildingTimer = update_prev('BuildingTimer', gamemeta.getBuildingTimer()) -- "anyone else building?" timer, on == 1/true, off == 0
-	
-	
-		local currUnowned = gamemeta.getUnowned()
-		local currAuctioning = gamemeta.getAuctioning()
+		
 		local currInEditor = gamemeta.getInEditor()
 			
 		local p1currHuman = gamemeta.getp1Human()
@@ -1119,15 +1115,43 @@ local function Monopoly_NES_swap(gamemeta)
 		local p7currMoney = gamemeta.getp7Money()
 		local p8currMoney = gamemeta.getp8Money()
 		
+		--check all the property statuses 
+		--each byte includes "owned," "owned by whom," "in a monopoly," "has buildings," "mortgaged," etc.
+		--these also, critically, change on the same frame as money changes
+		
+		local currSpace01 = gamemeta.getSpace01()
+		local currSpace03 = gamemeta.getSpace03()
+		local currSpace05 = gamemeta.getSpace05()
+		local currSpace06 = gamemeta.getSpace06()
+		local currSpace08 = gamemeta.getSpace08()
+		local currSpace09 = gamemeta.getSpace09()
+		local currSpace11 = gamemeta.getSpace11()
+		local currSpace12 = gamemeta.getSpace12()
+		local currSpace13 = gamemeta.getSpace13()
+		local currSpace14 = gamemeta.getSpace14()
+		local currSpace15 = gamemeta.getSpace15()
+		local currSpace16 = gamemeta.getSpace16()
+		local currSpace18 = gamemeta.getSpace18()
+		local currSpace19 = gamemeta.getSpace19()
+		local currSpace21 = gamemeta.getSpace21()
+		local currSpace23 = gamemeta.getSpace23()
+		local currSpace24 = gamemeta.getSpace24()
+		local currSpace25 = gamemeta.getSpace25()
+		local currSpace26 = gamemeta.getSpace26()
+		local currSpace27 = gamemeta.getSpace27()
+		local currSpace28 = gamemeta.getSpace28()
+		local currSpace29 = gamemeta.getSpace29()
+		local currSpace31 = gamemeta.getSpace31()
+		local currSpace32 = gamemeta.getSpace32()
+		local currSpace34 = gamemeta.getSpace34()
+		local currSpace35 = gamemeta.getSpace35()
+		local currSpace37 = gamemeta.getSpace37()
+		local currSpace39 = gamemeta.getSpace39()
 
 		-- retrieve previous human/jail/bankrupt/money before backup
-		
-		
-		local prevUnowned = gamemeta.prevUnowned
-		local prevAuctioning = gamemeta.prevAuctioning
+				
 		local prevInEditor = gamemeta.prevInEditor
-		
-		
+				
 		local p1prevHuman = data.p1prevHuman
 		local p2prevHuman = data.p2prevHuman
 		local p3prevHuman = data.p3prevHuman
@@ -1164,8 +1188,36 @@ local function Monopoly_NES_swap(gamemeta)
 		local p7prevMoney = data.p7prevMoney
 		local p8prevMoney = data.p8prevMoney
 		
-		data.prevUnowned = currUnowned
-		data.prevAuctioning = currAuctioning
+		
+		local prevSpace01 = data.prevSpace01
+		local prevSpace03 = data.prevSpace03
+		local prevSpace05 = data.prevSpace05
+		local prevSpace06 = data.prevSpace06
+		local prevSpace08 = data.prevSpace08
+		local prevSpace09 = data.prevSpace09
+		local prevSpace11 = data.prevSpace11
+		local prevSpace12 = data.prevSpace12
+		local prevSpace13 = data.prevSpace13
+		local prevSpace14 = data.prevSpace14
+		local prevSpace15 = data.prevSpace15
+		local prevSpace16 = data.prevSpace16
+		local prevSpace18 = data.prevSpace18
+		local prevSpace19 = data.prevSpace19
+		local prevSpace21 = data.prevSpace21
+		local prevSpace23 = data.prevSpace23
+		local prevSpace24 = data.prevSpace24
+		local prevSpace25 = data.prevSpace25
+		local prevSpace26 = data.prevSpace26
+		local prevSpace27 = data.prevSpace27
+		local prevSpace28 = data.prevSpace28
+		local prevSpace29 = data.prevSpace29
+		local prevSpace31 = data.prevSpace31
+		local prevSpace32 = data.prevSpace32
+		local prevSpace34 = data.prevSpace34
+		local prevSpace35 = data.prevSpace35
+		local prevSpace37 = data.prevSpace37
+		local prevSpace39 = data.prevSpace39
+		
 		data.prevInEditor = currInEditor
 		
 		data.p1prevHuman = p1currHuman
@@ -1205,17 +1257,74 @@ local function Monopoly_NES_swap(gamemeta)
 		data.p8prevMoney = p8currMoney		
 		
 		
+		data.prevSpace01 = currSpace01
+		data.prevSpace03 = currSpace03
+		data.prevSpace05 = currSpace05
+		data.prevSpace06 = currSpace06
+		data.prevSpace08 = currSpace08
+		data.prevSpace09 = currSpace09
+		data.prevSpace11 = currSpace11
+		data.prevSpace12 = currSpace12
+		data.prevSpace13 = currSpace13
+		data.prevSpace14 = currSpace14
+		data.prevSpace15 = currSpace15
+		data.prevSpace16 = currSpace16
+		data.prevSpace18 = currSpace18
+		data.prevSpace19 = currSpace19
+		data.prevSpace21 = currSpace21
+		data.prevSpace23 = currSpace23
+		data.prevSpace24 = currSpace24
+		data.prevSpace25 = currSpace25
+		data.prevSpace26 = currSpace26
+		data.prevSpace27 = currSpace27
+		data.prevSpace28 = currSpace28
+		data.prevSpace29 = currSpace29
+		data.prevSpace31 = currSpace31
+		data.prevSpace32 = currSpace32
+		data.prevSpace34 = currSpace34
+		data.prevSpace35 = currSpace35
+		data.prevSpace37 = currSpace37
+		data.prevSpace39 = currSpace39
 		
 	
 	
 		
 		
 	--start by ruling out times to swap
-		if currUnowned == 21 or
-			currInEditor == 1 or
-			(Auctioning_changed == true and prev_Auctioning == 2) == true or
-			(TradeAccepted_changed == true and TradeAccepted == 2) == true or
-			(BuildingTimer_changed == true and prev_BuildingTimer == 1)
+		if
+		-- you are manually editing money before game
+		currInEditor == 1 or 
+		--any of the property values changed on the same frame
+		currSpace01 ~= prevSpace01 or
+		currSpace03 ~= prevSpace03 or
+		currSpace05 ~= prevSpace05 or
+		currSpace06 ~= prevSpace06 or
+		currSpace08 ~= prevSpace08 or
+		currSpace09 ~= prevSpace09 or
+		currSpace11 ~= prevSpace11 or
+		currSpace12 ~= prevSpace12 or
+		currSpace13 ~= prevSpace13 or
+		currSpace14 ~= prevSpace14 or
+		currSpace15 ~= prevSpace15 or
+		currSpace16 ~= prevSpace16 or
+		currSpace18 ~= prevSpace18 or
+		currSpace19 ~= prevSpace19 or
+		currSpace21 ~= prevSpace21 or
+		currSpace23 ~= prevSpace23 or
+		currSpace24 ~= prevSpace24 or
+		currSpace25 ~= prevSpace25 or
+		currSpace26 ~= prevSpace26 or
+		currSpace27 ~= prevSpace27 or
+		currSpace28 ~= prevSpace28 or
+		currSpace29 ~= prevSpace29 or
+		currSpace31 ~= prevSpace31 or
+		currSpace32 ~= prevSpace32 or
+		currSpace34 ~= prevSpace34 or
+		currSpace35 ~= prevSpace35 or
+		currSpace37 ~= prevSpace37 or
+		currSpace39 ~= prevSpace39 or
+		-- there are no active players, like on final screen or menus
+		((p1currBankrupt + p2currBankrupt + p3currBankrupt + p4currBankrupt + p5currBankrupt + p6currBankrupt + p7currBankrupt + p8currBankrupt) == 255*8) 
 		then return false end -- don't swap when any of those are true	
 		
 		
@@ -1954,7 +2063,7 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "RAM" end,
-		MustDoInfiniteLivesOnFrame=function() return true end,
+		MustDoInfiniteLivesOnFrame=function() return false end,
 		p1livesaddr=function() return 0x002A end,
 		maxlives=function() return 70 end,
 		ActiveP1=function() return memory.read_u8(0x0045, "RAM") == 0 or memory.read_u8(0x0045, "RAM") == 64 end,
@@ -1987,7 +2096,7 @@ local gamedata = {
 		maxlives=function() return 105 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},	
-	['CV3_FAMI']={ -- Castlevania III, NES
+	['CV3_FAMI']={ -- Castlevania III, Famicom or NES-JP with English translation patch
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x004A, "RAM") end,
 		p1getlc=function() return 
@@ -2098,13 +2207,46 @@ local gamedata = {
 		func=Monopoly_NES_swap,
 		
 		delay=120,
-				
-		--DON'T SWAP ON ANY OF THESE
-		getUnowned=function() return memory.read_u8(0x005A, "RAM") end, -- if 21, player has rolled onto an unowned property.
-		getAuctioning=function() return memory.read_u8(0x04D2, "RAM") end, -- if 2, an auction is in progress.
+		
 		getInEditor=function() return memory.read_u8(0x0067, "RAM") end, -- if 1, we are editing the game before starting, so don't swap when money values change
-		getTradeAccepted=function() return memory.read_u8(0x0576, "RAM") + memory.read_u8(0x0577, "RAM") end, -- if 1 and 1, both have accepted the deal
-		getBuildingTimer=function() return memory.read_u8(0x0593, "RAM") end, -- if 1, someone bought houses/hotels and the building scene is about to happen
+		
+		--literally grabbing all the properties to know if they are owned/mortgaged/built up or not...
+		--I am sure there is a better, mathematical way to do this
+		getSpace01=function() return memory.read_u8(0x039E, "RAM") end, -- Mediterranean Ave
+		getSpace03=function() return memory.read_u8(0x03A0, "RAM") end, -- Baltic Ave
+		getSpace05=function() return memory.read_u8(0x03A2, "RAM") end, -- Reading RR
+		getSpace06=function() return memory.read_u8(0x03A3, "RAM") end, -- Oriental Ave
+		getSpace08=function() return memory.read_u8(0x03A5, "RAM") end, -- Vermont Ave
+		getSpace09=function() return memory.read_u8(0x03A6, "RAM") end, -- Connecticut Ave
+		getSpace11=function() return memory.read_u8(0x03A8, "RAM") end, -- St. Charles Pl
+		getSpace12=function() return memory.read_u8(0x03A9, "RAM") end, -- Electric Co
+		getSpace13=function() return memory.read_u8(0x03AA, "RAM") end, -- States Ave
+		getSpace14=function() return memory.read_u8(0x03AB, "RAM") end, -- Virginia Ave
+		getSpace15=function() return memory.read_u8(0x03AC, "RAM") end, -- Pennsylvania RR
+		getSpace16=function() return memory.read_u8(0x03AD, "RAM") end, -- St. James Pl
+		getSpace18=function() return memory.read_u8(0x03AF, "RAM") end, -- Tennessee Ave
+		getSpace19=function() return memory.read_u8(0x03B0, "RAM") end, -- New York Ave
+		getSpace21=function() return memory.read_u8(0x03B2, "RAM") end, -- Kentucky Ave
+		getSpace23=function() return memory.read_u8(0x03B4, "RAM") end, -- Indiana Ave
+		getSpace24=function() return memory.read_u8(0x03B5, "RAM") end, -- Illinois Ave
+		getSpace25=function() return memory.read_u8(0x03B6, "RAM") end, -- B&O RR
+		getSpace26=function() return memory.read_u8(0x03B7, "RAM") end, -- Atlantic Ave
+		getSpace27=function() return memory.read_u8(0x03B8, "RAM") end, -- Ventnor Ave
+		getSpace28=function() return memory.read_u8(0x03B9, "RAM") end, -- Water Works
+		getSpace29=function() return memory.read_u8(0x03BA, "RAM") end, -- Marvin Gardens
+		getSpace31=function() return memory.read_u8(0x03BC, "RAM") end, -- Pacific Ave
+		getSpace32=function() return memory.read_u8(0x03BD, "RAM") end, -- North Carolina Ave
+		getSpace34=function() return memory.read_u8(0x03BF, "RAM") end, -- Pennsylvania Ave
+		getSpace35=function() return memory.read_u8(0x03C0, "RAM") end, -- Short Line
+		getSpace37=function() return memory.read_u8(0x03C2, "RAM") end, -- Park Place
+		getSpace39=function() return memory.read_u8(0x03C4, "RAM") end, -- Boardwalk
+		
+		--DON'T SWAP ON ANY OF THESE
+		--DEPRECATED
+		--getUnowned=function() return memory.read_u8(0x005A, "RAM") end, -- if 21, player has rolled onto an unowned property.
+		--getAuctioning=function() return memory.read_u8(0x04D2, "RAM") end, -- if 2, an auction is in progress.
+		--getTradeAccepted=function() return memory.read_u8(0x0576, "RAM") + memory.read_u8(0x0577, "RAM") end, -- if 1 and 1, both have accepted the deal
+		--getBuildingTimer=function() return memory.read_u8(0x0593, "RAM") end, -- if 1, someone bought houses/hotels and the building scene is about to happen
 		
 		--PLAYER CASH TOTALS
 		getp1Money=function() return memory.read_u8(0x03C5, "RAM")*10000 + memory.read_u8(0x03C6, "RAM")*1000 + memory.read_u8(0x03C7, "RAM")*100 + memory.read_u8(0x03C8, "RAM")*10 + memory.read_u8(0x03C9, "RAM") end, 
@@ -2148,6 +2290,22 @@ local gamedata = {
 		
 		CanHaveInfiniteLives=false
 	},		
+	['BUBSY1_SNES']={ -- Bubsy in Claws Encounters of the Furred Kind, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 0 end ,
+		p1getlc=function() return 
+			math.floor(memory.read_u8(0x020D, "WRAM")/16)*10 + 
+			(memory.read_u8(0x020D, "WRAM") % 16)
+			end, -- this is actually a hex value that just skips A-F on screen. Transformed.
+		maxhp=function() return 69 end,
+		
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x020D end,
+		maxlives=function() return 104 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},	
 }
 
 local backupchecks = {
