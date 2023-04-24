@@ -2008,6 +2008,7 @@ local gamedata = {
 		func=singleplayer_withlives_swap,
 		p1gethp=function() 
 			if memory.read_u16_be(0x33B17E, "RDRAM") == 6440 or 
+			memory.read_u16_be(0x33B17E, "RDRAM") == 6442 or 
 			memory.read_u16_be(0x33B17E, "RDRAM") == 6444 
 			then return 0 
 			--these RAM values for "mario state" apply when Mario's being thrown out of a painting after death
