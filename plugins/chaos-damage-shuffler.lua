@@ -1676,8 +1676,7 @@ local gamedata = {
 		end,
 		p2getlc=function() return memory.read_u8(0x0761, "RAM") end,
 		maxhp=function() return 2 end,
-		gmode=function() return 
-		(memory.read_u8(0x07F8, "RAM")*100 + memory.read_u8(0x07F9, "RAM")*10 + memory.read_u8(0x07F9, "RAM")) ~= 401 end, -- we're in the demo if timer equals 401 seconds
+		gmode=function() return memory.read_u8(0x0770, "RAM") == 1 end, -- demo == 0, end of world == 2, game over == 3
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x075A end,
@@ -1692,8 +1691,8 @@ local gamedata = {
 		p1gethp=function() return memory.read_u8(0x0756, "RAM") + 1 end, -- add 1 because 'base health' is 0 and won't swap unless lives counter goes down
 		p1getlc=function() return memory.read_u8(0x075A, "RAM") end,
 		maxhp=function() return 2 end,
-		gmode=function() return 
-		(memory.read_u8(0x07F8, "RAM")*100 + memory.read_u8(0x07F9, "RAM")*10 + memory.read_u8(0x07F9, "RAM")) ~= 401 end, -- we're in the demo if timer equals 401 seconds
+		gmode=function() return memory.read_u8(0x0770, "RAM") == 1 end, -- demo == 0, end of world == 2, game over == 3
+		gettogglecheck=function() return memory.read_u8(0x075A) == 255 end, -- not in the ending or world 9 where you get 1 life no matter what (so lives are bumped to 255 arbitrarily)
 		
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x075A end,
@@ -1780,7 +1779,7 @@ local gamedata = {
 	},	
 	['SMAS_SNES']={ -- Super Mario All Stars (SNES)
 	--to do, function to define "which game"
-		
+	--though I don't think that can go in this block and likely needs to go in the swap function instead
 		SMAS_which_game=function() 
 		
 			if memory.read_u8(0x01FF00, "WRAM") == 2 then return "SMB1" end
@@ -1795,7 +1794,10 @@ local gamedata = {
 		end,
 		
 		func=SMAS_swap,
-		gmode=function() return SMAS_which_game ~= false
+		gmode=function() if ((memory.read_u8(0x01FF00, "WRAM") == 2 or memory.read_u8(0x01FF00, "WRAM") == 4) 
+		and memory.read_u8(0x000770, "WRAM") ~= 1) -- demo == 0, end of world == 2, game over == 3 false
+		then return false 
+		else return true end
 		end,
 		getsmb2mode=function() return memory.read_u8(0x0004C4, "WRAM") end, -- number of health bars available, changes on entering slots and can cause false swaps
 		gettogglecheck=function() 
