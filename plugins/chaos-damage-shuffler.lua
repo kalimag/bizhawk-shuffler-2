@@ -293,9 +293,12 @@ local function demonscrest_swap(gamemeta)
 	return function()
 		local hp_changed, hp, prev_hp = update_prev('hp', gamemeta.p1gethp()) 
 		local living_changed, living, prev_living = update_prev('living', gamemeta.p1getliving())
+		local scene_changed, scene, prev_scene = update_prev('scene', gamemeta.p1getscene())
 		return
-			(hp_changed and hp < prev_hp) or -- Firebrand just took damage
-			(living_changed and living == 45 and prev_living == 1) -- Firebrand just died
+			((hp_changed and hp < prev_hp and living == 1) or -- Firebrand just took damage
+			(living_changed and living == 45 and prev_living == 1 and hp == 0)) -- Firebrand just died
+			and
+			scene ~= 37 -- 37 is the start of the credits for the Good and True endings, and HP drops to 2 there for some reason.
 		end
 	end
 
@@ -2196,7 +2199,7 @@ local gamedata = {
 		func=demonscrest_swap,
 		p1gethp=function() return memory.read_u8(0x1062, "WRAM") end,
 		p1getliving=function() return memory.read_u8(0x00E7, "WRAM") end,
-		
+		p1getscene=function() return memory.read_u8(0x01FFFC, "WRAM") end, -- value changes on scene changes
 		CanHaveInfiniteLives=false
 	},	
 	['FamilyFeud_SNES']={ -- Family Feud (SNES)
@@ -2303,7 +2306,6 @@ local gamedata = {
 		maxhp=function() return 69 end,
 		
 		CanHaveInfiniteLives=true,
-		LivesWhichRAM=function() return "WRAM" end,
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x020D end,
 		maxlives=function() return 104 end,
