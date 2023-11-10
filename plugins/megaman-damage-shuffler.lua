@@ -6,7 +6,6 @@ plugin.settings =
 {
 	-- enable this feature to have health and lives synchronized across games
 	--{ name='healthsync', type='boolean', label='Synchronize Health/Lives' },
-	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized" logs'},
 }
 
 plugin.description =
@@ -51,6 +50,7 @@ plugin.description =
 
 local NO_MATCH = 'NONE'
 
+local tags = {}
 local prevdata
 local swap_scheduled
 local shouldSwap
@@ -580,7 +580,8 @@ local gamedata = {
 			return function()
 				local hit_changed, hit = update_prev("hit_changed", hit_states[memory.read_u8(0x56, "RAM")] or false)
 				local game_over_changed, game_over = update_prev("game_over", memory.read_u16_le(0x5C0, "RAM") == 0xD6D4)
-				return (hit_changed and hit) or
+				local in_shop = memory.read_u16_le(0x10, "RAM") == 0xD
+				return (hit_changed and hit and not in_shop) or
 				       (game_over_changed and game_over and not hit)
 			end
 		end
@@ -609,28 +610,24 @@ local function get_game_tag()
 	return nil
 end
 
-function plugin.on_setup(data, settings)
-	data.tags = data.tags or {}
-end
-
 function plugin.on_game_load(data, settings)
 	prevdata = {}
 	swap_scheduled = false
 	shouldSwap = function() return false end
 
-	local tag = data.tags[gameinfo.getromhash()] or get_game_tag()
-	data.tags[gameinfo.getromhash()] = tag or NO_MATCH
+	local tag = tags[gameinfo.getromhash()] or get_game_tag()
+	tags[gameinfo.getromhash()] = tag or NO_MATCH
 
 	-- first time through with a bad match, tag will be nil
 	-- can use this to print a debug message only the first time
 	if tag ~= nil and tag ~= NO_MATCH then
-		log_message('game match: ' .. tag)
+		log_console('Megaman Damage Shuffler: recognized as %s', tag)
 		local gamemeta = gamedata[tag]
 		local func = gamemeta.func or generic_swap
 		shouldSwap = func(gamemeta)
-	elseif tag == nil and settings.SuppressLog ~= true then
-		log_message(string.format('unrecognized? %s (%s)',
-			gameinfo.getromname(), gameinfo.getromhash()))
+	elseif tag == nil then
+		log_console('Megaman Damage Shuffler: unrecognized ROM "%s" (%s)',
+			gameinfo.getromname(), gameinfo.getromhash())
 	end
 end
 

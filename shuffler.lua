@@ -28,6 +28,7 @@ MIN_BIZHAWK_VERSION = "2.6.3"
 MAX_BIZHAWK_VERSION = nil
 RECOMMENDED_LUA_CORE = "LuaInterface"
 UNSUPPORTED_LUA_CORE = "NLua"
+COMPRESSION_WARNING_THRESHOLD = 2
 MAX_INTEGER = 99999999
 
 function log_message(msg, quiet)
@@ -207,7 +208,7 @@ function get_games_list(force)
 
 			-- bizhawk multidisk bundle
 			if xml:find('BizHawk%-XMLGame') then
-				for asset in xml:gfind('<Asset.-FileName="(.-)".-/>') do
+				for asset in xml:gmatch('<Asset.-FileName="(.-)".-/>') do
 					asset = asset:gsub('^%.[\\/]', '')
 					table.insert(toremove, asset)
 				end
@@ -296,14 +297,13 @@ local function on_game_load()
 	-- update swap counter for this game
 	local new_swaps = (config.game_swaps[config.current_game] or 0) + 1
 	config.game_swaps[config.current_game] = new_swaps
-	write_data('output-info/current-swaps.txt', new_swaps)
-
 	-- update total swap counter
 	config.total_swaps = (config.total_swaps or 0) + 1
-	write_data('output-info/total-swaps.txt', config.total_swaps)
-
-	-- update game name
-	write_data('output-info/current-game.txt', strip_ext(config.current_game))
+	if config.output_files >= 1 then
+		write_data('output-info/current-swaps.txt', new_swaps)
+		write_data('output-info/total-swaps.txt', config.total_swaps)
+		write_data('output-info/current-game.txt', strip_ext(config.current_game))
+	end
 
 	-- this code just outright crashes on Bizhawk 2.6.1, go figure
 	if checkversion("2.6.2") then
@@ -367,14 +367,13 @@ function get_next_game()
 		return all_games[math.random(#all_games)]
 	else
 		-- manually select the next one
-		if #all_games == 1 then return prev end
 		config.shuffle_index = (config.shuffle_index % #all_games) + 1
 		return all_games[config.shuffle_index]
 	end
 end
 
 -- save current game's savestate, backup config, and load new game
-function swap_game(next_game, is_gui_callback)
+function swap_game(next_game)
 	log_debug('swap_game(%s): running=%s', next_game, running)
 	-- if a swap has already happened, don't call again
 	if not running then return false end
@@ -400,17 +399,14 @@ function swap_game(next_game, is_gui_callback)
 		end
 	end
 
-	-- at this point, save the game and update the new "current" game after
-	save_current_game()
-	config.current_game = next_game
-	running = false
-
 	-- mute the sound for a moment to help with the swap
 	config.sound = client.GetSoundOn()
 	client.SetSoundOn(false)
 
-	-- force another frame to pass to get the mute to take effect
-	if not is_gui_callback and is_rom_loaded() then emu.frameadvance() end
+	-- at this point, save the game and update the new "current" game after
+	save_current_game()
+	config.current_game = next_game
+	running = false
 
 	-- unique game count, for debug purposes
 	config.game_count = 0
@@ -506,6 +502,14 @@ local function check_compatibility()
 	return true
 end
 
+local function check_savestate_config()
+	local compression = client.getconfig().Savestates.CompressionLevelNormal
+	if compression >= COMPRESSION_WARNING_THRESHOLD then
+		log_console("Savestate compression can noticably increase the time it takes to swap games on some systems. " ..
+			"Savestate compression can be configured in the Config > Rewind & States menu.")
+	end
+end
+
 -- this is going to be an APPROXIMATION and is not a substitute for an actual
 -- timer. games do not run at a consistent or exact 60 fps, so this method is
 -- provided purely for entertainment purposes
@@ -517,11 +521,13 @@ function frames_to_time(f)
 end
 
 function output_completed()
-	completed = ""
-	for i,game in ipairs(config.completed_games) do
-		completed = completed .. strip_ext(game) .. '\n'
+	if config.output_files >= 1 then 
+		completed = ""
+		for i,game in ipairs(config.completed_games) do
+			completed = completed .. strip_ext(game) .. '\n'
+		end
+		write_data('output-info/completed-games.txt', completed)
 	end
-	write_data('output-info/completed-games.txt', completed)
 end
 
 function mark_complete()
@@ -544,6 +550,10 @@ function mark_complete()
 		save_config(config, 'shuffler-src/config.lua')
 		log_message('Shuffler complete!')
 	else
+		-- hack-ish: decrement shuffle index so we don't skip the next game in fixed order
+		if config.shuffle_index >= 1 then
+			config.shuffle_index = config.shuffle_index - 1
+		end
 		swap_game()
 	end
 end
@@ -629,7 +639,7 @@ function complete_setup()
 	-- otherwise, call swap_game() to setup for the first game load
 	if not config.current_game or not load_game(config.current_game) then
 		running = true
-		swap_game(nil, true)
+		swap_game(nil)
 	end
 end
 
@@ -647,6 +657,8 @@ end
 if not check_compatibility() then
 	return
 end
+
+check_savestate_config()
 
 -- load primary configuration
 load_config('shuffler-src/config.lua')
@@ -676,7 +688,7 @@ while true do
 		config.game_frame_count[config.current_game] = cgf
 
 		-- save time info to files for OBS display
-		if config.output_timers then
+		if config.output_files == 2 then
 			local time_total = frames_to_time(frame_count)
 			if time_total ~= ptime_total then
 				write_data('output-info/total-time.txt', time_total)
@@ -698,15 +710,13 @@ while true do
 			end
 		end
 
-		-- calculate input "rises" by subtracting the previously held inputs from the inputs on this frame
-		local input_rise = input.get()
-		for k,v in pairs(prev_input) do input_rise[k] = nil end
-		prev_input = input.get()
-
+		local current_input = input.get()
 		-- mark the game as complete if the hotkey is pressed (and some time buffer)
 		-- the time buffer should hopefully prevent somebody from attempting to
 		-- press the hotkey and the game swapping, marking the wrong game complete
-		if input_rise[config.hk_complete] and frames_since_restart > math.min(3, config.min_swap/2) * 60 then mark_complete() end
+		if current_input[config.hk_complete] and not prev_input[config.hk_complete] and
+			frames_since_restart > math.min(3, config.min_swap/2) * 60 then mark_complete() end
+		prev_input = current_input
 
 		-- time to swap!
 	    if frame_count >= next_swap_time then swap_game() end
