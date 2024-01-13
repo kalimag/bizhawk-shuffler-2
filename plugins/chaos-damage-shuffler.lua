@@ -22,7 +22,7 @@ plugin.description =
 	
 	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag. 
 	Additional ideas from the TownEater fork have been implemented.
-	Thank you to Diabetus and Smight for extensive playthroughs that tracked down bugs!
+	Thank you to Diabetus, Smight and ConstantineDTW for extensive playthroughs that tracked down bugs!
 	
 	Currently supports (ALL NTSC-U):
 	
@@ -123,6 +123,7 @@ plugin.description =
 	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
 	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
 	-- Several games do not have 'lives' to make infinite, such as Anticipation, Super Metroid, Link to the Past, Super Dodge Ball, original Mario Bros. Nothing will change in these games with this option.
+	-- If you want to enable Infinite* Lives only for specific games, you can disable lives for specific games by changing CanHaveInfiniteLives to false in their block in the .lua.
 	
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
 	-- You MUST use an unpatched ROM. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled in this scenario.
@@ -147,111 +148,14 @@ local prevdata
 local swap_scheduled
 local shouldSwap
 
-if checkversion("2.6.2") then 
 
-	prevdata = {}
-	swap_scheduled = false
-	shouldSwap = function() return false end
-	
-end
+local bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", "Terra Tubes", "Rat Race", "Clinger-Winger", "The Revolution", "Armageddon"}
 
--- Added recognition of the hashes for Battletoads (U), unmodified and patched, and additional games.
--- This is a temporary fix. Future versions will reimplement the actual, good solution of a hash database as done in the Mega Man damage shuffler.
+local btdd_level_names = { "1-1", "1-2", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "5-1", "5-2", "6-1", "7-1"}
 
-local function get_game_tag()
-	if gameinfo.getromhash() == "5C3A497A82BE60704DEDF45248B6AD9B32C855AB" then return "BT_NES"
-	elseif gameinfo.getromhash() == "24D246BA605E3592F25EB04AB4DE9FDBF2B87B14" then return "BT_NES_patched" 
-	elseif gameinfo.getromhash() == "61832D0F955CFF169FF059BD557BE4F522B15B7C" then return "BTDD_NES" 
-	elseif gameinfo.getromhash() == "3041C5C2A88449CF358A57D019930849575F8F6D" then return "BT_SNES" 
-	elseif gameinfo.getromhash() == "BF56F12BDDE3E2233D7FFCAF4825B10D92632B77" then return "BTDD_SNES" 
-	elseif gameinfo.getromhash() == "0248CF714380D11E38A4C242A001E97164D477F5" then return "BTDD_SNES_patched" -- patched for level select
-	end
-	
-	--other supported games!
-	if gameinfo.getromhash() == "72CFB569819DA4E799BF8FA1A6F023664CC7069B" then return "Novolin" 
-	elseif gameinfo.getromhash() == "3634826A2A03074928052F90928DA10DC715E77B" then return "Anticipation" 
-	elseif gameinfo.getromhash() == "39A5FDB7EFD4425A8769FD3073B00DD85F6CD574" then return "CNDRR1"
-	elseif gameinfo.getromhash() == "42F954E9BD3256C011ABA14C7E5B400ABE35FDE3" then return "SuperDodgeBall" 
-	elseif gameinfo.getromhash() == "47E103D8398CF5B7CBB42B95DF3A3C270691163B" then return "SMK_SNES" 
-	elseif gameinfo.getromhash() == "0BA01C0ED12703D31FB5A01A9B5FA1DFB760B972" then return "SMK_SNES" 
-	end -- 3 lap hack
-	
-	--Super Metroid and Link to the Past
-	if gameinfo.getromhash() == "DA957F0D63D14CB441D215462904C4FA8519C613" then return "SuperMetroid" -- US/JP 1.0
-	elseif gameinfo.getromhash() == "E7E852F0159CE612E3911164878A9B08B3CB9060" then return "LTTP" -- JP 1.0
-	elseif gameinfo.getromhash() == "6D4F10A8B10E10DBE624CB23CF03B88BB8252973" then return "LTTP" -- US release
-	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "LTTP" -- YOUR SEED/REVISION FOR LTTP
-	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SuperMetroid" -- YOUR SEED/REVISION FOR SUPER METROID
-	--elseif gameinfo.getromhash() == "PASTE YOUR HASH HERE AND REMOVE THE -- AT THE FRONT OF THIS LINE" then return "SMZ3" -- YOUR SMZ3 ROM
-	--MAKE MULTIPLE LINES WITH EACH HASH IF YOU ARE SHUFFLING MULTIPLE ROMS OF THESE RANDOMIZERS
-	end
-	
-	--MARIO BLOCK
-	if gameinfo.getromhash() == "EA343F4E445A9050D4B4FBAC2C77D0693B1D0922" then return "SMB1_NES"
-	elseif gameinfo.getromhash() == "1E6FEC9C3B5AC2EF654B2BCB5DE2EA5F3B7BA482" then return "SMB1_NES" -- Arcade Pit edition
-	elseif gameinfo.getromhash() == "C91796D3167ED19CB817CAAA2174A299A510E37F" then return "SMB2J_NES"
-	elseif gameinfo.getromhash() == "4B051018E39113EA17FB2E801C89004A7E40F998" then return "SMB2J_NES" -- Arcade Pit edition
-	elseif gameinfo.getromhash() == "7DF0F595B074F587C6A1D8F47E031F045D540DAE" then return "SMB2_NES"
-	elseif gameinfo.getromhash() == "9286A2DB471D51713E9B75E68B47FFBF11E2D40B" then return "MB_NES"
-	elseif gameinfo.getromhash() == "6CF18228CFB66D48B3642069979D4A5103CB8528" then return "SOMARI"
-	elseif gameinfo.getromhash() == "A03E7E526E79DF222E048AE22214BCA2BC49C449" then return "SMB3_NES"
-	elseif gameinfo.getromhash() == "C05817C5B7DF2FBFE631563E0B37237156A8F6B6" then return "SMAS_SNES"
-	elseif gameinfo.getromhash() == "D245E41A2B590F7D63666B0772CBDDFB26F254A2" then return "SMAS_SNES" -- PLUS WORLD
-	elseif gameinfo.getromhash() == "6B47BB75D16514B6A476AA0C73A683A2A4C18765" then return "SMW_SNES"
-	elseif gameinfo.getromhash() == "3A4DDB39B234A67FFB361EE7ABC3D23E0A8B1C89" then return "SML1_GB"
-	elseif gameinfo.getromhash() == "418203621B887CAA090215D97E3F509B79AFFD3E" then return "SML1_GB"
-	elseif gameinfo.getromhash() == "7D95107C45D4F33649324DA2E8A3C8DDB10CDA5E" then return "SML1_GB" -- DX old patch
-	elseif gameinfo.getromhash() == "E33874064BBA13F8871A8BFE8E5C695AB2E49580" then return "SML1_GB" -- DX 2.0 patch
-	elseif gameinfo.getromhash() == "B9ED5789C9F481E25A64DAD1C5E8E93E4DDC1B80" then return "SML2_GB"
-	elseif gameinfo.getromhash() == "BBA408539ECBF8D322324956D859BC86E2A9977B" then return "SML2_GB"
-	elseif gameinfo.getromhash() == "96E3A314561FB394CDF51101F9178A32713C2313" then return "SML2_GB"																											 
-	elseif gameinfo.getromhash() == "D11D94FA3C36B9F72E925070B66BB4F16D31001E" then return "SML2_GB" -- DX patch
-	elseif gameinfo.getromhash() == "9BEF1128717F958171A4AFAC3ED78EE2BB4E86CE" then return "SM64_N64"
-	elseif gameinfo.getromhash() == "6DF570060694C5448BF13CCC0218997D2FBF21E3" then return "MPAINT_DPAD_SNES" -- joystick hack for Mario Paint
-	elseif gameinfo.getromhash() == "C807F2856F44FB84326FAC5B462340DCDD0471F8" then return "SMW2YI_SNES" -- Yoshi's Island only works partially, kept active for testing purposes
-	elseif gameinfo.getromhash() == "34612A93741F156D6E497462AB7F253CB8A959A0" then return "SMW2YI_SNES" -- Yoshi's Island only works partially, kept active for testing purposes
-	--maybe supported someday, no promises ok?
-	--elseif gameinfo.getromhash() == "D8DFACBFEC34CDC871D73C901811551FE1706923" then return "DK1_NES"
-	--elseif gameinfo.getromhash() == "02633E208732B598E3A8EB80B6E0E09926F25E83" then return "DKJR_NES"
-	--elseif gameinfo.getromhash() == "EC6FA944C672A2522C8BC270A25842281C65FF5D" then return "DK3_NES"
-	--elseif gameinfo.getromhash() == "A3B727119870E6BBA4C8889EF12E9703021EA9C2" then return "NOTGOLF_NES"
-	--elseif gameinfo.getromhash() == "A22713711B5CD58DFBAFC9688DADEA66C59888CE" then return "NSMB_DS"
-	end
-	
-	--new games for the chaos shuffler?!?
-	if gameinfo.getromhash() == "D3EFD32B68F1FE37A82DB9D9929B7CA7CC1A3AF4" then return "FZERO_SNES"
-	elseif gameinfo.getromhash() == "A582DF3B880A0C8DDC1CDA358C96E306C1E222BB" then return "FZERO_SNES" -- 3 lap hack
-	elseif gameinfo.getromhash() == "A31B8BD5B370A9103343C866F3C2B2998E889341" then return "CV1_NES"
-	elseif gameinfo.getromhash() == "A685322FFAFAF8CCB20A78F8E0F9756B154F0772" then return "CV1_NES" -- death counter hack (needs rework for shuffle on death, however)
-	elseif gameinfo.getromhash() == "D6B96FD98AE480C694A103FE9A5D7D84EEAFB6F7" then return "CV2_NES" -- may want to track down the improvement hack hash
-	elseif gameinfo.getromhash() == "F91281D5D9CC26BCF6FB4DE2F5BE086BC633D49B" then return "CV3_NES" 
-	elseif gameinfo.getromhash() == "A0F3B31D4E3B0D2CA2E8A34F91F14AD99A5AD11F" then return "CV3_FAMI" --famicom version
-	elseif gameinfo.getromhash() == "7F0D853CC6745437264ACD7141221F9DF5429079" then return "CV3_FAMI" --famicom with translation patch
-	elseif gameinfo.getromhash() == "684C1DFAFF8E5999422C24D48054D96BB12DA2F4" then return "CV4_SNES"
-	elseif gameinfo.getromhash() == "0F04FC1B5BF8C9A887ABCF14CE96B0CD" then return "BLOODLINES_GEN"
-	elseif gameinfo.getromhash() == "B5930461DD1F224061D7FE3F380478A9" then return "RONDO_TG16"
-	elseif gameinfo.getromhash() == "3BDAEAFA81AA17C91A8B42D0FA8C5B26E3FD6B80" then return "DRACULAX_SNES"
-	elseif gameinfo.getromhash() == "F324E7C8C3AD102ECDCCA011ECC494F6F345D768" then return "KIRBY_NES"
-	elseif gameinfo.getromhash() == "E099D688760FF0CE114CA8A9FD083E31E41CFADE" then return "KIRBY_NES"
-	elseif gameinfo.getromhash() == "743D60EE1536B0C7C24DBB8BA39D14ED5937C0D5" then return "DemonsCrest"
-	elseif gameinfo.getromhash() == "3F20C2C8749CCEE3A53732B41AE026BF3AAA2158" then return "FamilyFeud_SNES"
-	elseif gameinfo.getromhash() == "8556B6545B78022FE55705A83C3E751C463F56C7" then return "FamilyFeud_SNES"
-	elseif gameinfo.getromhash() == "5DB2C9E02D3551292A0218F73875F9F08318ECB9" then return "Monopoly_NES"
-	elseif gameinfo.getromhash() == "9F6FF6264E0361E074F9CFEE2EC4976866A781C5" then return "BUBSY1_SNES"
-	end
-	
-	return nil
-	
-end
+local bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Roller Coaster", "Bonus Stage 2", "Dark Tower"}
 
-bt_nes_level_names = { "Ragnarok's Canyon", "Wookie Hole", "Turbo Tunnel", "Arctic Caverns", "Surf City", "Karnath's Lair", "Volkmire's Inferno", "Intruder Excluder", 
-"Terra Tubes", "Rat Race", "Clinger-Winger", "The Revolution", "Armageddon"}
-
-btdd_level_names = { "1-1", "1-2", "2-1", "2-2", "2-3", "3-1", "3-2", "3-3", "4-1", "4-2", "5-1", "5-2", "6-1", "7-1"}
-
-bt_snes_level_names = { "Khaos Mountains", "Hollow Tree", "Bonus Stage 1", "Turbo Tunnel Rematch", "Karnath's Revenge", "Roller Coaster", "Bonus Stage 2", "Dark Tower"}
-
-bt_snes_level_recoder = { 0, 1, 2, 3, 4, 6, 8, 7 } -- THIS GAME DOESN'T STORE LEVELS IN THE ORDER YOU PLAY THEM, COOL
+local bt_snes_level_recoder = { 0, 1, 2, 3, 4, 6, 8, 7 } -- THIS GAME DOESN'T STORE LEVELS IN THE ORDER YOU PLAY THEM, COOL
 ---------------
 
 
@@ -311,26 +215,20 @@ local function FamilyFeud_SNES_swap(gamemeta)
 			(player < 2) -- It's player 1 or 2, not the CPU
 		end
 	end
-	
+
+--BATTLEMANIACS
 -- This is the generic_swap from the Mega Man Damage Shuffler, modded to cover 2 potential players.
 -- You can play as Rash, Zitz, or both in Battletoads NES, so the shuffler needs to monitor both toads.
 -- They have the same max HP.
--- In BT NES, this should only swap when a "box" of health is taken away. That is taken care of by the ceil function.
 -- In BT SNES, damage should register even if a pip of health is not eliminated by an attack there.
-local function battletoads_swap(gamemeta)
+local function battletoads_snes_swap(gamemeta)
 	return function(data)
-	
-	
-		local tag = get_game_tag()
-
 
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
-		local p1currcont = gamemeta.p1getcont()
 		local p1currsprite = gamemeta.p1getsprite()
 		local p2currhp = gamemeta.p2gethp()
 		local p2currlc = gamemeta.p2getlc()
-		local p2currcont = gamemeta.p2getcont()
 		local p2currsprite = gamemeta.p2getsprite()
 		
 		--togglechecks handle when health/lives drop because of a sudden change in game mode (like a level change)
@@ -351,7 +249,6 @@ local function battletoads_swap(gamemeta)
 		-- retrieve previous health and lives before backup
 		local p1prevhp = data.p1prevhp
 		local p1prevlc = data.p1prevlc
-		local p1prevcont = data.p1prevcont
 		local p1prevsprite = data.p1prevsprite
 		local p2prevhp = data.p2prevhp
 		local p2prevlc = data.p2prevlc
@@ -360,14 +257,11 @@ local function battletoads_swap(gamemeta)
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
-		data.p1prevcont = p1currcont
 		data.p1prevsprite = p1currsprite
 		data.p2prevhp = p2currhp
 		data.p2prevlc = p2currlc
-		data.p2prevcont = p2currcont
 		data.p2prevsprite = p2currsprite
 		data.prevtogglecheck = currtogglecheck
-		
 		
 		--if we have found a toggle flag, that changes at the same time as a junk hp/lives change, then don't swap.
 		if prevtogglecheck ~= nil and prevtogglecheck ~= currtogglecheck then return false end
@@ -376,7 +270,7 @@ local function battletoads_swap(gamemeta)
 		-- That should NOT shuffle! 
 		-- Return false if that is happening.
 		
-		if tag == "BT_SNES" and 
+		if 
 		p1currhp == 0 and p2currhp == 0 and --values dropped to 0
 		p1currsprite == 0 and p2currsprite == 0 -- if both are 0, neither player is even on screen
 		then return false end
@@ -417,8 +311,7 @@ local function battletoads_swap(gamemeta)
 		elseif p2prevlc ~= nil and p2currlc == (p2prevlc - 1) and p2prevlc < 255 then
 			return true
 		end
-		
-		
+				
 		-- In Battletoads SNES bonus levels, your pins/domino count can go down without your health going down.
 		-- BUT NO, WE NEED TO SHUFFLE ON THOSE!! 
 		-- but not once you're dead. That countdown shouldn't count.
@@ -426,8 +319,7 @@ local function battletoads_swap(gamemeta)
 		
 		-- To simplify things, we will just swap when the "I've been hit" sprite is called.
 		
-		if tag == "BT_SNES" then
-			if 
+		if 
 			memory.read_u8(0x00002C, "WRAM") == 2 or memory.read_u8(0x00002C, "WRAM") == 8 -- we are in the proper level, 2 (Pins) or 8 (Dominoes)
 			then 
 				if p1prevsprite ~= p1currsprite and p1currsprite == 128 -- p1 was JUST hit (prior value was not the same)
@@ -436,22 +328,7 @@ local function battletoads_swap(gamemeta)
 					then return true
 				end
 			end
-		end
-				
-		
-		-- In Battletoads NES, we want to swap on a continue. 
-		-- In Battletoads NES, you use a continue joining the game, so we should not swap when using the first continue (when continues = 3).
-		
-		if tag == "BT_NES" or tag == "BT_NES_patched" then
-		if p1prevcont ~= nil and p1prevcont < 3 and p1currcont < p1prevcont then
-			return true
-		elseif p2prevcont ~= nil and p2prevcont < 3 and p2currcont < p2prevcont then
-			return true
-		end
-		end
-		
-		--- might be wise to separate NES and SNES functions in future release
-
+			
 		return false
 	end
 end
@@ -1456,7 +1333,7 @@ end
 
 
 -- Modified version of the gamedata for Mega Man games on NES.
--- Battletoads NES shows 6 "boxes" that look like HP. 
+-- Battletoads NES and BTDD each show 6 "boxes" that look like HP. 
 -- But, each toad actually has a max HP of 47. Each box is basically 8 HP.
 -- If your health falls 40, you go from 6 boxes to 5. Anything from 41-47 will still show 6 boxes.
 -- At 32, you have 4 boxes. At 24, 3 boxes. And so on - until a death at HP = 0.
@@ -1465,49 +1342,45 @@ end
 
 local gamedata = {
 	['BT_NES']={ -- Battletoads NES
-		func=battletoads_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return math.ceil(memory.read_u8(0x051A, "RAM")/8) end,
 		p2gethp=function() return math.ceil(memory.read_u8(0x051B, "RAM")/8) end,
 		p1getlc=function() return memory.read_u8(0x0011, "RAM") end,
 		p2getlc=function() return memory.read_u8(0x0012, "RAM") end,
-		p1getcont=function() return memory.read_u8(0x000E, "RAM") end,
-		p2getcont=function() return memory.read_u8(0x000F, "RAM") end,
-		p1getsprite=function() return nil end, -- N/A 
-		p2getsprite=function() return nil end, -- N/A
+		gettogglecheck=function() return memory.read_u8(0x0011, "RAM") == 255 or memory.read_u8(0x0011, "RAM") == 255 end, --did a toad just join or drop?
 		maxhp=function() return 6 end,
 	},	
 	['BT_NES_patched']={ -- Battletoads NES with bugfix patch
-		func=battletoads_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return math.ceil(memory.read_u8(0x051A, "RAM")/8) end,
 		p2gethp=function() return math.ceil(memory.read_u8(0x051B, "RAM")/8) end,
 		p1getlc=function() return memory.read_u8(0x0011, "RAM") end,
 		p2getlc=function() return memory.read_u8(0x0012, "RAM") end,
-		p1getcont=function() return memory.read_u8(0x000E, "RAM") end,
-		p2getcont=function() return memory.read_u8(0x000F, "RAM") end,
-		p1getsprite=function() return nil end, -- N/A 
-		p2getsprite=function() return nil end, -- N/A
+		gettogglecheck=function() return memory.read_u8(0x0011, "RAM") == 255 or memory.read_u8(0x0011, "RAM") == 255 end, --did a toad just join or drop?
 		maxhp=function() return 6 end,
 	},	
 	['BTDD_NES']={ -- Battletoads Double Dragon NES
-		func=battletoads_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return math.ceil(memory.read_u8(0x051B, "RAM")/8) end,
 		p2gethp=function() return math.ceil(memory.read_u8(0x051C, "RAM")/8) end,
 		p1getlc=function() return memory.read_u8(0x0011, "RAM") end,
 		p2getlc=function() return memory.read_u8(0x0012, "RAM") end,
-		p1getcont=function() return memory.read_u8(0x000E, "RAM") end,
-		p2getcont=function() return memory.read_u8(0x000F, "RAM") end,
-		p1getsprite=function() return nil end, -- N/A 
-		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x0011 end,
+		p2livesaddr=function() return 0x0012 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x0011, "RAM") > 0 and memory.read_u8(0x0011, "RAM") < 255 end,
+		ActiveP2=function() return memory.read_u8(0x0012, "RAM") > 0 and memory.read_u8(0x0012, "RAM") < 255 end,
+		LivesWhichRAM=function() return "RAM" end,
 	},	
 	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
-		func=battletoads_swap,
+		func=battletoads_snes_swap,
 		p1gethp=function() return memory.read_u8(0x000E5E, "WRAM") end,
 		p2gethp=function() return memory.read_u8(0x000E60, "WRAM") end,
 		p1getlc=function() return memory.read_u8(0x000028, "WRAM") end,
 		p2getlc=function() return memory.read_u8(0x00002A, "WRAM") end,
-		p1getcont=function() return memory.read_u8(0x00002E, "WRAM") end,
-		p2getcont=function() return memory.read_u8(0x000030, "WRAM") end,
 		p1getsprite=function() return memory.read_u8(0x000AEE, "WRAM") end, -- this is an address for the sprite called for p1
 		p2getsprite=function() return memory.read_u8(0x000AF0, "WRAM") end, -- this is an address for the sprite called for p2
 		gettogglecheck=function() return memory.read_u16_le(0x000F0A, "WRAM") == 65535 and memory.read_u16_le(0x000F0C, "WRAM") == 65535 
@@ -1519,28 +1392,36 @@ local gamedata = {
 		maxhp=function() return 16 end,
 	},	
 	['BTDD_SNES']={ -- Battletoads Double Dragon SNES
-		func=battletoads_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return math.ceil(memory.read_u8(0x00003A, "WRAM")/8) end,
 		p2gethp=function() return math.ceil(memory.read_u8(0x00003C, "WRAM")/8) end,
 		p1getlc=function() return memory.read_u8(0x000026, "WRAM") end,
 		p2getlc=function() return memory.read_u8(0x000028, "WRAM") end,
-		p1getcont=function() return memory.read_u8(0x000010, "WRAM") end,
-		p2getcont=function() return memory.read_u8(0x000012, "WRAM") end,
-		p1getsprite=function() return nil end, -- N/A 
-		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x000026 end,
+		p2livesaddr=function() return 0x000028 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x000026, "WRAM") > 0 and memory.read_u8(0x000026, "WRAM") < 255 end,
+		ActiveP2=function() return memory.read_u8(0x000028, "WRAM") > 0 and memory.read_u8(0x000028, "WRAM") < 255 end,
+		LivesWhichRAM=function() return "WRAM" end,
 	},	
 	['BTDD_SNES_patched']={ -- Battletoads Double Dragon SNES
-		func=battletoads_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return math.ceil(memory.read_u8(0x00003A, "WRAM")/8) end,
 		p2gethp=function() return math.ceil(memory.read_u8(0x00003C, "WRAM")/8) end,
 		p1getlc=function() return memory.read_u8(0x000026, "WRAM") end,
 		p2getlc=function() return memory.read_u8(0x000028, "WRAM") end,
-		p1getcont=function() return memory.read_u8(0x000010, "WRAM") end,
-		p2getcont=function() return memory.read_u8(0x000012, "WRAM") end,
-		p1getsprite=function() return nil end, -- N/A 
-		p2getsprite=function() return nil end, -- N/A
 		maxhp=function() return 6 end,
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x000026 end,
+		p2livesaddr=function() return 0x000028 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x000026, "WRAM") > 0 and memory.read_u8(0x000026, "WRAM") < 255 end,
+		ActiveP2=function() return memory.read_u8(0x000028, "WRAM") > 0 and memory.read_u8(0x000028, "WRAM") < 255 end,
+		LivesWhichRAM=function() return "WRAM" end,
 	},	
 	['CNDRR1']={ -- Chip and Dale 1 (NES)
 		func=twoplayers_withlives_swap,
@@ -1668,6 +1549,14 @@ local gamedata = {
 		p2getshrink2=function() return memory.read_u8(0x001130, "WRAM") end, -- if ==128 then you're shrunk
 		
 		p2getIsActive=function() return memory.read_u8(0x0011D2, "WRAM") == 2 end, -- if 2, you are in 2p mode
+	
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x000154 end,
+		p2livesaddr=function() return 0x000156 end,
+		maxlives=function() return 4 end,
+		ActiveP1=function() return memory.read_u8(0x000154, "WRAM") > 0 and memory.read_u8(0x000154, "WRAM") < 4 end,
+		ActiveP2=function() return memory.read_u8(0x000156, "WRAM") > 0 and memory.read_u8(0x000156, "WRAM") < 4 end,
+		LivesWhichRAM=function() return "WRAM" end,
 	},	
 	--MARIO BLOCK
 	['SMB1_NES']={ -- SMB 1 NES
@@ -2318,6 +2207,20 @@ local backupchecks = {
 
 
 
+local function get_game_tag()
+	-- try to just match the rom hash first
+	local tag = get_tag_from_hash_db(gameinfo.getromhash(), 'plugins/chaos-shuffler-hashes.dat')
+	if tag ~= nil and gamedata[tag] ~= nil then return tag end
+
+	-- check to see if any of the rom name samples match
+	local name = gameinfo.getromname()
+	for _,check in pairs(backupchecks) do
+		if check.test() then return check.tag end
+	end
+
+	return nil
+end
+
 local function BT_NES_Zitz_Override()
 	if get_game_tag() == "BT_NES" --unpatched Battletoads NES
 		and memory.read_u8(0x000D, "RAM") == 11 --in Clinger-Winger
@@ -2361,7 +2264,7 @@ if type(tonumber(which_level)) == "number" then
 	which_level = tonumber(which_level)
 	--BT_NES
 		if get_game_tag(current_game) == "BT_NES" or get_game_tag(current_game) == "BT_NES_patched" then 
-		if which_level >13 or which_level <1 then which_level = 1 end
+		if which_level >13 or which_level <1 or which_level == nil then which_level = 1 end
 		end
 	--BT_SNES
 		if get_game_tag(current_game) == "BT_SNES" then 
@@ -2375,10 +2278,6 @@ if type(tonumber(which_level)) == "number" then
 	which_level = 1
 	end
 
-
-	
-	
-	local levelnumber = tonumber(which_level)
 	
 	
 	-- ONLY APPLY THESE TO RECOGNIZED GAMES
@@ -2389,7 +2288,7 @@ if type(tonumber(which_level)) == "number" then
 	
 	--BATTLETOADS NES AND BATTLETOADS DOUBLE DRAGON NES
 	
-	if tag == "BT_NES" or tag == "BT_NES_patched" or tag == "BTDD_NES" then 
+	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 	
 		-- enable Infinite* Lives for Rash (p1) if checked
 		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
@@ -2423,46 +2322,6 @@ if type(tonumber(which_level)) == "number" then
 	end
 	
 	
-	-- Battletoads Double Dragon (SNES)
-	
-	if tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then --TODO: Improve storage system for hp/lives addresses
-	
-	
-	-- enable Infinite* Lives for p1 if checked
-	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
-		memory.read_u8(0x000026, "WRAM") > 0 and memory.read_u8(0x000026, "WRAM") < 255 -- is p1 on?
-		then 
-		memory.write_u8(0x000026, 69, "WRAM") -- if so, set lives to 69. Nice.
-	end
-	
-	
-	-- enable Infinite* Lives for p2 if checked
-	if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
-		memory.read_u8(0x000028, "WRAM") > 0 and memory.read_u8(0x000028, "WRAM") < 255 -- is p2 on?
-		then 
-		memory.write_u8(0x000028, 69, "WRAM") -- if so, set lives to 69. Nice.
-	end
-	
-	end
-	
-	
-	if tag == "BTDD_SNES_patched" then 
-	
-		if memory.read_u8(0x00001A, "WRAM") == 85 -- if game just started
-			then gui.drawText(0, 0, "Pick " .. btdd_level_names[which_level] .. "!")
-		end
-		
-	end
-
-	if tag == "BTDD_SNES" then 
-	
-		if memory.read_u8(0x00001A, "WRAM") == 85 -- if game just started
-			then 
-			gui.drawText(0, 0, "Up Down Down Up X B Y A on char select (flash = ON)")
-			gui.drawText(0, 20, "Pick " .. btdd_level_names[which_level] .. "!")
-		end
-		
-	end
 	
 	
 	--Battletoads in Battlemaniacs (SNES)
@@ -2495,7 +2354,7 @@ if type(tonumber(which_level)) == "number" then
 		local func = gamemeta.func
 		shouldSwap = func(gamemeta)
 	
-		--Infinite* Lives - set lives to max on game load 
+	--Infinite* Lives - set lives to max on game load 
 		local CanHaveInfiniteLives = gamemeta.CanHaveInfiniteLives
 		
 		if settings.InfiniteLives == true --is infinite lives enabled?
@@ -2538,31 +2397,31 @@ if type(tonumber(which_level)) == "number" then
 	---log stuff
 	if tag == "BT_NES" or tag == "BT_NES_patched" then 
 		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
-		if settings.SuppressLog ~= true then
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 13. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
+		if settings.SuppressLog ~= true and (which_level > 13 or which_level == 1) then
+				log_message(string.format('Battletoads (NES) - no level specified (' .. string.format(tag) .. ')')) end
 		else
-			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level] .. ' (' .. tag .. ')')
+			log_message('Battletoads (NES) Level ' .. tostring(which_level) .. ': ' ..  bt_nes_level_names[which_level])
 		end
 	elseif tag == "BTDD_NES" or tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then 
 		if tonumber(which_level_filename) == nil or which_level ~= tonumber(which_level_filename) then 
-		if settings.SuppressLog ~= true then
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 14. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
+		if settings.SuppressLog ~= true and (which_level > 14 or which_level == 1) then
+				log_message(string.format('Battletoads Double Dragon - no level specified (' .. string.format(tag) .. ')')) end
 		else
-			log_message('Level ' .. btdd_level_names[which_level] .. ' (' .. tag .. ')')
+			log_message('Battletoads Double Dragon Level ' .. btdd_level_names[which_level])
 		end
 	elseif tag == "BT_SNES" then 
 		if tonumber(bt_snes_level_recoder[tonumber(which_level_filename)]) == nil 
 		then 
-		if settings.SuppressLog ~= true then
-			log_message(string.format('OOPS. Double-check that your file names start with a two-digit number from 01 to 08. Starting you on Level 1. File name is ' .. tostring(config.current_game))) end
+		if tonumber(which_level_filename) == nil or tonumber(which_level_filename) > 8 then 
+				log_message(string.format('Battletoads in Battlemaniacs - no level specified (' .. string.format(tag) .. ')')) end
 			else
-			log_message('Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
+				log_message('Battletoads in Battlemaniacs Level ' .. tostring(which_level) .. ': ' ..  bt_snes_level_names[which_level] .. ' (' .. tag .. ')')
 		end
 	elseif tag ~= nil then 
 			log_message('Chaos Shuffler: recognized as ' .. string.format(tag))
 	elseif tag == nil or tag == NO_MATCH then
 		if settings.SuppressLog ~= true then
-			log_message(string.format('Chaos Shuffler: unrecognized? %s (%s)',
+			log_message(string.format('Chaos Shuffler: unrecognized - do you have chaos-shuffler-hashes.dat? %s (%s)',
 			gameinfo.getromname(), gameinfo.getromhash())) end
 	end
 	
@@ -2579,6 +2438,26 @@ function plugin.on_frame(data, settings)
 -- Grab the first two characters of the filename, turned into a number.
 local which_level_filename = string.sub((tostring(config.current_game)),1,2)
 local which_level = tonumber(which_level_filename)
+
+if type(tonumber(which_level)) == "number" then 
+	which_level = tonumber(which_level)
+	--BT_NES
+		if get_game_tag(current_game) == "BT_NES" or get_game_tag(current_game) == "BT_NES_patched" then 
+		if which_level >13 or which_level <1 or which_level == nil then which_level = 1 end
+		end
+	--BT_SNES
+		if get_game_tag(current_game) == "BT_SNES" then 
+		if which_level >8 or which_level <1 then which_level = 1 end
+		end
+	--BTDD (both)
+		if get_game_tag(current_game) == "BTDD_NES" or get_game_tag(current_game) == "BTDD_SNES" or get_game_tag(current_game) == "BTDD_SNES_patched" then 
+		if which_level >14 or which_level <1 then which_level = 1 end
+		end
+	else 
+	which_level = 1
+	end
+
+---CAN WE MAKE THIS A FUNCTION AND CALL IT WHEN WE NEED IT
 
 	-- run the check method for each individual game
 	if swap_scheduled then return end
@@ -2677,6 +2556,28 @@ if tag ~= nil and tag ~= NO_MATCH
 			memory.write_u8(0x0017, 10, "RAM") -- then set Level Cheat Code to ON
 		end
 	end
+	
+	--Battletoads Double Dragon SNES
+	
+	if tag == "BTDD_SNES_patched" then 
+	
+		if memory.read_u8(0x00002C, "WRAM") == 80 -- just started the game!
+			and which_level ~= nil
+			then gui.drawText(0, 0, "Pick " .. btdd_level_names[which_level] .. "!")
+		end
+		
+	end
+
+	if tag == "BTDD_SNES" then 
+	
+		if memory.read_u8(0x00002C, "WRAM") == 80 -- just started the game!
+			and which_level ~= nil
+			then 
+			gui.drawText(0, 0, "Up Down Down Up X B Y A on char select (flash = ON)")
+			gui.drawText(0, 20, "Pick " .. btdd_level_names[which_level] .. "!")
+		end
+		
+	end
 		
 	--Battletoads in Battlemaniacs (SNES)
 	
@@ -2710,32 +2611,14 @@ if tag ~= nil and tag ~= NO_MATCH
 			if memory.read_u8(0x00002C, "WRAM") > 0 and memory.read_u8(0x00002C, "WRAM") == BT_SNES_level_for_memory and memory.read_u8(0x00002E, "WRAM") > 2 then memory.write_u8(0x00002E, 2, "WRAM") end -- fix Pimple's continue count once you get into the correct level.
 		end
 	end
-	
-	--Super Mario Kart
-	
-	if tag == "SMK_SNES" then 
-	
-	-- enable Infinite* continues for both players if checked
-		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
-			memory.read_u8(0x000154, "WRAM") > 0 and memory.read_u8(0x000154, "WRAM") < 4 -- have we started playing?
-			then 
-			memory.write_u8(0x000154, 4, "WRAM") -- if so, set p1 continues to 4.
-		end
-		
-		if settings.InfiniteLives == true and -- is Infinite* Lives enabled?
-			memory.read_u8(0x000156, "WRAM") > 0 and memory.read_u8(0x000156, "WRAM") < 4 -- have we started playing?
-			then 
-			memory.write_u8(0x000156, 4, "WRAM") -- if so, set p2 continues to 4.
-		end	
-	end
-	
+
 	if tag == "MPAINT_DPAD_SNES" and memory.read_u8(0x000206) == 1 then
 	-- give the player some Gnat Attack instructions!
 		gui.drawText(0,0,"GNAT ATTACK! Dpad moves, face buttons click, hold one/both of L/R to go fast", "green") 
 	end
 	
 end
-	
+
 end
 
 return plugin
