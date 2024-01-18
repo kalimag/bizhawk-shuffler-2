@@ -574,10 +574,6 @@ local function SMAS_swap(gamemeta)
 		if gamemeta.gmode and not gamemeta.gmode() then
 			return false
 		end
-		
-		if gamemeta.getsmb3skip and gamemeta.getsmb3skip() == true then
-			return false
-		end
 
 		local p1currhp = gamemeta.p1gethp()
 		local p1currlc = gamemeta.p1getlc()
@@ -607,8 +603,6 @@ local function SMAS_swap(gamemeta)
 		local p2prevlc = data.p2prevlc
 		local prevsmb2mode = data.prevsmb2mode
 		local prevtogglecheck = data.prevtogglecheck
-		
-		
 
 		data.p1prevhp = p1currhp
 		data.p1prevlc = p1currlc
@@ -1702,7 +1696,7 @@ local gamedata = {
 				then 
 					if memory.read_u8(0x00072B, "WRAM") == 3 -- we are in battle mode
 						then 
-						if memory.read_u8(0x0001FB, "WRAM") == 7 -- actively battling, not in results screen
+						if memory.read_u8(0x001930, "WRAM") == 0 -- actively battling, not in results screen countdown
 							then return memory.read_u8(0x019AB, "WRAM") + 1 --battle health, 0 = small so add 1
 							else return 0 end 
 					elseif memory.read_u8(0x0552, "WRAM") > 0 and memory.read_u8(0x057A, "WRAM") == 0
@@ -1729,7 +1723,7 @@ local gamedata = {
 				then 
 					if memory.read_u8(0x00072B, "WRAM") == 3 -- we are in battle mode
 						then 
-						if memory.read_u8(0x0001FB, "WRAM") == 7 -- actively battling, not in results screen
+						if memory.read_u8(0x001930, "WRAM") == 0 -- actively battling, not in results screen countdown
 						then return memory.read_u8(0x019AC, "WRAM") + 1 --battle health, 0 = small so add 1
 							else return 0 end 
 					elseif memory.read_u8(0x0552, "WRAM") > 0 and memory.read_u8(0x057A, "WRAM") == 0
@@ -1765,9 +1759,9 @@ local gamedata = {
 		p1getlc=function()
 			if memory.read_u8(0x01FF00, "WRAM") == 8 --SMB3 
 				then 
-					if memory.read_u8(0x00072B, "WRAM") == 3 -- we are in battle mode
-						then return 5 - memory.read_u8(0x0002DB, "WRAM") --luigi's victory count
-					elseif memory.read_u8(0x00001D, "WRAM") == 18 then return memory.read_u8(0x000736, "WRAM") + 1 --we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+					if memory.read_u8(0x00072B, "WRAM") == 3 then -- we are in the battle mode-only game
+						return 5 - memory.read_u8(0x0002DB, "WRAM") --luigi's victory count
+					elseif memory.read_u8(0x00001D, "WRAM") == 18 then return memory.read_u8(0x000736, "WRAM") + 1 --we are in battle (not the battle mode-only game) when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
 					else return memory.read_u8(0x000736, "WRAM") 
 					end
 			elseif memory.read_u8(0x01FF00, "WRAM") == 6 --SMB2 USA 
@@ -1783,9 +1777,9 @@ local gamedata = {
 		p2getlc=function()
 			if memory.read_u8(0x01FF00, "WRAM") == 8 --SMB3 
 				then 
-					if memory.read_u8(0x00072B, "WRAM") == 3 -- we are in battle mode
-						then return 5 - memory.read_u8(0x0002DA, "WRAM") --mario's victory count
-					elseif memory.read_u8(0x00001D, "WRAM") == 18 then return memory.read_u8(0x000736, "WRAM") + 1 --we are in 2p battle mode when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
+					if memory.read_u8(0x00072B, "WRAM") == 3 then -- we are in the battle mode-only game
+						return 5 - memory.read_u8(0x0002DA, "WRAM") --mario's victory count
+					elseif memory.read_u8(0x00001D, "WRAM") == 18 then return memory.read_u8(0x000737, "WRAM") + 1 --we are in battle (not the battle mode-only game) when this == 18. Let's simply tack on a life for each player in that mode, and 'lose' it when the battle is lost.
 					else return memory.read_u8(0x000737, "WRAM")
 					end
 			elseif memory.read_u8(0x01FF00, "WRAM") == 6 --SMB2 USA 
