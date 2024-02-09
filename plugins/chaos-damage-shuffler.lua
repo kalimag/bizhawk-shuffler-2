@@ -40,6 +40,7 @@ plugin.description =
 	-Super Mario Bros. 3 (NES), 1-2p (includes battle mode)
 	-Somari (NES, unlicensed), 1p
 	-Super Mario World (SNES), 1-2p
+	-Super Mario World 2: Yoshi's Island (SNES), 1p
 	-Super Mario All-Stars (SNES), 1-2p, with or without World (includes SMB3 battle mode)
 	-Super Mario Land (GB or GBC DX patch), 1p
 	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
@@ -213,6 +214,29 @@ local function FamilyFeud_SNES_swap(gamemeta)
 		return
 			(strike_changed and strike == 1) and  -- we just got a strike or 0
 			(player < 2) -- It's player 1 or 2, not the CPU
+		end
+	end
+	
+local function SMW2YI_swap(gamemeta)
+	return function()
+		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.p1getlives()) 
+		local incutscene_changed, incutscene, prev_incutscene = update_prev('incutscene', gamemeta.p1getincutscene()) 
+		local marioattached_changed, marioattached, prev_marioattached = update_prev('marioattached', gamemeta.p1getmarioattached()) 
+		local bump_changed, bump, prev_bump = update_prev('bump', gamemeta.p1getbump())
+		local inlevel_changed, inlevel, prev_inlevel = update_prev('inlevel', gamemeta.p1getinlevel())
+		local squished_changed, squished, prev_squished = update_prev('squished', gamemeta.p1getsquished())
+		return
+			(lives_changed and lives < prev_lives) -- Just lost a life - this does happen in "cutscenes" because falling, etc., is a cutscene
+			or 
+			(incutscene == 0 and -- if you're in a cutscene, don't swap! this includes Mario detaching because Yoshi is transforming, because the end ring started running, and others
+				(
+					(marioattached_changed and marioattached == false) -- Mario just detached
+				or 
+					(bump_changed and prev_bump == 0 and inlevel == true) -- Yoshi just bumped, ignore this address if on map etc
+				or 
+					(squished_changed and squished == true and inlevel == true) -- Yoshi just bumped, ignore this address if on map etc
+				)	
+			)
 		end
 	end
 
@@ -1880,17 +1904,19 @@ local gamedata = {
 		ActiveP1=function() return memory.read_u8(0x022C, "CartRAM") > 0 and memory.read_u8(0x022C, "CartRAM") < 255 end,
 	},	
 	['SMW2YI_SNES']={ -- Super Mario World 2: Yoshi's Island
-		func=singleplayer_withlives_swap,
-		p1gethp=function() 
-			if memory.read_u8(0x000CCC, "WRAM") > 0 then return 1 else return 2 end -- this value is >0 when yoshi is recoiling from damage
-		end,
-		p1getlc=function() return memory.read_u8(0x000379, "WRAM") end,
-		maxhp=function() return 2 end,
-		gmode=function() return 
-			(memory.read_u16_le(0x000118, "WRAM") >=15 and memory.read_u16_le(0x000118, "WRAM") <=20 ) or --actively in a level or on retry screen
-			(memory.read_u16_le(0x000118, "WRAM") == 48) --in a mini battle  
-			end,
-			--DID NOT SHUFFLE ON BEING EATEN BY PIRANHA PLANT
+		func=SMW2YI_swap,
+		p1getlives=function() return memory.read_u8(0x000379, "WRAM") end,
+		p1getincutscene=function() return memory.read_u8(0x000387, "WRAM") end, -- 1 if in cutscene, 0 if not
+		p1getmarioattached=function() return memory.read_u8(0x000388, "WRAM") == 128 end, -- 1 if in cutscene, 0 if not
+		p1getbump=function() return memory.read_u8(0x000CCC, "WRAM") end, -- 1 if in cutscene, 0 if not
+		p1getinlevel=function() return memory.read_u8(0x000118, "WRAM") == 15 end, -- 15 when Yoshi is controllable and not on map etc.
+		p1getsquished=function() return memory.read_u8(0x00AC, "CARTRAM") == 0x12 end, -- 0x12 when Yoshi has been crushed by a wall
+		
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x000379 end,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- P1 is always active!
 	},	
 	['SM64_N64']={ -- Super Mario 64
 		func=singleplayer_withlives_swap,
