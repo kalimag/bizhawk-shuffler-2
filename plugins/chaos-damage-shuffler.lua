@@ -221,7 +221,7 @@ local function SMW2YI_swap(gamemeta)
 	return function()
 		local lives_changed, lives, prev_lives = update_prev('lives', gamemeta.p1getlives()) 
 		local incutscene_changed, incutscene, prev_incutscene = update_prev('incutscene', gamemeta.p1getincutscene()) 
-		local marioattached_changed, marioattached, prev_marioattached = update_prev('marioattached', gamemeta.p1getmarioattached()) 
+		local marioOK_changed, marioOK, prev_marioOK = update_prev('marioOK', gamemeta.p1getmarioOK()) 
 		local bump_changed, bump, prev_bump = update_prev('bump', gamemeta.p1getbump())
 		local inlevel_changed, inlevel, prev_inlevel = update_prev('inlevel', gamemeta.p1getinlevel())
 		local squished_changed, squished, prev_squished = update_prev('squished', gamemeta.p1getsquished())
@@ -230,7 +230,7 @@ local function SMW2YI_swap(gamemeta)
 			or 
 			(incutscene == 0 and -- if you're in a cutscene, don't swap! this includes Mario detaching because Yoshi is transforming, because the end ring started running, and others
 				(
-					(marioattached_changed and marioattached == false) -- Mario just detached
+					(marioOK_changed and marioOK == false) -- Mario just detached (not due to invincibility)
 				or 
 					(bump_changed and prev_bump == 0 and inlevel == true) -- Yoshi just bumped, ignore this address if on map etc
 				or 
@@ -1907,8 +1907,8 @@ local gamedata = {
 		func=SMW2YI_swap,
 		p1getlives=function() return memory.read_u8(0x000379, "WRAM") end,
 		p1getincutscene=function() return memory.read_u8(0x000387, "WRAM") end, -- 1 if in cutscene, 0 if not
-		p1getmarioattached=function() return memory.read_u8(0x000388, "WRAM") == 128 end, -- 1 if in cutscene, 0 if not
-		p1getbump=function() return memory.read_u8(0x000CCC, "WRAM") end, -- 1 if in cutscene, 0 if not
+		p1getmarioOK=function() return (memory.read_u8(0x000388, "WRAM") == 0x80 or memory.read_u8(0x000388, "WRAM") == 0x20) end, -- 0x80 if on Yoshi, 0x20 if Super
+		p1getbump=function() return memory.read_u8(0x000CCC, "WRAM") end, -- pops up above 0 when bumped
 		p1getinlevel=function() return memory.read_u8(0x000118, "WRAM") == 15 end, -- 15 when Yoshi is controllable and not on map etc.
 		p1getsquished=function() return memory.read_u8(0x00AC, "CARTRAM") == 0x12 end, -- 0x12 when Yoshi has been crushed by a wall
 		
