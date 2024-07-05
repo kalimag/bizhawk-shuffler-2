@@ -42,10 +42,13 @@ plugin.description =
 	Bootlegs:
 	- Zook Hero Z (aka Rockman DX6) GBC
 	- Zook Hero 2 (aka Rockman X3) GBC
+	- Zook Hero 3 GBC
 	- Zook Man ZX4 (aka Rockman & Crystal) GBA
 	- Thunder Blast Man (aka Rocman X) GBC
 	- Rocman X NES (NesHawk only)
 	- Rockman 8 GB / Rockman X4 GBC
+	- Rockman X3 GEN
+	- Rockman EXE5 GBC
 ]]
 
 local NO_MATCH = 'NONE'
@@ -117,6 +120,17 @@ local function generic_swap(gamemeta)
 		end
 
 		return false
+	end
+end
+
+local function generic_state_swap(gamemeta)
+	local hitstates = {}
+	for _, state in ipairs(gamemeta.hitstates) do
+		hitstates[state] = true
+	end
+	return function()
+		local state_changed, state = update_prev("state", gamemeta.getstate())
+		return state_changed and hitstates[state]
 	end
 end
 
@@ -555,6 +569,11 @@ local gamedata = {
 		getlc=function() return memory.read_u8(0x60, "HRAM") end,
 		maxhp=function() return 20 end,
 	},
+	['sintax-gbc'] = {
+		func=generic_state_swap,
+		getstate=function() return memory.read_u8(0xEE5, "WRAM") end,
+		hitstates={0x10, 0x12, 0x13},
+	},
 	['zook-man-zx4'] = {
 		gethp=function() return memory.read_u8(0x1638, "IWRAM") end,
 		getlc=function() return memory.read_u8(0x1634, "IWRAM") end,
@@ -590,6 +609,11 @@ local gamedata = {
 		gethp=function() return memory.read_u8(0x027C, "WRAM") end,
 		getlc=function() return memory.read_u8(0x025E, "WRAM") end,
 		maxhp=function() return 8 end,
+	},
+	['mmx3gen'] = {
+		func=generic_state_swap,
+		getstate=function() return memory.read_u8(0xE7AB, "68K RAM") end,
+		hitstates={3, 4},
 	},
 }
 
