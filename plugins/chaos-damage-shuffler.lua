@@ -93,6 +93,7 @@ plugin.description =
 	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
+	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
