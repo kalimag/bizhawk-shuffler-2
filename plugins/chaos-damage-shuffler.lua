@@ -97,6 +97,7 @@ plugin.description =
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
 	-Family Feud (SNES), 1p or 2p
+	-Ice Climber (NES), 1p or 2p, shuffles on death or bonus game loss
 	-Kirby's Adventure (NES), 1p
 	-Last Alert (TG-16 CD), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
@@ -3523,6 +3524,38 @@ local gamedata = {
 		gamestate_ptr_addr=function() return 0x800C2800 end,
 		gameplaymode=function() return 3 end,
 		enteringgameovermode=function() return -11 end
+	},
+	['IceClimber_NES']={ -- Ice Climber NES
+		func=twoplayers_withlives_swap,
+		maxhp=function() return 2 end,
+		-- we can implement a swap on failing the bonus game
+		-- 0x0055 RAM is a sort of game mode, 0 title, 1 main level, 2 bonus, 3 and 4 bonus screen, 5 fly up to preview level
+		-- 0x001E RAM is "got dactyl", 0 no, 1 1p, 2 2p
+		-- so, if 0x0055 == 3 and 0x001E == 0, you just lost the bonus game
+		p1gethp=function()
+			if memory.read_u8(0x0055, "RAM") == 3 and
+				memory.read_u8(0x001E, "RAM") == 0
+				then return 1
+			else return 2
+			end
+		end,
+		p2gethp=function()
+			if memory.read_u8(0x0055, "RAM") == 3 and
+				memory.read_u8(0x001E, "RAM") == 0
+				then return 1
+			else return 2
+			end
+		end,
+		p1getlc=function() return memory.read_u8(0x0020, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0021, "RAM") end,
+		gmode=function() return memory.read_u8(0x0053, "RAM") ~= 1 end, -- 1 == in demo
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0020 end,
+		p2livesaddr=function() return 0x0021 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x0020, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
+		ActiveP2=function() return memory.read_u8(0x0021, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
 	},
 }
 
