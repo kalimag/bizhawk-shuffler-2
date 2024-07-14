@@ -3557,6 +3557,37 @@ local gamedata = {
 		ActiveP1=function() return memory.read_u8(0x0020, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
 		ActiveP2=function() return memory.read_u8(0x0021, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
 	},
+	['DarkwingDuck_NES']={ -- Darkwing Duck (NES)
+		func=singleplayer_withlives_swap,
+		maxhp=function() return 4 end,
+		p1gethp=function()
+		-- four addresses for heart pieces
+			if memory.read_u8(0x05B4, "RAM") == 0x80 then
+				return 4
+			--first heart piece
+			elseif memory.read_u8(0x05B8, "RAM") == 0x81 then
+				return 3
+			--second heart piece
+			elseif memory.read_u8(0x05B6, "RAM") == 0x81 then
+				return 2
+			--third heart piece
+			elseif memory.read_u8(0x05B2, "RAM") == 0x80 then
+				return 1
+			--last heart piece to go
+			else
+				return 0
+			end
+		end,
+		p1getlc=function() return memory.read_u8(0x05E4, "RAM") * 10 + memory.read_u8(0x05E6, "RAM") end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x05E4 end,
+		maxlives=function() return 0x76 end, 
+		-- Darkwing Duck counts strangely, 0x05E4 is the tens diget and 0x0536 is the ones digit, and this byte reads as 0x7_ where the trailing digit is number of lives
+		-- so we can't really give 69 lives this way without reworking the Infinite* Lives function
+		-- so you get 60 + x lives instead.
+		ActiveP1=function() return true end, -- P1 is always active!
+	},
 }
 
 local backupchecks = {
