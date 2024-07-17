@@ -79,6 +79,10 @@ plugin.description =
 	-Oracle of Seasons (GBC), 1p
 	-Oracle of Ages (GBC), 1p
 
+	CONTRA BLOCK
+	-Contra/Probotector (NES), 1p or 2p
+	-Super C/Super Contra/Probotector II (NES), 1p or 2p
+
 	THE LINK/SAMUS BLOCK
 	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
 	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
@@ -3588,6 +3592,81 @@ local gamedata = {
 		-- so we can't really give 69 lives this way without reworking the Infinite* Lives function
 		-- so you get 60 + x lives instead.
 		ActiveP1=function() return true end, -- P1 is always active!
+	},
+	['Contra_NES']={ -- Contra/Probotector (NES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return 0 end,
+		p2gethp=function() return 0 end,
+		p1getlc=function() return memory.read_u8(0x0032, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0033, "RAM") end,
+		gettogglecheck=function()
+			local p1gameover_changed, p1gameover_curr, p1gameover_prev = update_prev('p1gameover', memory.read_u8(0x0038, "RAM") == 1)
+			local p2gameover_changed, p2gameover_curr, p2gameover_prev = update_prev('p2gameover', memory.read_u8(0x0039, "RAM") == 1)
+			-- if a player steals a life to tag back in, "game over" flag will change on the same frame. This toggle prevents an extra swap.
+			if p1gameover_changed == true or p2gameover_changed == true
+			then
+				return true
+			end
+			return false
+		end,
+		gmode=function() return memory.read_u8(0x001C, "RAM") == 0 end, -- if 1, then in demo
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0032 end,
+		p2livesaddr=function() return 0x0033 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x0032, "RAM") > 0 end,
+		ActiveP2=function() return memory.read_u8(0x0033, "RAM") > 0 end,
+		maxhp=function() return 0 end,
+	},
+	['SuperC_NES']={ -- Super Contra/Probotector II (NES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return 0 end,
+		p2gethp=function() return 0 end,
+		p1getlc=function() return memory.read_u8(0x0053, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0054, "RAM") end,
+		gettogglecheck=function()
+			-- Super C loves doing things one frame at a time, not simultaneously, it seems. Here, lives and "game over state" change on consecutive frames!
+			-- So we need a different toggle for this than for the first Contra.
+			-- When a player steals a life to tag back in, their lives will go up from 0 to 1 AND the i-frames timer will start at 128.
+			-- Let's track those two things for both players, and not swap when they both change this way.
+			local p1lives_changed, p1lives_curr, p1lives_prev = update_prev('p1lives', memory.read_u8(0x0053, "RAM"))
+			local _, p1tagin_started_curr, p1tagin_started_prev = update_prev('p1tagin_started', memory.read_u8(0x00C4, "RAM") == 128)
+			local p2lives_changed, p2lives_curr, p2lives_prev = update_prev('p2lives', memory.read_u8(0x0054, "RAM"))
+			local _, p2tagin_started_curr, p2tagin_started_prev = update_prev('p2tagin_started', memory.read_u8(0x00C5, "RAM") == 128)
+			-- if a player steals a life to tag back in, the countdown on iframes starts on 128 and lasts 2 frames. This toggle prevents an extra swap.
+			if (p1lives_curr == 1 and p1lives_prev == 0 and p1tagin_started_curr == true and p1tagin_started_prev == false) or 
+				(p2lives_curr == 1 and p2lives_prev == 0 and p2tagin_started_curr == true and p2tagin_started_prev == false) 
+			then
+				return true
+			end
+			local p1respawn_frames_changed, p1respawn_frames_curr, p1respawn_frames_prev = update_prev('p1respawn_frames', memory.read_u8(0x00C0, "RAM"))
+			local p2respawn_frames_changed, p2respawn_frames_curr, p2respawn_frames_prev = update_prev('p2respawn_frames', memory.read_u8(0x00C1, "RAM"))
+			-- let's grab the countdown for spawning in, including stuff like the helicopter at the start of the game!
+			-- if these are 0, the player is "live" and can be harmed.
+			if (p1lives_changed == true and p1respawn_frames_changed == true and p1respawn_frames_curr > 0) or 
+				(p2lives_changed == true and p2respawn_frames_changed == true and p2respawn_frames_curr > 0) 
+			then
+				return true
+			end
+			local levelstarted_changed, levelstarted_curr, levelstarted_prev = update_prev('levelstarted', memory.read_u8(0x0087, "RAM") == 1)
+			if (levelstarted_changed == true and levelstarted_prev == false)
+			-- on level start, Super C deducts a life from the stash! Why?! Anyway, don't swap on that.
+			then
+				return true
+			end
+			return false
+		end,
+		gmode=function() return memory.read_u8(0x001F, "RAM") == 0 end, -- actually in gameplay
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0053 end,
+		p2livesaddr=function() return 0x0054 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return memory.read_u8(0x00C2, "RAM") ~= 1 end,
+		ActiveP2=function() return memory.read_u8(0x00C3, "RAM") ~= 1 end,
+		-- player is either inactive or in death sequence when these addresses == 1, lives go down the same frame that these addresses tick to 0
+		maxhp=function() return 0 end,
 	},
 }
 
