@@ -97,6 +97,7 @@ plugin.description =
 	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
+	-Chip and Dale Rescue Rangers 2 (NES), 1p or 2p
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
 	-Einhänder (PSX), 1p
@@ -1863,7 +1864,7 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x000028, "WRAM") > 0 and memory.read_u8(0x000028, "WRAM") < 255 end,
 		LivesWhichRAM=function() return "WRAM" end,
 	},
-	['CNDRR1']={ -- Chip and Dale 1 (NES)
+	['CNDRR1_NES']={ -- Chip and Dale 1 (NES)
 		func=twoplayers_withlives_swap,
 		-- three addresses for hearts - if the heart is there, these == 24 (18 hex) , otherwise they == 248 (F8 hex).
 		p1gethp=function()
@@ -1898,6 +1899,21 @@ local gamedata = {
 		ActiveP1=function() return memory.read_u8(0x05B6, "RAM") > 0 and memory.read_u8(0x05B6, "RAM") < 255 end,
 		ActiveP2=function() return memory.read_u8(0x05E6, "RAM") > 0 and memory.read_u8(0x05E6, "RAM") < 255 end,
 		maxhp=function() return 3 end,
+	},
+	['CNDRR2_NES']={ -- Chip and Dale 2 (NES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x03D4, "RAM") end,
+		p2gethp=function() return memory.read_u8(0x03D5, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x00A7, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x00A8, "RAM") end,
+		maxhp=function() return 5 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x00A7 end,
+		p2livesaddr=function() return 0x00A8 end,
+		maxlives=function() return 70 end,
+		ActiveP1=function() return memory.read_u8(0x00A7, "RAM") > 0 and memory.read_u8(0x00A7, "RAM") < 255 end,
+		ActiveP2=function() return memory.read_u8(0x00A8, "RAM") > 0 and memory.read_u8(0x00A8, "RAM") < 255 end,
 	},
 	['SuperDodgeBall']={ -- Super Dodge Ball (NES)
 		func=sdbnes_swap,
