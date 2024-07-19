@@ -82,6 +82,7 @@ plugin.description =
 	CONTRA BLOCK
 	-Contra/Probotector (NES), 1p or 2p
 	-Super C/Super Contra/Probotector II (NES), 1p or 2p
+	-Contra III: The Alien Wars/Super Probotector: Alien Rebels/Contra Spirits (SNES), 1p or 2p
 
 	THE LINK/SAMUS BLOCK
 	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
@@ -3683,6 +3684,31 @@ local gamedata = {
 		ActiveP1=function() return memory.read_u8(0x00C2, "RAM") ~= 1 end,
 		ActiveP2=function() return memory.read_u8(0x00C3, "RAM") ~= 1 end,
 		-- player is either inactive or in death sequence when these addresses == 1, lives go down the same frame that these addresses tick to 0
+		maxhp=function() return 0 end,
+	},
+	['ContraIII_SNES']={ -- Contra III/Probotector (NES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return 0 end,
+		p2gethp=function() return 0 end,
+		p1getlc=function() return memory.read_u8(0x1F8A, "WRAM") end,
+		p2getlc=function() return memory.read_u8(0x1FCA, "WRAM") end,
+		-- gmode=function() return memory.read_u8(0x001C, "RAM") == 0 end, -- if 1, then in demo
+		gettogglecheck=function()
+			local gameover_changed, gameover_curr, gameover_prev = update_prev('p1gameover', memory.read_u8(0x00A6, "WRAM") == 160)
+			-- if a player steals a life to tag back in, "one player has game overed in 2p mode" flag will change to 160 (both alive) on the same frame. This toggle prevents an extra swap.
+			if gameover_changed == true
+			then
+				return true
+			end
+			return false
+		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x1F8A end,
+		p2livesaddr=function() return 0x1FCA end,
+		maxlives=function() return 70 end, -- sorry, Japan, yours shows 70 instead of 69
+		ActiveP1=function() return memory.read_u8(0x1F8A, "WRAM") > 0 end,
+		ActiveP2=function() return memory.read_u8(0x1FCA, "WRAM") > 0 end,
 		maxhp=function() return 0 end,
 	},
 	['BladesofSteel_NES']={ -- Blades of Steel NES
