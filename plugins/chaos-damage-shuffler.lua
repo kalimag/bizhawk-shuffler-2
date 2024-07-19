@@ -94,6 +94,7 @@ plugin.description =
 	ADDITIONAL GOODIES
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Banjo-Kazooie (N64), 1p
+	-Blades of Steel (NES - NA/Europe), 1p or 2p
 	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
 	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
@@ -3683,6 +3684,72 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x00C3, "RAM") ~= 1 end,
 		-- player is either inactive or in death sequence when these addresses == 1, lives go down the same frame that these addresses tick to 0
 		maxhp=function() return 0 end,
+	},
+	['BladesofSteel_NES']={ -- Blades of Steel NES
+		func=twoplayers_withlives_swap,
+		gmode=function() return memory.read_u8(0x0019, "RAM") ~= 1 end, -- 1 == in demo
+		maxhp=function() return 5 + 1 end,
+		-- hp is going to cover fights and Gradius losses, and lives will cover goals
+		p1gethp=function()
+			if memory.read_u8(0x0648, "RAM") > 5 and memory.read_u8(0x0648, "RAM") <= 40
+				-- gradius cutscene ramps this up to 40 for some reason?? let's just drop the health until you get into a fight again
+				-- and the health drop itself will cause you to swap on the ship exploding if you lose at Gradius!
+				or (memory.read_u8(0x0080, "RAM") >=6 and memory.read_u8(0x0080, "RAM") <=8)
+				-- this address marks out a game mode, and 6 through 8 apply to penalty shots to break a tie
+				-- we need this because Blades of Steel has once again reused the fight health address! cool!
+			then
+				return 1
+			elseif memory.read_u8(0x0648, "RAM") > 0 or memory.read_u8(0x0649, "RAM") > 0
+				-- we are in a fight
+			then
+				return memory.read_u8(0x0648, "RAM") + 1
+			else
+				return 0
+				-- outside of fights and Gradius, rely on goals
+			end
+		end,
+		p2gethp=function()
+			if (memory.read_u8(0x0080, "RAM") >=6 and memory.read_u8(0x0080, "RAM") <=8)
+				-- this address marks out a game mode, and 6 through 8 apply to penalty shots to break a tie
+				-- we need this because Blades of Steel has once again reused the fight health address! cool!
+			then
+				return 1
+			elseif memory.read_u8(0x0022, "RAM") == 1 and 
+				(memory.read_u8(0x0648, "RAM") > 0 or memory.read_u8(0x0649, "RAM") > 0)
+				-- we are in a 2p game AND a fight
+			then 
+				return memory.read_u8(0x0649, "RAM") + 1
+			else
+				return 0
+				-- outside of fights, rely on goals
+			end
+		end,
+		p1getlc=function()  
+			return -1*(math.floor(memory.read_u8(0x07E9, "RAM")/16)*10 + (memory.read_u8(0x07E9, "RAM") % 16))
+			-- second team's goals
+			-- this is actually a hex value that just skips A-F on screen. Transformed and inverted so it counts down.
+			-- TODO: subtract 1 for Gradius ship if it dies
+		end,
+		p2getlc=function() 
+			if memory.read_u8(0x0022, "RAM") == 1
+			-- we are in a 2p game
+			then
+				return -1*(math.floor(memory.read_u8(0x07E5, "RAM")/16)*10 + (memory.read_u8(0x07E5, "RAM") % 16))
+			-- first team's goals
+			-- this is actually a hex value that just skips A-F on screen. Transformed and inverted, so it counts down.
+			else
+				return 0
+			end
+		end,
+		gettogglecheck=function()
+			local _, p1hp_curr, p1hp_prev = update_prev('p1hp', memory.read_u8(0x0648, "RAM"))
+			local _, p2hp_curr, p2hp_prev = update_prev('p2hp', memory.read_u8(0x0649, "RAM"))
+			-- the winning fighter drops to 0 when transition from fight to normal gameplay happens, so let's prevent a double swap
+			return p1hp_curr == 0 and p2hp_curr == 0
+		end,
+			-- if both fighters just dropped to 0, that's "end of battle"
+			-- update_prev set up because there could be further exceptions identified later
+		CanHaveInfiniteLives=false, -- Blades of Steel does not work this way.
 	},
 }
 
