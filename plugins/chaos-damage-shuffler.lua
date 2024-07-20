@@ -188,6 +188,7 @@ local tags = {}
 local prevdata
 local swap_scheduled
 local shouldSwap
+local gamesleft
 
 
 local bt_nes_level_names = { "Ragnarok's Canyon",
@@ -3792,10 +3793,6 @@ function plugin.on_game_load(data, settings)
 	local tag = tags[gameinfo.getromhash()] or get_game_tag()
 	tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
-	-- returns the number of games left in the shuffler
-	-- this will be key for how infinite lives are handled at the end!
-	local gamesleft = #(get_games_list(true))
-
 	---------------
 	-- For Battletoads games to do level skip/select based on filename
 	----
@@ -3908,6 +3905,10 @@ function plugin.on_game_load(data, settings)
 		if settings.InfiniteLives == true -- is infinite lives enabled?
 			and CanHaveInfiniteLives == true -- can this game can do infinite lives?
 		then
+			-- returns the number of games left in the shuffler
+			-- this will be key for how infinite lives are handled at the end!
+			gamesleft = #(get_games_list())
+
 			local ActiveP1 = false
 			if gamemeta.ActiveP1 then
 				ActiveP1 = gamemeta.ActiveP1()
@@ -4048,6 +4049,7 @@ if type(tonumber(which_level)) == "number" then
 		if gamemeta.MustDoInfiniteLivesOnFrame then MustDoInfiniteLivesOnFrame = gamemeta.MustDoInfiniteLivesOnFrame() end
 		
 		if settings.InfiniteLives == true -- is infinite lives enabled?
+			and gamemeta.CanHaveInfiniteLives == true -- can this game can do infinite lives?
 			and
 				(MustDoInfiniteLivesOnFrame == true -- can this game can do infinite lives only on frame?
 				or gamesleft == 1) -- are we in the last game left in the shuffler?
