@@ -2112,7 +2112,6 @@ local gamedata = {
 		-- consider moving to on_frame version if can identify "dying" sprite
 		p1livesaddr=function() return 0x033C end,
 		maxlives=function() return 9 end,
-		maxlives=function() return "RAM" end,
 		ActiveP1=function() return memory.read_u8(0x033C, "RAM") > 0 and memory.read_u8(0x033C, "RAM") < 255 end,
 		LivesWhichRAM=function() return "RAM" end,
 	},
