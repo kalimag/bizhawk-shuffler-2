@@ -4020,27 +4020,28 @@ if type(tonumber(which_level)) == "number" then
 	
 	-- run the check method for each individual game
 	
-	if swap_scheduled then return end
+	if not swap_scheduled then
 	
-	-- PROCESS "DON'T SWAP" SETTINGS HERE
-	-- A function like this should be generalizable for other games in the future to make exceptions 
-	-- so that users can turn off specific swap conditions
-	-- laid out by a DisableExtraSwaps function
-	
-	-- Yoshi's Island (SNES)
-	if tag == "SMW2YI_SNES" and settings.SMW2YI_MiniBonusSwaps ~= true then
-	-- can add "or this game+setting, that game+setting, etc." in the future
-		if gamemeta.DisableExtraSwaps() == true then 
-			return 
-			-- don't swap
+		-- PROCESS "DON'T SWAP" SETTINGS HERE
+		-- A function like this should be generalizable for other games in the future to make exceptions 
+		-- so that users can turn off specific swap conditions
+		-- laid out by a DisableExtraSwaps function
+		
+		-- Yoshi's Island (SNES)
+		if tag == "SMW2YI_SNES" and settings.SMW2YI_MiniBonusSwaps ~= true then
+		-- can add "or this game+setting, that game+setting, etc." in the future
+			if gamemeta.DisableExtraSwaps() == true then 
+				return 
+				-- don't swap
+			end
 		end
-	end
-	
-	-- AND NOW WE SWAP
-	local schedule_swap, delay = shouldSwap(prevdata)
-	if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
-		swap_game_delay(delay or 3)
-		swap_scheduled = true
+		
+		-- AND NOW WE SWAP
+		local schedule_swap, delay = shouldSwap(prevdata)
+		if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
+			swap_game_delay(delay or 3)
+			swap_scheduled = true
+		end
 	end
 	
 	if tag ~= nil and tag ~= NO_MATCH then
