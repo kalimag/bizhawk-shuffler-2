@@ -102,6 +102,7 @@ plugin.description =
 	-Chip and Dale Rescue Rangers 2 (NES), 1p or 2p
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
+	-Double Dragon (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
 	-Family Feud (SNES), 1p or 2p
@@ -3776,6 +3777,74 @@ local gamedata = {
 			-- if both fighters just dropped to 0, that's "end of battle"
 			-- update_prev set up because there could be further exceptions identified later
 		CanHaveInfiniteLives=false, -- Blades of Steel does not work this way.
+	},
+	['DoubleDragon1_NES']={ -- Double Dragon NES
+		func=twoplayers_withlives_swap,
+		-- objective: only swap on knockdowns, not every punch, and lives lost
+		-- RAM 0x03C8 is a stun frame counter, sits at 0, pops to 32 on getting hit, then rolls down to 0
+		-- RAM 0x03C4 is a hit counter, as you can get hit a few times before a knockdown, it goes back to 0 when knockdown activated
+		-- if we only update hp on "hit counter == 0 and stun frames just hit 0," we can use this HP function
+		-- amazingly, this works the same way in the fighting game!
+		gmode=function() return memory.read_u8(0x00FE, "RAM") == 24 end,
+		-- we are actually in gameplay this way! cool!
+		p1gethp=function() 
+			local p1hp_changed, p1hp_curr, p1hp_prev = update_prev('p1hp', memory.read_u8(0x03B4, "RAM"))
+			local p1hitcounter_changed, p1hitcounter_curr, p1hitcounter_prev = update_prev('p1hitcounter', memory.read_u8(0x03C4, "RAM"))
+			local p1stunframes_changed, p1stunframes_curr, p1stunframes_prev = update_prev('p1stunframes', memory.read_u8(0x03C8, "RAM"))
+			if p1hp_curr == 0 then
+				return 0
+			end
+			if p1hitcounter_curr == 0 and p1stunframes_changed and p1stunframes_curr == 31
+				--we use 31 rather than 32 because you can get knocked down on a simultaneous hit that would have bumped up your hit counter
+			then
+				return 1
+			end
+			return 2 
+		end,
+		p2gethp=function()
+		-- objective: only swap on knockdowns, not every punch, and lives lost
+		-- RAM 0x03C9 is a stun frame counter, sits at 0, pops to 32 on getting hit, then rolls down to 0
+		-- RAM 0x03C5 is a hit counter, as you can get hit a few times before a knockdown, it goes back to 0 when knockdown activated
+		-- if we only update hp on "hit counter == 0 and stun frames just hit 0," we can use this HP function
+		-- amazingly, this works the same way in the fighting game!
+			local p2hp_changed, p2hp_curr, p2hp_prev = update_prev('p2hp', memory.read_u8(0x03B5, "RAM"))
+			local p2hitcounter_changed, p2hitcounter_curr, p2hitcounter_prev = update_prev('p2hitcounter', memory.read_u8(0x03C5, "RAM"))
+			local p2stunframes_changed, p2stunframes_curr, p2stunframes_prev = update_prev('p2stunframes', memory.read_u8(0x03C9, "RAM"))
+			if memory.read_u8(0x0030, "RAM") == 2 and memory.read_u8(0x0032, "RAM") == 1 then
+			-- the 2p addresses apply to enemies in 1p Mode A (side scroller), so we need to specify that we are actually in 2p fighting mode
+				if p2hp_curr == 0 then
+					return 0
+				end
+				if p2hitcounter_curr == 0 and p2stunframes_changed and p2stunframes_curr == 31
+				then
+					return 1
+				end
+			end
+			return 2 
+		end,
+		maxhp=function() return 2 end,
+		-- because of how we are calculating HP, the fighting game HP differences shouldn't matter
+		p1getlc=function() return memory.read_u8(0x0043, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0043, "RAM") end,
+		gettogglecheck=function() return memory.read_u8(0x0031, "RAM") == 1 end,
+		-- Did the current player change on this frame? If so, don't shuffle. That frame is when the stored number of lives gets loaded.
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function()
+			if memory.read_u8(0x0031, "RAM") == 2 then
+			-- side scroller, 2p is active, so fill in the saved number of lives for inactive p1
+				return 0x06B1
+			else
+				return 0x0043
+			-- otherwise, give the active player lives
+			end
+		end,
+		p2livesaddr=function() return 0x06BD end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+		ActiveP2=function() return true end, -- p2 is always active! the way the lives are stored, you just never swap in this player and their lives in 1p A mode
+		delay=32,
+		-- let players see the knockdown happen
 	},
 }
 
