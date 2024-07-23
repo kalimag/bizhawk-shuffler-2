@@ -13,16 +13,11 @@ next_swap_time = 0
 running = false
 plugins = {}
 
--- determine operating system for the purpose of commands
-_PLATFORMS = {['dll'] = 'WIN', ['so'] = 'LINUX', ['dylib'] = 'MAC'}
-PLATFORM = _PLATFORMS[(package.cpath..';'):match('%.(%a+);')]
-
 PLUGINS_FOLDER = 'plugins'
 GAMES_FOLDER = 'games'
 PREMADE_STATES = 'start-states'
 STATES_FOLDER = GAMES_FOLDER .. '/.savestates'
 STATES_BACKUPS = 3
-DEFAULT_CMD_OUTPUT = 'shuffler-src/.cmd-output.txt'
 
 MIN_BIZHAWK_VERSION = "2.6.3"
 MAX_BIZHAWK_VERSION = nil
@@ -79,23 +74,12 @@ function log_debug(format, ...)
 	end
 end
 
--- check if folder exists
-function path_exists(p)
-	local ok, err, code = os.rename(p, p)
-	-- code 13 is permission denied, but it's there
-	if not ok and code == 13 then return true end
-	return ok, err
-end
-
-function make_dir(p)
-	if path_exists(p .. '/') then return end
-	os.execute(string.format('mkdir "%s"', p))
-end
+local fsio = require("shuffler-src.fsio")
 
 -- folders needed for the shuffler to run
-make_dir('output-info')
-make_dir(GAMES_FOLDER)
-make_dir(STATES_FOLDER)
+fsio.create_directory('output-info')
+fsio.create_directory(GAMES_FOLDER)
+fsio.create_directory(STATES_FOLDER)
 
 -- loads primary config file
 function load_config(f)
@@ -155,33 +139,12 @@ function table_subtract(t2, t1)
 	end
 end
 
--- returns a table containing all files in a given directory
-function get_dir_contents(dir, tmp, force)
-	local TEMP_FILE = tmp or DEFAULT_CMD_OUTPUT
-	if force ~= false or not path_exists(TEMP_FILE) then
-		local cmd = string.format('ls "%s" -p | grep -v / > %s', dir, TEMP_FILE)
-		if PLATFORM == 'WIN' then
-			cmd = string.format('dir "%s" /B /A-D > %s', dir, TEMP_FILE)
-		end
-		os.execute(cmd)
-	end
-
-	local file_list = {}
-	local fp = io.open(TEMP_FILE, 'r')
-	for x in fp:lines() do
-		table.insert(file_list, x)
-	end
-	fp:close()
-	return file_list
-end
-
 -- types of files to ignore in the games directory
 local IGNORED_FILE_EXTS = { '.msu', '.pcm', '.txt', '.ini' }
 
 -- get list of games
 function get_games_list(force)
-	local LIST_FILE = '.games-list.txt'
-	local games = get_dir_contents(GAMES_FOLDER, GAMES_FOLDER .. '/' .. LIST_FILE, force or false)
+	local games =  fsio.get_files(GAMES_FOLDER)
 	local toremove = {}
 
 	-- find .cue files and remove the associated bin/iso
@@ -223,25 +186,16 @@ function get_games_list(force)
 	end
 
 	table_subtract(games, toremove)
-	table_subtract(games, { LIST_FILE })
 	table_subtract(games, config.completed_games)
 	return games
 end
 
 -- delete savestates folder
 function delete_savestates()
-	local cmd = string.format('rm -rf "%s"', STATES_FOLDER)
-	if PLATFORM == 'WIN' then
-		cmd = string.format('rmdir "%s" /S /Q', STATES_FOLDER)
-	end
-	os.execute(cmd)
+	fsio.delete_directory(STATES_FOLDER)
 
-	if path_exists(PREMADE_STATES .. '/') then
-		cmd = string.format('cp -r "%s" "%s"', PREMADE_STATES, STATES_FOLDER)
-		if PLATFORM == 'WIN' then
-			cmd = string.format('xcopy "%s" "%s\\" /E /H', PREMADE_STATES, STATES_FOLDER)
-		end
-		os.execute(cmd)
+	if fsio.directory_exists(PREMADE_STATES) then
+		fsio.copy_files(PREMADE_STATES, STATES_FOLDER)
 	end
 end
 
@@ -270,13 +224,6 @@ function save_current_game()
 	end
 end
 
-function file_exists(f)
-	local p = io.open(f, 'r')
-	if p == nil then return false end
-	io.close(p)
-	return true
-end
-
 function is_rom_loaded()
 	return emu.getsystemid() ~= 'NULL'
 end
@@ -289,7 +236,7 @@ local function on_game_load()
 	running = true
 
 	local state = get_savestate_file()
-	if file_exists(state) then
+	if fsio.file_exists(state) then
 		log_debug('on_game_load: load state "%s"', state)
 		savestate.load(state)
 	end
@@ -326,7 +273,7 @@ end
 function load_game(g)
 	log_debug('load_game(%s)', g)
 	local filename = GAMES_FOLDER .. '/' .. g
-	if not file_exists(filename) then
+	if not fsio.file_exists(filename) then
 		log_console('ROM "%s" not found', g)
 		return false
 	end
@@ -351,7 +298,7 @@ function get_next_game()
 	-- game files that can be opened
 	local all_exist = true
 	for _, game in ipairs(all_games) do
-		all_exist = all_exist and file_exists(GAMES_FOLDER .. '/' .. game)
+		all_exist = all_exist and fsio.file_exists(GAMES_FOLDER .. '/' .. game)
 	end
 
 	-- if any of the games are missing, force a refresh of the game list
@@ -558,19 +505,6 @@ function mark_complete()
 	end
 end
 
-function cwd()
-	local cmd = string.format('pwd > %s', DEFAULT_CMD_OUTPUT)
-	if PLATFORM == 'WIN' then
-		cmd = string.format('cd > %s', DEFAULT_CMD_OUTPUT)
-	end
-	os.execute(cmd)
-
-	local fp = io.open(DEFAULT_CMD_OUTPUT, 'r')
-	local resp = fp:read("*all")
-	fp:close()
-	return resp:match( "^%s*(.+)%s*$" )
-end
-
 local function on_exit()
 	log_quiet('shuffler exiting')
 	if running then
@@ -605,17 +539,14 @@ function complete_setup()
 
 	local games = get_games_list(true) -- force refresh of the games list
 	if #games == 0 then
-		local sep = '/'
-		if PLATFORM == 'WIN' then sep = '\\' end
-
 		log_message('No games found in the expected directory. Were they put somewhere else? ' ..
 			'Are they nested inside folders? ROM files should be placed directly in the following directory:')
-		if cwd ~= nil then log_message(string.format("Expected: %s%s%s", cwd(), sep, GAMES_FOLDER)) end
+		log_console("Expected: %s", fsio.get_absolute_path(GAMES_FOLDER))
 		return
 	end
 
 	-- these messages will only appear in the message log
-	log_message('Platform: ' .. PLATFORM, true)
+	log_message('Platform: ' .. fsio.platform, true)
 	log_message('Bizhawk version: ' .. client.getversion(), true)
 	for _,game in ipairs(games) do
 		log_message('GAME FOUND: ' .. game, true)
@@ -628,7 +559,7 @@ function complete_setup()
 		log_message('deleting savestates!')
 		delete_savestates()
 	end
-	make_dir(STATES_FOLDER)
+	fsio.create_directory(STATES_FOLDER)
 
 	-- whatever the current state is, update the output file
 	output_completed()

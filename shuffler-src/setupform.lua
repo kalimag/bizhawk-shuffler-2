@@ -1,5 +1,7 @@
 local module = {}
 
+local fsio = require("shuffler-src.fsio")
+
 local NEWLINE = "\r\n"
 
 function module.make_plugin_window(plugins, main_plugin_label)
@@ -227,7 +229,7 @@ function module.initial_setup(callback)
 	local plugin_window = -1
 
 	local plugins = {}
-	for _,filename in ipairs(get_dir_contents(PLUGINS_FOLDER)) do
+	for _,filename in ipairs(fsio.get_files(PLUGINS_FOLDER)) do
 		-- ignore non-lua files
 		if ends_with(filename, '.lua') then
 			local pname = filename:sub(1, #filename-4)
