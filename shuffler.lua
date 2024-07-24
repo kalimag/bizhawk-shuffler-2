@@ -186,7 +186,7 @@ function get_games_list(force)
 
 	-- find .cue files and remove the associated bin/iso
 	for _,filename in ipairs(games) do
-		if ends_with(filename, '.cue') then
+		if ends_with_case_insensitive(filename, '.cue') then
 			-- open the cue file, oh god here we go...
 			fp = io.open(GAMES_FOLDER .. '/' .. filename, 'r')
 			for line in fp:lines() do
@@ -197,11 +197,11 @@ function get_games_list(force)
 			end
 			fp:close()
 		-- ccd/img format?
-		elseif ends_with(filename, '.ccd') then
+		elseif ends_with_case_insensitive(filename, '.ccd') then
 			local primary = filename:sub(1, #filename-4)
 			table.insert(toremove, primary .. '.img')
 			table.insert(toremove, primary .. '.sub')
-		elseif ends_with(filename, '.xml') then
+		elseif ends_with_case_insensitive(filename, '.xml') then
 			fp = io.open(GAMES_FOLDER .. '/' .. filename, 'r')
 			local xml = fp:read("*all")
 			fp:close()
@@ -216,7 +216,7 @@ function get_games_list(force)
 		end
 
 		for _,ext in ipairs(IGNORED_FILE_EXTS) do
-			if ends_with(filename, ext) then
+			if ends_with_case_insensitive(filename, ext) then
 				table.insert(toremove, filename)
 			end
 		end
@@ -438,6 +438,10 @@ end
 
 function ends_with(a, b)
 	return a:sub(-#b) == b
+end
+
+function ends_with_case_insensitive(a, b)
+	return a:lower():sub(-#b) == b:lower()
 end
 
 function strip_ext(filename)
