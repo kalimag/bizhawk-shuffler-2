@@ -102,7 +102,8 @@ plugin.description =
 	-Chip and Dale Rescue Rangers 2 (NES), 1p or 2p
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
-	-Double Dragon (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
+	-Double Dragon 1 (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
+	-Double Dragon 2 (NES), 1p or 2p, shuffles on knockdown and death
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
 	-Family Feud (SNES), 1p or 2p
@@ -3865,6 +3866,45 @@ local gamedata = {
 		ActiveP1=function() return true end, -- p1 is always active!
 		ActiveP2=function() return true end, -- p2 is always active! the way the lives are stored, you just never swap in this player and their lives in 1p A mode
 		delay=32,
+		-- let players see the knockdown happen
+	},
+	['DoubleDragon2_NES']={ -- Double Dragon NES
+		func=twoplayers_withlives_swap,
+		-- objective: only swap on knockdowns, not every punch, and lives lost
+		-- iframes won't work, because they only trigger on respawn.
+		-- unlike DD1, one address appears to count frames both for stun frames and knockdowns the same way.
+		-- it is not usable, even with a hit counter.
+		-- RAM 0x0055 (p1) and 0x0056 hold some form of knockdown counter, however.
+		-- on a knockdown specifically, this starts at 3, rolls down to 0, wraps around to 255, and eventually skips to 19 and further down.
+		-- 19 does not activate on falling to your death.
+		-- I suspect that the fourth bit of the byte is only activated on knockdown, because some other values (like high score) work similarly.
+		-- Anyway, we're just looking for a 19 to be our HP!
+		p1gethp=function() 
+			local p1knockdown_changed, p1knockdown_curr, p1knockdown_prev = update_prev('p1knockdown', memory.read_u8(0x0055, "RAM"))
+			if p1knockdown_changed and p1knockdown_curr == 19 then
+				return 1
+			end
+			return 2 
+		end,
+		p2gethp=function() 
+			local p2knockdown_changed, p2knockdown_curr, p2knockdown_prev = update_prev('p2knockdown', memory.read_u8(0x0056, "RAM"))
+			if p2knockdown_changed and p2knockdown_curr == 19 then
+				return 1
+			end
+			return 2 
+		end,
+		maxhp=function() return 2 end,
+		-- this is clearly a hack to make "HP" out of a non-HP variable, but okay.
+		p1getlc=function() return memory.read_u8(0x0432, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0433, "RAM") end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0432 end,
+		p2livesaddr=function() return 0x0433 end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return memory.read_u8(0x0432, "RAM") > 0 end,
+		ActiveP2=function() return memory.read_u8(0x0433, "RAM") > 0 end,
+		delay=7,
 		-- let players see the knockdown happen
 	},
 }
