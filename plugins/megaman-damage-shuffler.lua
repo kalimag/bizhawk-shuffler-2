@@ -39,6 +39,9 @@ plugin.description =
 	- Super Adventure Rockman PSX
 	- Mega Man: The Power Battle & The Power Fighters (Arcade)
 
+	Hacks & Homebrew:
+	- Mega Man: The Sequel Wars GEN
+
 	Bootlegs:
 	- Zook Hero Z (aka Rockman DX6) GBC
 	- Zook Hero 2 (aka Rockman X3) GBC
@@ -149,7 +152,7 @@ end
 local function mmx6_swap(gamemeta)
 	return function()
 		-- check the damage counter used for the stats screen. not incremented by acid rain damage
-		_, damage, prev_damage = update_prev('damage', gamemeta.getdamage())
+		local _, damage, prev_damage = update_prev('damage', gamemeta.getdamage())
 		return prev_damage ~= nil and damage > prev_damage
 	end
 end
@@ -615,6 +618,11 @@ local gamedata = {
 		getstate=function() return memory.read_u8(0xE7AB, "68K RAM") end,
 		hitstates={3, 4},
 	},
+	['sequel-wars-red']={ -- Mega Man: The Sequel Wars Episode Red (Genesis homebrew)
+		gethp=function() return memory.read_u16_be(0x306E, "68K RAM") end,
+		getlc=function() return memory.read_u8(0x01A1, "68K RAM") end,
+		maxhp=function() return 28 end,
+	},
 }
 
 local backupchecks = {
@@ -625,8 +633,6 @@ local function get_game_tag()
 	local tag = get_tag_from_hash_db(gameinfo.getromhash(), 'plugins/megaman-hashes.dat')
 	if tag ~= nil and gamedata[tag] ~= nil then return tag end
 
-	-- check to see if any of the rom name samples match
-	local name = gameinfo.getromname()
 	for _,check in pairs(backupchecks) do
 		if check.test() then return check.tag end
 	end
