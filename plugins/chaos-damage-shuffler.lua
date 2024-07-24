@@ -190,6 +190,7 @@ local tags = {}
 local prevdata
 local swap_scheduled
 local shouldSwap
+local gamesleft
 
 
 local bt_nes_level_names = { "Ragnarok's Canyon",
@@ -2123,7 +2124,6 @@ local gamedata = {
 		-- consider moving to on_frame version if can identify "dying" sprite
 		p1livesaddr=function() return 0x033C end,
 		maxlives=function() return 9 end,
-		maxlives=function() return "RAM" end,
 		ActiveP1=function() return memory.read_u8(0x033C, "RAM") > 0 and memory.read_u8(0x033C, "RAM") < 255 end,
 		LivesWhichRAM=function() return "RAM" end,
 	},
@@ -3909,10 +3909,6 @@ function plugin.on_game_load(data, settings)
 	local tag = tags[gameinfo.getromhash()] or get_game_tag()
 	tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
-	-- returns the number of games left in the shuffler
-	-- this will be key for how infinite lives are handled at the end!
-	local gamesleft = #(get_games_list(true))
-
 	---------------
 	-- For Battletoads games to do level skip/select based on filename
 	----
@@ -4025,6 +4021,10 @@ function plugin.on_game_load(data, settings)
 		if settings.InfiniteLives == true -- is infinite lives enabled?
 			and CanHaveInfiniteLives == true -- can this game can do infinite lives?
 		then
+			-- returns the number of games left in the shuffler
+			-- this will be key for how infinite lives are handled at the end!
+			gamesleft = #(get_games_list())
+
 			local ActiveP1 = false
 			if gamemeta.ActiveP1 then
 				ActiveP1 = gamemeta.ActiveP1()
@@ -4136,27 +4136,28 @@ if type(tonumber(which_level)) == "number" then
 	
 	-- run the check method for each individual game
 	
-	if swap_scheduled then return end
+	if not swap_scheduled then
 	
-	-- PROCESS "DON'T SWAP" SETTINGS HERE
-	-- A function like this should be generalizable for other games in the future to make exceptions 
-	-- so that users can turn off specific swap conditions
-	-- laid out by a DisableExtraSwaps function
-	
-	-- Yoshi's Island (SNES)
-	if tag == "SMW2YI_SNES" and settings.SMW2YI_MiniBonusSwaps ~= true then
-	-- can add "or this game+setting, that game+setting, etc." in the future
-		if gamemeta.DisableExtraSwaps() == true then 
-			return 
-			-- don't swap
+		-- PROCESS "DON'T SWAP" SETTINGS HERE
+		-- A function like this should be generalizable for other games in the future to make exceptions 
+		-- so that users can turn off specific swap conditions
+		-- laid out by a DisableExtraSwaps function
+		
+		-- Yoshi's Island (SNES)
+		if tag == "SMW2YI_SNES" and settings.SMW2YI_MiniBonusSwaps ~= true then
+		-- can add "or this game+setting, that game+setting, etc." in the future
+			if gamemeta.DisableExtraSwaps() == true then 
+				return 
+				-- don't swap
+			end
 		end
-	end
-	
-	-- AND NOW WE SWAP
-	local schedule_swap, delay = shouldSwap(prevdata)
-	if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
-		swap_game_delay(delay or 3)
-		swap_scheduled = true
+		
+		-- AND NOW WE SWAP
+		local schedule_swap, delay = shouldSwap(prevdata)
+		if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
+			swap_game_delay(delay or 3)
+			swap_scheduled = true
+		end
 	end
 	
 	if tag ~= nil and tag ~= NO_MATCH then
@@ -4165,6 +4166,7 @@ if type(tonumber(which_level)) == "number" then
 		if gamemeta.MustDoInfiniteLivesOnFrame then MustDoInfiniteLivesOnFrame = gamemeta.MustDoInfiniteLivesOnFrame() end
 		
 		if settings.InfiniteLives == true -- is infinite lives enabled?
+			and gamemeta.CanHaveInfiniteLives == true -- can this game can do infinite lives?
 			and
 				(MustDoInfiniteLivesOnFrame == true -- can this game can do infinite lives only on frame?
 				or gamesleft == 1) -- are we in the last game left in the shuffler?
