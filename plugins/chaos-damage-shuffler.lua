@@ -1326,30 +1326,39 @@ local function health_swap(gamemeta)
 	end
 end
 
+-- Credit to Rogue_Millipede for the basis of this code
 local function sotn_swap(gamemeta)
-	return function (data)
-		-- richter's iframes are stored elsewhere than alucard's, couldn't find where
-		local iframes_changed, iframes_curr, iframes_prev = update_prev('iframes', gamemeta.get_iframes())
-		local health_changed, health_curr, health_prev = update_prev('health', gamemeta.get_health())
-		-- If a swap is already scheduled, decrease it but do no further processing.
-		if data.delayCountdown ~= nil and data.delayCountdown > 0 then
-			--console.log("delayCountdown: "..data.delayCountdown);
-			data.delayCountdown = data.delayCountdown - 1
-			if data.delayCountdown == 0 then
-				--console.log("delayCountdown is 0; swapping");
-				return true;
-			end
-			return false;
-		end
+	return function ()
 		-- check if we're in a valid gamestate
 		if not gamemeta.is_valid_gamestate() then
 			return false
 		end
-		if ((iframes_changed and iframes_prev == 0) or health_curr == 0 or gamemeta.is_richter())
-			and health_changed and health_curr < health_prev
-		then
-			data.delayCountdown = gamemeta.delay or 3
+		-- health must be within an acceptable range to count
+		-- ON ACCOUNT OF ALL THE GARBAGE VALUES BEING STORED IN THESE ADDRESSES
+		local max_health = gamemeta.max_health()
+		local min_health = gamemeta.min_health or 0
+		if gamemeta.get_health() < min_health or gamemeta.get_health() > max_health then
+			return false
 		end
+
+		local health_changed, health_curr, health_prev = update_prev('health', gamemeta.get_health())
+		local iframes_changed, iframes_curr, iframes_prev = update_prev('iframes', gamemeta.get_iframes())
+		local state_changed, state_curr, state_prev = update_prev("player_state", gamemeta.get_player_state())
+		local game_over_check_changed, game_over_check_curr, game_over_check_prev = update_prev("game_over_check", gamemeta.game_over_check())
+
+		if ((health_changed and health_curr < health_prev) -- health went down
+				or (gamemeta.stone_state and state_changed and state_curr == gamemeta.stone_state)) -- 0 damage, but player was petrified
+			and iframes_changed and iframes_prev == 0 -- I-frames went up (i.e.: it isn't water)
+			and health_curr > min_health -- We didn't just die (delay until the game over check passes)
+		then
+			return true
+		end
+
+		if (game_over_check_changed and game_over_check_curr) then -- Game over is starting
+			return true
+		end
+
+		return false -- Nothing that would change the game occurred
 	end
 end
 
@@ -2775,19 +2784,6 @@ local gamedata = {
 		maxlives=function() return 105 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
-	["CV_SotN"]={ -- Symphony of the Night, Playstation
-		func=sotn_swap,
-		is_valid_gamestate=function()
-			return memory.read_u8(0x03C9A4, "MainRAM") == 1 -- in game, but also some other places like the konami logo?
-				and memory.read_u16_le(0x097BA4, "MainRAM") ~= 0 -- max hp, this should prevent incorrect swaps
-		end,
-		get_iframes=function() return memory.read_u16_le(0x13B5E8, "MainRAM") end,
-		get_health=function() return memory.read_u16_le(0x097BA0, "MainRAM") end,
-		is_richter=function()
-			return memory.read_u8(0x0974A0, "MainRAM") == 31 -- richter prologue
-				or memory.read_u8(0x03C9A0, "MainRAM") == 1 -- richter mode
-		end,
-	},
 	['CV_AoS']={ -- Aria of Sorrow, GBA
 		-- touching enemy during invincibility from final guard soul, julius backdash etc gives iframes despite not doing damage
 		-- dryad seed and succubus grab are weird about iframes
@@ -3456,42 +3452,67 @@ local gamedata = {
 		gmode=function() return memory.read_u8(0x01FB, "RAM") == 136 end, -- 136 is the stopwatch mode
 	},
 	['SOTN_PS1']={ -- Japan (1.0, 1.1) and North America releases
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u32_le(0x97BA0, "MainRAM") end,
-		maxhp=function() return memory.read_u32_le(0x97BA4, "MainRAM") end,
-		p1getlc=function()
+		func=sotn_swap,
+		get_health=function() return memory.read_u32_le(0x97BA0, "MainRAM") end,
+		max_health=function() return memory.read_u32_le(0x97BA4, "MainRAM") end,
+		get_iframes=function() return memory.read_u16_le(0x72F1C, "MainRAM") end,
+		get_player_state=function() return memory.read_u16_le(0x73404, "MainRAM") end,
+		stone_state=11,
+		game_over_check=function()
 			gamestate = memory.read_u32_le(0x3C734, "MainRAM")
 			if gamestate == 3 and memory.read_u32_le(0x73060, "MainRAM") == 5 then -- Screen melt starting
-				return 0 -- Game Over
+				return true -- Game Over
 			else
-				return 1 -- Gameplay
+				return false -- Gameplay
 			end
 		end,
-		gmode=function()
+		is_valid_gamestate=function()
 			gamestate = memory.read_u32_le(0x3C734, "MainRAM")
 			return gamestate == 2 -- Gameplay
 				or gamestate == 3 -- Game Over
 		end,
-		CanHaveInfiniteLives=false,
 	},
 	['SOTN_PS1_2']={ -- Japan (1.2), Europe and Asia releases
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u32_le(0x97BB0, "MainRAM") end,
-		maxhp=function() return memory.read_u32_le(0x97BB4, "MainRAM") end,
-		p1getlc=function()
+		func=sotn_swap,
+		get_health=function() return memory.read_u32_le(0x97BB0, "MainRAM") end,
+		max_health=function() return memory.read_u32_le(0x97BB4, "MainRAM") end,
+		get_iframes=function() return memory.read_u16_le(0x72F24, "MainRAM") end,
+		get_player_state=function() return memory.read_u16_le(0x7340C, "MainRAM") end,
+		stone_state=11,
+		game_over_check=function()
 			gamestate = memory.read_u32_le(0x3C73C, "MainRAM")
 			if gamestate == 3 and memory.read_u32_le(0x73068, "MainRAM") == 0 then -- Screen melt starting
-				return 0 -- Game Over
+				return true -- Game Over
 			else
-				return 1 -- Gameplay
+				return false -- Gameplay
 			end
 		end,
-		gmode=function()
+		is_valid_gamestate=function()
 			gamestate = memory.read_u32_le(0x3C73C, "MainRAM")
 			return gamestate == 2 -- Gameplay
 				or gamestate == 3 -- Game Over
 		end,
-		CanHaveInfiniteLives=false,
+	},
+	['SOTN_SATURN']={ -- Akumajou Dracula X: Gekka no Yasoukyoku (Saturn)
+		func=sotn_swap,
+		get_health=function() return memory.read_u16_le(0x5C942, "Work Ram High") end,
+		max_health=function() return memory.read_u16_le(0x5C946, "Work Ram High") end,
+		get_iframes=function() return memory.read_u16_le(0x5C524, "Work Ram High") end,
+		get_player_state=function() return memory.read_u16_le(0x99824, "Work Ram High") end,
+		stone_state=11,
+		is_valid_gamestate=function()
+			gamestate = memory.read_u16_le(0x5CD72, "Work Ram High") -- May not be the actual gamestate addr, but works for our purpose
+			return gamestate == 1 -- Gameplay
+				or gamestate == 5 -- Game Over
+		end,
+		game_over_check=function()
+			gamestate = memory.read_u16_le(0x5CD72, "Work Ram High")
+			if gamestate == 5 then -- Changes as soon as the fade-to-white starts
+				return true -- Game Over
+			else
+				return false -- Gameplay
+			end
+		end,
 	},
 	['CV64_JPN_N64']={
 		func=castlevania_n64_swap,
