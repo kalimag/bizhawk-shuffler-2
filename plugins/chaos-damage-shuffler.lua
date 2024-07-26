@@ -111,6 +111,7 @@ plugin.description =
 	-F-Zero (SNES), 1p
 	-Family Feud (SNES), 1p or 2p
 	-Ice Climber (NES), 1p or 2p, shuffles on death or bonus game loss
+	-Jackal (NES), 1p or 2p
 	-Kirby's Adventure (NES), 1p
 	-Last Alert (TG-16 CD), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
@@ -4109,6 +4110,32 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x0004C4, "WRAM") == 2 end, -- only applies when mode is 2p Contest
 		-- TODO: doublecheck onmap address
 		-- TODO: bonus game shuffles
+	},
+	['Jackal_NES']={ -- Jackal (NES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return 0 end,
+		p2gethp=function() return 0 end,
+		p1getlc=function() return memory.read_u8(0x0031, "RAM") end,
+		p2getlc=function() return memory.read_u8(0x0032, "RAM") end,
+		gettogglecheck=function()
+			local p1lives_changed, p1lives_curr, p1lives_prev = update_prev('p1lives', memory.read_u8(0x0031, "RAM"))
+			local p2lives_changed, p2lives_curr, p2lives_prev = update_prev('p2lives', memory.read_u8(0x0032, "RAM"))
+			-- if a player steals a life to tag back in, don't swap.
+			if p1lives_changed == true and p1lives_prev == 0 
+				or p2lives_changed == true and p2lives_prev == 0
+			then
+				return true
+			end
+			return false
+		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0031 end,
+		p2livesaddr=function() return 0x0032 end,
+		maxlives=function() return 10 end, -- just one digit displays for extra lives in this game
+		ActiveP1=function() return memory.read_u8(0x0031, "RAM") > 0 end,
+		ActiveP2=function() return memory.read_u8(0x0032, "RAM") > 0 end,
+		maxhp=function() return 0 end,
 	},
 }
 
