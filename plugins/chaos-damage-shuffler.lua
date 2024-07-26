@@ -103,6 +103,7 @@ plugin.description =
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
 	-Donkey Kong Country (SNES), 1p, 2p Contest, or 2p Team
+	-Donkey Kong Country 2: Diddy's Kong Quest (SNES), 1p, 2p Contest, or 2p Team
 	-Double Dragon 1 (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
 	-Double Dragon 2 (NES), 1p or 2p, shuffles on knockdown and death
 	-Einhänder (PSX), 1p
@@ -3985,6 +3986,47 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x000042, "WRAM") == 2 end, -- only applies when mode is 2p Contest
 		-- TODO: bonus game shuffles
 		-- TODO: Can these versions be condensed?
+	},
+	['DKC2_SNES']={ -- Donkey Kong Country 2: Diddy's Kong Quest (SNES) / Super Donkey Kong 2 (SFC)
+		func=iframe_health_swap,
+		is_valid_gamestate=function() return memory.read_u8(0x00060D, "WRAM") <= 2 end,
+		-- not in sound test or cheat entry mode
+		get_iframes=function() 
+			if memory.read_u8(0x16C6, "WRAM") + memory.read_u8(0x16EC, "WRAM") > 20 then
+				-- Diddy (0x16C6) and Dixie (0x16EC) get 96 iframes when the other is hit, so these won't be active at the same time
+				return memory.read_u8(0x16C6, "WRAM") + memory.read_u8(0x16EC, "WRAM")
+				-- and they get a tiny amount of iframes on stomping enemies, so return 0 if iframes are within that buffer
+			end
+			return 0
+		end,
+		other_swaps=function()
+			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x0008BE, "WRAM"))
+			-- tracking deaths of the active player
+			local activeplayer_changed, activeplayer_curr, activeplayer_prev = update_prev("activeplayer", memory.read_u8(0x00060F, "WRAM"))
+			-- 0 == p1, 1 == p2, this changes when active player's life count toggles between p1 and p2 on the 2p contest map
+			-- it also changes in 2p team mode when DK/Diddy tags the other in, but lives won't change then! 
+			return lives_changed and lives_curr < lives_prev and not activeplayer_changed
+				and not (memory.read_u8(0x000DE5, "WRAM") == 1)
+				-- not on map
+		end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() 
+			if memory.read_u8(0x00060D, "WRAM") == 2 and memory.read_u8(0x00060F, "WRAM") == 1 then
+			-- 2p contest with 2p at the controls, so fill in the saved number of lives for inactive p1
+				return 0x00527C
+			else
+				return 0x0008BE
+				-- otherwise, give the active player lives
+			end
+		end,
+		p2livesaddr=function() return 0x0055E1 end, -- need to track 2p lives for 2p Contest mode, this changes nothing in 1p or 2p team modes
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- P1 is always active!
+		ActiveP2=function() return memory.read_u8(0x00060D, "WRAM") == 2 end, -- only applies when mode is 2p Contest
+		-- TODO: doublecheck onmap address
+		-- TODO: bonus game shuffles
+		-- TODO: better behavior on a hard reset?
 	},
 }
 
