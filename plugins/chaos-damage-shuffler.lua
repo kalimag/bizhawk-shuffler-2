@@ -4567,7 +4567,7 @@ if type(tonumber(which_level)) == "number" then
 				if memory.read_u8(0x00002C, "WRAM") == 0 then
 					-- we are on the first level
 					if memory.read_u8(0x000E5E, "WRAM") > 16 then
-						gui.drawText(0, 0, "Deathwarp to " .. bt_snes_level_names[which_level] .. "!")
+						gui.drawText(0, 0, "Take a death and continue to go to " .. bt_snes_level_names[which_level] .. "!")
 						-- write message only when Pimple hasn't yet game-overed, so there is a garbage number for health
 					end
 					if memory.read_u8(0x00002E, "WRAM") == 1 then
