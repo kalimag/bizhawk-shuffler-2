@@ -84,6 +84,12 @@ plugin.description =
 	-Super C/Super Contra/Probotector II (NES), 1p or 2p
 	-Contra III: The Alien Wars/Super Probotector: Alien Rebels/Contra Spirits (SNES), 1p or 2p
 
+	KONG BLOCK
+	-Donkey Kong Country (SNES), 1p, 2p Contest, or 2p Team
+	-Donkey Kong Country 2: Diddy's Kong Quest (SNES), 1p, 2p Contest, or 2p Team
+	-Donkey Kong Country 3: Dixie Kong's Double Trouble (SNES), 1p, 2p Contest, or 2p Team
+	-DKC x Mario (SNES, DKC1 hack by RainbowSprinklez), 1p
+
 	THE LINK/SAMUS BLOCK
 	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
 	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
@@ -102,9 +108,6 @@ plugin.description =
 	-Chip and Dale Rescue Rangers 2 (NES), 1p or 2p
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
-	-Donkey Kong Country (SNES), 1p, 2p Contest, or 2p Team
-	-Donkey Kong Country 2: Diddy's Kong Quest (SNES), 1p, 2p Contest, or 2p Team
-	-Donkey Kong Country 3: Dixie Kong's Double Trouble (SNES), 1p, 2p Contest, or 2p Team
 	-Double Dragon 1 (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
 	-Double Dragon 2 (NES), 1p or 2p, shuffles on knockdown and death
 	-Einhänder (PSX), 1p
@@ -4110,6 +4113,43 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x0004C4, "WRAM") == 2 end, -- only applies when mode is 2p Contest
 		-- TODO: doublecheck onmap address
 		-- TODO: bonus game shuffles
+	},
+	['DKCxMARIO_SNES']={ -- DKC x Mario (SNES), version 1.107 tested
+		func=iframe_health_swap,
+		is_valid_gamestate=function() return memory.read_u8(0x000527, "WRAM") ~= 1 end,
+		-- not on the map
+		get_iframes=function()
+			-- Big Mario took DK's spot, and Small Mario took Diddy's spot.
+			if memory.read_u8(0x00056F, "WRAM") == 1 and memory.read_u8(0x16D5, "WRAM") > 60 then
+				-- Big Mario, note that 60 iframes are awarded on powerups and a small amount of iframes are awarded on stomps
+				return memory.read_u8(0x16D5, "WRAM")
+			elseif memory.read_u8(0x00056F, "WRAM") == 2 and memory.read_u8(0x16D7, "WRAM") > 60 then
+				-- Small Mario
+				return memory.read_u8(0x16D7, "WRAM")
+			end
+			-- return 0 if none of these apply
+			return 0
+		end,
+		other_swaps=function()
+			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x000575, "WRAM"))
+			if lives_changed and lives_curr < lives_prev and not (memory.read_u8(0x000527, "WRAM") == 1) then
+				-- 1 == on map; this is simpler than DKC 1 as there's only one player!
+				return true
+			end
+			local diedfromdamage_changed, diedfromdamage_curr, diedfromdamage_prev = update_prev("diedfromdamage", memory.read_u8(0x1599, "WRAM") == 1)
+			-- this flag *appears* to tick to 1 for one frame, then back to 0, when small Mario dies from damage
+			-- triggering a fadeout and return to checkpoint
+			if diedfromdamage_changed and diedfromdamage_curr == true and not (memory.read_u8(0x000527, "WRAM") == 1) then
+				-- 1 == on map
+				return true
+			end
+		end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x000575 end,
+		-- active player's lives (1p only), lives do not get deducted on dying from damage as small Mario
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- P1 is always active!
 	},
 	['Jackal_NES']={ -- Jackal (NES)
 		func=twoplayers_withlives_swap,
