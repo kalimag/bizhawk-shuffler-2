@@ -124,6 +124,7 @@ plugin.description =
 	-Rock 'n Roll Racing (SNES), 1p
 	-Rocket Knight Adventures (Genesis/Mega Drive), 1p
 	-Snake Rattle 'n Roll (NES), 1p
+	-Star Fox 64 (N64), 1p-4p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	
@@ -4176,6 +4177,47 @@ local gamedata = {
 		ActiveP1=function() return memory.read_u8(0x0031, "RAM") > 0 end,
 		ActiveP2=function() return memory.read_u8(0x0032, "RAM") > 0 end,
 		maxhp=function() return 0 end,
+	},
+	['StarFox64_N64']={ -- Star Fox 64 (N64)
+		func=iframe_health_swap,
+		is_valid_gamestate=function() return 
+			memory.read_u8(0x11B550, "RDRAM") == 1 or
+			-- story mode
+			memory.read_u8(0x11B550, "RDRAM") == 3 or
+			-- all-range mode, includes versus
+			memory.read_u8(0x11B550, "RDRAM") == 247
+			-- training mode
+			-- this may need additional data points to prevent wrong shuffles
+		end,
+		iframe_minimum=function() return 20 end,
+		get_iframes=function()
+			if memory.read_u8(0x11B550, "RDRAM") == 247 then
+				-- training mode
+				if memory.read_u8(0x13AAB7, "RDRAM") < 100 then
+				-- some garbage values in other scenarios can make this address run over the minimum 20 iframes you actually receive on damage
+					return memory.read_u8(0x13AAB7, "RDRAM")
+				end
+			elseif memory.read_u8(0x0DB15B, "RDRAM") == 1 then
+				-- 1 == in battle mode, just add all the iframes together for all four players
+				return memory.read_u8(0x137C4B, "RDRAM") +
+					memory.read_u8(0x13835B, "RDRAM") +
+					memory.read_u8(0x13883B, "RDRAM") +
+					memory.read_u8(0x138D1B, "RDRAM")
+			end
+			-- p1, in story or battle mode
+			if memory.read_u8(0x137BD7, "RDRAM") < 100 then
+				return memory.read_u8(0x137BD7, "RDRAM")
+			end
+			-- otherwise, no iframes are active
+			return 0
+		end,
+		other_swaps=function() return false end, -- the explosion cutscene uses iframes and thus handles p1 deaths in story mode
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x157911 end,
+		-- importantly, we have to write just one byte
+		LivesWhichRAM=function() return "RDRAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- P1 is always active! lives do not apply elsewhere
 	},
 }
 
