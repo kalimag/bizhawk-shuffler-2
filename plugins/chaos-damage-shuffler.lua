@@ -117,6 +117,7 @@ plugin.description =
 	-Jackal (NES), 1p or 2p
 	-Kirby's Adventure (NES), 1p
 	-Last Alert (TG-16 CD), 1p
+	-Little Samson (NES), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
@@ -4218,6 +4219,48 @@ local gamedata = {
 		LivesWhichRAM=function() return "RDRAM" end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- P1 is always active! lives do not apply elsewhere
+	},
+	['LittleSamson_NES']={ -- Little Samson, NES
+		func=singleplayer_withlives_swap,
+		-- we'll track every character's hp and maxhp individually
+		-- so that dying due to lost health shuffles when the life counter ticks down
+		gmode=function() return memory.read_u8(0x0050, "RAM") <= 3 end,
+		-- characters are numbered 0 to 3 at this address
+		p1gethp=function()
+			if memory.read_u8(0x0050, "RAM") == 3 then
+				return memory.read_u8(0x009A, "RAM")
+			elseif memory.read_u8(0x0050, "RAM") == 2 then
+				return memory.read_u8(0x0099, "RAM")
+			elseif memory.read_u8(0x0050, "RAM") == 1 then
+				return memory.read_u8(0x0098, "RAM")
+			else
+				return memory.read_u8(0x0097, "RAM")
+			end
+		end,
+		p1getlc=function() return memory.read_u8(0x0091, "RAM") end,
+		-- lives are shared across characters!
+		maxhp=function()
+			if memory.read_u8(0x0050, "RAM") == 3 then
+				return memory.read_u8(0x0096, "RAM")
+			elseif memory.read_u8(0x0050, "RAM") == 2 then
+				return memory.read_u8(0x0095, "RAM")
+			elseif memory.read_u8(0x0050, "RAM") == 1 then
+				return memory.read_u8(0x0094, "RAM")
+			else
+				return memory.read_u8(0x0093, "RAM")
+			end
+		end,
+		gettogglecheck=function() 
+			local character_changed, character_curr, character_prev = update_prev("character", memory.read_u8(0x0050, "RAM"))
+			-- characters have different max health.
+			-- if active character swaps, health may go down as a result, don't swap on that.
+			return character_changed
+		end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x0091 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
 
