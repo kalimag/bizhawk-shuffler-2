@@ -128,6 +128,7 @@ plugin.description =
 	-Star Fox 64 (N64), 1p-4p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
+	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
 	
 	NICHE ZONE
 	- NES 240p Suite: shuffles on every second that passes in Stopwatch Mode. Can be useful for keeping Infinite Lives and shuffling alive with one "real" game left, or for testing a single game.
@@ -4261,6 +4262,47 @@ local gamedata = {
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['WarioWare_GBA']={ -- WarioWare, Inc. / Made in Wario, GBA
+		func=singleplayer_withlives_swap,
+		p1getlc=function() return memory.read_u8(0x39D5, "IWRAM") end,
+		-- consider tries remaining in microgames to be lives - this is the primary mechanism for swaps
+		-- HP will apply only to specific game modes that don't tick down your 4 tries
+		p1gethp=function()
+			if memory.read_u8(0x3ADC, "IWRAM") == 0xD9 then
+				-- boxing, you get three HP
+				return memory.read_u8(0x5769, "IWRAM")
+			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xD7 then
+				-- baseball
+				-- 0x5831 == target to hit out of 10 balls, 11 - this == maxhp as you can miss that many balls before losing a life
+				-- 0x57D9 == balls thrown, 0x57DA == balls hit, 0x57DB == balls missed; all change on same frame
+				-- so, calculate 11 - maxhp - balls missed
+				return 11 - memory.read_u8(0x5831, "IWRAM") - memory.read_u8(0x57DB, "IWRAM")
+			else
+				return 0
+			end
+		end,
+		maxhp=function()
+			if memory.read_u8(0x3ADC, "IWRAM") == 0xD9 then
+				-- boxing, you get three HP
+				return 3
+			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xD7 then
+				-- 0x5831 == target to hit out of 10 balls, 11 - this == maxhp as you can miss that many balls before losing a life
+				return 11 - memory.read_u8(0x5831, "IWRAM")
+			else
+				return 0
+			end
+		end,
+		gettogglecheck=function() 
+			local progress_changed, progress_curr, progress_prev = update_prev("progress", memory.read_u8(0x39DC, "IWRAM"))
+			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x39D5, "IWRAM"))
+			-- progress and lives change on the same frame. if you make progress, and you don't lose a life, you should never swap.
+			-- creating this toggle will solve problems like HP for boxing/baseball resetting on the same frame if you progress to next round.
+			return progress_changed and not lives_changed
+		end,
+		CanHaveInfiniteLives=false,
+		-- may add a option for this in the future, but you don't lose *progress* in the story if you game over (similar to Mega Man)
+		-- would also need to consider modes that don't use lives
 	},
 }
 
