@@ -34,7 +34,7 @@ MAX_INTEGER = 99999999
 function log_message(msg, quiet)
 	if not quiet then print(msg) end
 
-	local handle, err = io.open('message.log', 'a')
+	local handle = io.open('message.log', 'a')
 	if handle == nil then return end
 	handle:write(os.date("[%X] "))
 	handle:write(tostring(msg))
@@ -143,14 +143,22 @@ function write_data(filename, data, mode)
 	handle:close()
 end
 
-function table_subtract(t2, t1)
-	local t = {}
-	for i = 1, #t1 do
-		t[t1[i]] = true
+-- Create a lookup table where each key is a value from list
+local function to_lookup(list, lowercase)
+	local lookup = {}
+	for _, value in pairs(list) do
+		if lowercase then value = value:lower() end
+		lookup[value] = true
 	end
-	for i = #t2, 1, -1 do
-		if t[t2[i]] then
-			table.remove(t2, i)
+	return lookup
+end
+
+function table_subtract(target, remove, ignore_case)
+	local remove_lookup = to_lookup(remove, ignore_case)
+	for i = #target, 1, -1 do
+		local value = target[i]
+		if remove_lookup[value] or (ignore_case and remove_lookup[value:lower()]) then
+			table.remove(target, i)
 		end
 	end
 end
@@ -167,7 +175,7 @@ function get_dir_contents(dir, tmp, force)
 	end
 
 	local file_list = {}
-	local fp = io.open(TEMP_FILE, 'r')
+	local fp = assert(io.open(TEMP_FILE, 'r'))
 	for x in fp:lines() do
 		table.insert(file_list, x)
 	end
@@ -176,33 +184,43 @@ function get_dir_contents(dir, tmp, force)
 end
 
 -- types of files to ignore in the games directory
-local IGNORED_FILE_EXTS = { '.msu', '.pcm', '.txt', '.ini' }
+local IGNORED_FILE_EXTS = to_lookup({ '.msu', '.pcm', '.txt', '.ini' })
+
+local function get_ext(name)
+	local ext = name:match("%.[^.]+$")
+	return ext and ext:lower() or ""
+end
 
 -- get list of games
 function get_games_list(force)
 	local LIST_FILE = '.games-list.txt'
 	local games = get_dir_contents(GAMES_FOLDER, GAMES_FOLDER .. '/' .. LIST_FILE, force or false)
 	local toremove = {}
+	local toremove_ignore_case = {}
 
 	-- find .cue files and remove the associated bin/iso
 	for _,filename in ipairs(games) do
-		if ends_with(filename, '.cue') then
+		local extension = get_ext(filename)
+		if extension == '.cue' then
 			-- open the cue file, oh god here we go...
-			fp = io.open(GAMES_FOLDER .. '/' .. filename, 'r')
+			local fp = assert(io.open(GAMES_FOLDER .. '/' .. filename, 'r'))
 			for line in fp:lines() do
-				-- look for the line that starts with FILE and remove the rest of the stuff
-				if starts_with(line, "FILE") and ends_with(line, "BINARY") then
-					table.insert(toremove, line:sub(7, -9))
+				local ref_file = line.match(line, '^%s*FILE%s+"(.-)"') or line.match(line, '^%s*FILE%s+(%g+)') -- quotes optional
+				if ref_file then
+					table.insert(toremove_ignore_case, ref_file)
+					-- BizHawk automatically looks for these even if the .cue only references foo.bin
+					table.insert(toremove_ignore_case, ref_file .. '.ecm')
 				end
 			end
 			fp:close()
 		-- ccd/img format?
-		elseif ends_with(filename, '.ccd') then
+		elseif extension == '.ccd' then
 			local primary = filename:sub(1, #filename-4)
 			table.insert(toremove, primary .. '.img')
+			table.insert(toremove, primary .. '.img.ecm')
 			table.insert(toremove, primary .. '.sub')
-		elseif ends_with(filename, '.xml') then
-			fp = io.open(GAMES_FOLDER .. '/' .. filename, 'r')
+		elseif extension == '.xml' then
+			local fp = assert(io.open(GAMES_FOLDER .. '/' .. filename, 'r'))
 			local xml = fp:read("*all")
 			fp:close()
 
@@ -213,18 +231,15 @@ function get_games_list(force)
 					table.insert(toremove, asset)
 				end
 			end
-		end
-
-		for _,ext in ipairs(IGNORED_FILE_EXTS) do
-			if ends_with(filename, ext) then
-				table.insert(toremove, filename)
-			end
+		elseif IGNORED_FILE_EXTS[extension] then
+			table.insert(toremove, filename)
 		end
 	end
 
-	table_subtract(games, toremove)
+	table_subtract(games, toremove, PLATFORM == 'WIN')
+	table_subtract(games, toremove_ignore_case, true) -- cue file resolving ignores case even on linux
 	table_subtract(games, { LIST_FILE })
-	table_subtract(games, config.completed_games)
+	table_subtract(games, config.completed_games, PLATFORM == 'WIN')
 	return games
 end
 
@@ -331,9 +346,9 @@ function load_game(g)
 		return false
 	end
 
-	client.openrom(filename)
-
-	if is_rom_loaded() then
+	local success = client.openrom(filename)
+	-- Compare against false explicitly because BizHawk <2.9.1 doesn't return success bool
+	if success ~= false and is_rom_loaded() then
 		log_debug('ROM loaded: %s "%s" (%s)', emu.getsystemid(), gameinfo.getromname(), gameinfo.getromhash())
 		on_game_load()
 		return true
@@ -523,7 +538,7 @@ end
 function output_completed()
 	if config.output_files >= 1 then
 		local completed = ""
-		for i,game in ipairs(config.completed_games) do
+		for _, game in ipairs(config.completed_games) do
 			completed = completed .. strip_ext(game) .. '\n'
 		end
 		write_data('output-info/completed-games.txt', completed)
@@ -565,7 +580,7 @@ function cwd()
 	end
 	os.execute(cmd)
 
-	local fp = io.open(DEFAULT_CMD_OUTPUT, 'r')
+	local fp = assert(io.open(DEFAULT_CMD_OUTPUT, 'r'))
 	local resp = fp:read("*all")
 	fp:close()
 	return resp:match( "^%s*(.+)%s*$" )
@@ -645,7 +660,7 @@ end
 
 function get_tag_from_hash_db(target, database)
 	local resp = nil
-	local fp = io.open(database, 'r')
+	local fp = assert(io.open(database, 'r'))
 	for x in fp:lines() do
 		local hash, tag = x:match("^([0-9A-Fa-f]+)%s+(%S+)")
 		if hash == target then resp = tag; break end
