@@ -4288,17 +4288,24 @@ local gamedata = {
 				return 3
 			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xD7 then
 				-- 0x5831 == target to hit out of 10 balls, 11 - this == maxhp as you can miss that many balls before losing a life
-				return 11 - memory.read_u8(0x5831, "IWRAM")
+				-- if it hasn't loaded yet, return 0
+					if memory.read_u8(0x5831, "IWRAM") == 0 then
+						return 0
+					else
+						return 11 - memory.read_u8(0x5831, "IWRAM")
+					end
 			else
 				return 0
 			end
 		end,
-		gettogglecheck=function() 
+		gettogglecheck=function()
+			local gameon_changed, gameon_curr, gameon_prev = update_prev("gameon", memory.read_u8(0x0118, "IWRAM"))
+			-- value ticks from 0 to 1 and back when you enter a game mode versus stay on the game selection grid
 			local progress_changed, progress_curr, progress_prev = update_prev("progress", memory.read_u8(0x39DC, "IWRAM"))
 			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x39D5, "IWRAM"))
 			-- progress and lives change on the same frame. if you make progress, and you don't lose a life, you should never swap.
 			-- creating this toggle will solve problems like HP for boxing/baseball resetting on the same frame if you progress to next round.
-			return progress_changed and not lives_changed
+			return gameon_changed or (progress_changed and not lives_changed)
 		end,
 		CanHaveInfiniteLives=false,
 		-- may add a option for this in the future, but you don't lose *progress* in the story if you game over (similar to Mega Man)
