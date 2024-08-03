@@ -129,6 +129,7 @@ plugin.description =
 	-Star Fox 64 (N64), 1p-4p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
+	-Super Monkey Ball Jr. (GBA), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
 	
 	NICHE ZONE
@@ -4345,6 +4346,20 @@ local gamedata = {
 		maxlives=function() return 3 end,
 		p1livesaddr=function() return 0x0043 end,
 		LivesWhichRAM=function() return "RAM" end,
+	},
+	['JUNKY_BALL_MR_GBA']={ -- Super Monkey Ball Jr., GBA
+		func=singleplayer_withlives_swap,
+		p1getlc=function() return memory.read_s8(0x2ADC, "EWRAM") end,
+		p1gethp=function() return 1 end, -- No HP in this game
+		maxhp=function() return 1 end, -- Again, no HP in this game
+		gmode=function() return memory.read_u8(0x1CE, "EWRAM") == 85 end, -- Not 100% sure about this, but seems good
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x2ADC end,
+		LivesWhichRAM=function() return "EWRAM" end,
+		maxlives=function() return 99 end, -- 127+1 wraps around to -128, and
+		-- you get 1ups for 50 bananas that doesn't account for that, so 99 is a
+		-- safe compromise. 3 lives max drawn on HUD, but higher values do count
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
 
