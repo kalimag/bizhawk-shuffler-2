@@ -101,6 +101,7 @@ plugin.description =
 	ADDITIONAL GOODIES
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Banjo-Kazooie (N64), 1p
+	-Batman (NES), 1p
 	-Blades of Steel (NES - NA/Europe), 1p or 2p
 	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
@@ -4359,6 +4360,19 @@ local gamedata = {
 		maxlives=function() return 99 end, -- 127+1 wraps around to -128, and
 		-- you get 1ups for 50 bananas that doesn't account for that, so 99 is a
 		-- safe compromise. 3 lives max drawn on HUD, but higher values do count
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['BATMAN_NES']={ -- Batman, NES
+		func=singleplayer_withlives_swap,
+		p1getlc=function() return memory.read_s8(0xBE, "RAM") end,
+		p1gethp=function() return memory.read_u8(0xB7, "RAM") end,
+		maxhp=function() return 8 end,
+		gmode=function() return memory.read_u8(0x3D, "RAM") == 0 end, -- Confirmed with the disassembly of one "pwnskar"
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0xBE end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 9 end, -- Anything higher corrupts the pause menu graphics,
+		-- but technically works; anything negative, however, immediately triggers a Game Over
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
