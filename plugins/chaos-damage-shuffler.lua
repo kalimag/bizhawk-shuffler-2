@@ -126,6 +126,7 @@ plugin.description =
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Rock 'n Roll Racing (SNES), 1p
 	-Rocket Knight Adventures (Genesis/Mega Drive), 1p
+	-Rollergames (NES), 1p
 	-Snake Rattle 'n Roll (NES), 1p
 	-Star Fox 64 (N64), 1p-4p
 	-Super Dodge Ball (NES), 1p or 2p, all modes
@@ -4373,6 +4374,18 @@ local gamedata = {
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 9 end, -- Anything higher corrupts the pause menu graphics,
 		-- but technically works; anything negative, however, immediately triggers a Game Over
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Rollergames_NES']={ -- Rollergames, NES
+		func=singleplayer_withlives_swap,
+		p1getlc=function() return memory.read_u8(0x0032, "RAM") end,
+		p1gethp=function() return memory.read_u8(0x04CE, "RAM") end,
+		maxhp=function() return 12 end,
+		delay=10,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x32 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 0x6B end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
