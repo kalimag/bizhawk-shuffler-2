@@ -4278,6 +4278,14 @@ local gamedata = {
 				-- 0x57D9 == balls thrown, 0x57DA == balls hit, 0x57DB == balls missed; all change on same frame
 				-- so, calculate 11 - maxhp - balls missed
 				return 11 - memory.read_u8(0x5831, "IWRAM") - memory.read_u8(0x57DB, "IWRAM")
+			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xE4 then
+				-- fly swatter
+				if memory.read_u8(0x6366, "IWRAM") == 255 then
+					-- 255 == game over, 0 means 0 extra hands
+					return 0
+				else 
+					return memory.read_u8(0x6366, "IWRAM") + 1
+				end
 			else
 				return 0
 			end
@@ -4294,6 +4302,9 @@ local gamedata = {
 					else
 						return 11 - memory.read_u8(0x5831, "IWRAM")
 					end
+			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xE4 and memory.read_u8(0x0118, "IWRAM") == 1 then
+				-- fly swatter: game won't drop extra hands if you have 6 banked, make sure you are in active mode
+					return 6
 			else
 				return 0
 			end
