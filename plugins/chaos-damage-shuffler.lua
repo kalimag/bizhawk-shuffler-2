@@ -56,8 +56,8 @@ plugin.description =
 	-Castlevania: Dracula X (SNES), 1p
 	-Castlevania: Bloodlines (Genesis/Mega Drive), 1p
 	-Castlevania: Rondo of Blood (TG16-CD), 1p
-	-Castlevania (N64), 1p
-	-Castlevania: Legacy of Darkness (N64), 1p
+	-Castlevania (N64), 1p (in-progress, grabbing shuffles excessively)
+	-Castlevania: Legacy of Darkness (N64), 1p (in-progress, grabbing and poison shuffle excessively)
 	-Castlevania: Symphony of the Night (PSX), 1p
 	-Castlevania: Aria of Sorrow (GBA), 1p
 	-Castlevania: Dawn of Sorrow (DS), 1p
