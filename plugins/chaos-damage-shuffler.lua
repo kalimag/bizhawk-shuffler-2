@@ -198,6 +198,8 @@ plugin.description =
 local NO_MATCH = 'NONE'
 
 local tags = {}
+local tag
+local gamemeta
 local prevdata
 local swap_scheduled
 local shouldSwap
@@ -4335,7 +4337,7 @@ local function get_game_tag()
 end
 
 local function BT_NES_Zitz_Override()
-	if get_game_tag() == "BT_NES" -- unpatched Battletoads NES
+	if tag == "BT_NES" -- unpatched Battletoads NES
 		and memory.read_u8(0x000D, "RAM") == 11 -- in Clinger-Winger
 		and memory.read_u8(0x0011, "RAM") ~= 255 -- Rash is alive
 	then
@@ -4350,7 +4352,7 @@ function plugin.on_game_load(data, settings)
 	swap_scheduled = false
 	shouldSwap = function() return false end
 	
-	local tag = tags[gameinfo.getromhash()] or get_game_tag()
+	tag = tags[gameinfo.getromhash()] or get_game_tag()
 	tags[gameinfo.getromhash()] = tag or NO_MATCH
 	
 	---------------
@@ -4369,21 +4371,21 @@ function plugin.on_game_load(data, settings)
 	if type(tonumber(which_level)) == "number" then
 		which_level = tonumber(which_level)
 		-- BT_NES
-		if get_game_tag(current_game) == "BT_NES" or get_game_tag(current_game) == "BT_NES_patched" then
+		if tag == "BT_NES" or tag == "BT_NES_patched" then
 			if which_level >13 or which_level <1 or which_level == nil then
 				which_level = 1
 			end
 		end
 		-- BT_SNES
-		if get_game_tag(current_game) == "BT_SNES" then
+		if tag == "BT_SNES" then
 			if which_level >8 or which_level <1 then
 				which_level = 1
 			end
 		end
 		-- BTDD (both)
-		if get_game_tag(current_game) == "BTDD_NES"
-			or get_game_tag(current_game) == "BTDD_SNES"
-			or get_game_tag(current_game) == "BTDD_SNES_patched"
+		if tag == "BTDD_NES"
+			or tag == "BTDD_SNES"
+			or tag == "BTDD_SNES_patched"
 		then
 			if which_level >14 or which_level <1 then
 				which_level = 1
@@ -4455,7 +4457,7 @@ function plugin.on_game_load(data, settings)
 	-- can use this to print a debug message only the first time
 	
 	if tag ~= nil and tag ~= NO_MATCH then
-		local gamemeta = gamedata[tag]
+		gamemeta = gamedata[tag]
 		local func = gamemeta.func
 		shouldSwap = func(gamemeta)
 		
@@ -4512,6 +4514,8 @@ function plugin.on_game_load(data, settings)
 				end
 			end
 		end
+	else
+		gamemeta = nil
 	end
 
 	-- log stuff
@@ -4549,11 +4553,6 @@ function plugin.on_game_load(data, settings)
 end
 
 function plugin.on_frame(data, settings)
-	
-	-- we have to grab the game's tags to know whether to do level skipping, infinite lives on frame, etc.
-	local tag = get_game_tag()
-	local gamemeta = gamedata[tag]
-	
 	-- Which level to patch into on game load?
 	-- Grab the first two characters of the filename, turned into a number.
 	local which_level_filename = string.sub((tostring(config.current_game)),1,2)
@@ -4562,15 +4561,15 @@ function plugin.on_frame(data, settings)
 if type(tonumber(which_level)) == "number" then 
 	which_level = tonumber(which_level)
 	--BT_NES
-		if get_game_tag(current_game) == "BT_NES" or get_game_tag(current_game) == "BT_NES_patched" then 
+		if tag == "BT_NES" or tag == "BT_NES_patched" then 
 		if which_level >13 or which_level <1 or which_level == nil then which_level = 1 end
 		end
 	--BT_SNES
-		if get_game_tag(current_game) == "BT_SNES" then 
+		if tag == "BT_SNES" then 
 		if which_level >8 or which_level <1 then which_level = 1 end
 		end
 	--BTDD (both)
-		if get_game_tag(current_game) == "BTDD_NES" or get_game_tag(current_game) == "BTDD_SNES" or get_game_tag(current_game) == "BTDD_SNES_patched" then 
+		if tag == "BTDD_NES" or tag == "BTDD_SNES" or tag == "BTDD_SNES_patched" then 
 		if which_level >14 or which_level <1 then which_level = 1 end
 		end
 	else 
@@ -4604,7 +4603,7 @@ if type(tonumber(which_level)) == "number" then
 		end
 	end
 	
-	if tag ~= nil and tag ~= NO_MATCH then
+	if gamemeta then
 		-- Infinite* Lives ON FRAME - set lives to max on frame when we are either on the last game or in a game that requires it
 		local MustDoInfiniteLivesOnFrame = false
 		if gamemeta.MustDoInfiniteLivesOnFrame then MustDoInfiniteLivesOnFrame = gamemeta.MustDoInfiniteLivesOnFrame() end
