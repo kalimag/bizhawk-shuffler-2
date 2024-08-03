@@ -132,6 +132,7 @@ plugin.description =
 	-Super Dodge Ball (NES), 1p or 2p, all modes
 	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	-Super Monkey Ball Jr. (GBA), 1p
+	-U.N. Squadron (SNES), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
 	
 	NICHE ZONE
@@ -4386,6 +4387,17 @@ local gamedata = {
 		p1livesaddr=function() return 0x32 end,
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 0x6B end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['UNSquadron_SNES']={ -- U.N. Squadron, SNES
+		func=singleplayer_withlives_swap,
+		p1getlc=function() return memory.read_u8(0x00F4, "WRAM") end,
+		p1gethp=function() return memory.read_u8(0x1008, "WRAM") end,
+		maxhp=function() return 8 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x00F4 end,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
