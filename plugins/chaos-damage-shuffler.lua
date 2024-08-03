@@ -118,6 +118,7 @@ plugin.description =
 	-Kirby's Adventure (NES), 1p
 	-Last Alert (TG-16 CD), 1p
 	-Little Samson (NES), 1p
+	-Magical Kid's Doropie / Krion Conquest (NES), 1p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
