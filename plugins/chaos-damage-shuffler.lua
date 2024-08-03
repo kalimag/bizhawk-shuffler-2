@@ -4311,6 +4311,27 @@ local gamedata = {
 		-- may add a option for this in the future, but you don't lose *progress* in the story if you game over (similar to Mega Man)
 		-- would also need to consider modes that don't use lives
 	},
+	['MagicalDoropie_NES']={ -- Magical Doropie / Krion Conquest, NES
+		func=iframe_health_swap,
+		get_health=function() return memory.read_u8(0x004C, "RAM") end,
+		get_iframes=function() return memory.read_u8(0x03E0, "RAM") end,
+		is_valid_gamestate=function()
+			-- During gameplay, 004C is health and 004D is death indicator. Elsewhere, 004C..004D is a jump address
+			-- So don't swap if 004D is non-zero, except in the case of 0001=zero health+dying
+			return (memory.read_u8(0x004D, "RAM") == 0 or memory.read_u16_be(0x004C, "RAM") == 0x0001) and
+				memory.read_u32_le(0x0030, "RAM") ~= 0 -- just random memory that's zeroed during reset and nonzero otherwise
+		end,
+		other_swaps=function() end,
+		CanHaveInfiniteLives=true,
+		ActiveP1=function()
+			return (memory.read_u8(0x004D, "RAM") == 0 or memory.read_u16_be(0x004C, "RAM") == 0x0001) and
+				memory.read_u32_le(0x0030, "RAM") ~= 0
+		end,
+		-- Strange, it's reading this as BCD for display, but otherwise treating this as a signed byte
+		maxlives=function() return 3 end,
+		p1livesaddr=function() return 0x0043 end,
+		LivesWhichRAM=function() return "RAM" end,
+	},
 }
 
 local backupchecks = {
