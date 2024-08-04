@@ -99,6 +99,7 @@ plugin.description =
 	Other randomizers (e.g., ZOoTR) haven't been tested yet!!
 
 	ADDITIONAL GOODIES
+	-ActRaiser (SNES) (platforming segments only; use Professional or Action Mode, or the arcade ROM)
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Banjo-Kazooie (N64), 1p
 	-Batman (NES), 1p
@@ -4398,6 +4399,36 @@ local gamedata = {
 		p1livesaddr=function() return 0x00F4 end,
 		LivesWhichRAM=function() return "WRAM" end,
 		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['ACTRAISER_SNES']={ -- ActRaiser, SNES
+		func=singleplayer_withlives_swap,
+		gmode=function()
+			return (memory.read_u8(0x18, "WRAM") >= 1 -- Platformer mode (1-7)
+				and memory.read_u8(0x18, "WRAM") <= 8) -- or Game Over (8)
+		end,
+		p1getlc=function()
+			if memory.read_u8(0x18, "WRAM") == 8 then
+				return 0
+			end
+
+			-- Need to convert binary-coded decimal hexadecimal value to just plain decimal
+			local livesHex = memory.read_u8(0x1C, "WRAM")
+			-- Get upper nybble, bit-shift right 4 bits
+			local tens = (livesHex & 0xF0)>>4
+			-- Just the lower nybble
+			local ones = livesHex & 0x0F
+			-- Merge 'em
+			local lives = (tens * 10) + ones
+			-- ActRaiser actually offsets lives by 1 for some reason
+			return lives+1
+		end,
+		p1gethp=function() return memory.read_u8(0x1D, "WRAM") end,
+		maxhp=function() return memory.read_u8(0x1E, "WRAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x1C end,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 0x98 end, -- Counts as 99
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
