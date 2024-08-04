@@ -16,7 +16,7 @@ A31B8BD5B370A9103343C866F3C2B2998E889341 CV1_NES                      -- Castlev
 7A20C44F302FB2F1B7ADFFA6B619E3E1CAE7B546 CV1_NES                      -- Castlevania NES (US Rev A)
 B0F32CE093DE3D741A8A4DE7D7EE04AC6756C6E8 CV1_NES                      -- Castlevania NES (US 1.0) (No Intro Headered)
 EE09B857C90916EDD92A20C463485A610B0A76FD CV1_NES                      -- Castlevania NES (US 1.0) (No Intro Headerless)
-A685322FFAFAF8CCB20A78F8E0F9756B154F0772 CV1_NES                      -- Castlevania NES death counter hack (needs rework for shuffle on death, however)
+A685322FFAFAF8CCB20A78F8E0F9756B154F0772 CV1_deathcounter_NES         -- Castlevania NES death counter hack
 D6B96FD98AE480C694A103FE9A5D7D84EEAFB6F7 CV2_NES                      -- Castlevania II NES (US)
 5CFF70F8313A5EA9058E53CE933C02175E1275CB CV2_NES                      -- Castlevania II NES (US) (No Intro Headered)
 2447D6133573F7ED2CC49DC95B3130427BD4DC35 CV2_NES                      -- Castlevania II NES (US) (No Intro Headerless)

@@ -2699,6 +2699,19 @@ local gamedata = {
 		maxlives=function() return 70 end,
 		ActiveP1=function() return memory.read_u8(0x0045, "RAM") == 0 or memory.read_u8(0x0045, "RAM") == 64 end,
 	},
+	['CV1_deathcounter_NES']={ -- Castlevania I, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0045, "RAM") end,
+		p1getlc=function() 
+			if memory.read_u8(0x002A, "RAM") > 0 then 
+				return memory.read_u8(0x002A, "RAM") * -1
+			end
+			return -1
+		end,
+		-- a clever trick to get past the title screen starting you on 0 deaths and ticking you up to 1 on game start
+		maxhp=function() return 64 end,
+		CanHaveInfiniteLives=false, -- the lives count up, not down, so they are already infinite
+	},
 	['CV2_NES']={ -- Castlevania II, NES
 		func=iframe_health_swap,
 		is_valid_gamestate=function()
