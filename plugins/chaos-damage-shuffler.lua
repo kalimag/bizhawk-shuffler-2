@@ -4160,8 +4160,8 @@ local gamedata = {
 				-- 1 == on map; this is simpler than DKC 1 as there's only one player!
 				return true
 			end
-			local diedfromdamage_changed, diedfromdamage_curr, diedfromdamage_prev = update_prev("diedfromdamage", memory.read_u8(0x1599, "WRAM") == 1)
-			-- this flag *appears* to tick to 1 for one frame, then back to 0, when small Mario dies from damage
+			local diedfromdamage_changed, diedfromdamage_curr, diedfromdamage_prev = update_prev("diedfromdamage", memory.read_u8(0x0D15, "WRAM") == 216)
+			-- this appears to be the Mario dying sprite, which triggers when you die from damage
 			-- triggering a fadeout and return to checkpoint
 			if diedfromdamage_changed and diedfromdamage_curr == true and not (memory.read_u8(0x000527, "WRAM") == 1) then
 				-- 1 == on map
