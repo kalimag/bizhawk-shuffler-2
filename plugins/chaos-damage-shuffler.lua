@@ -10,6 +10,7 @@ plugin.settings =
 	{ name='BTSNESRash', type='boolean', label='BT SNES: I want Rash, pick 2P, give Pimple 1 HP'},
 	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized"/"on Level 1" logs'},
 	{ name='SMW2YI_MiniBonusSwaps', type='boolean', label="Yoshi's Island: Shuffle on Mini Battle damage/loss", default=true},
+	{ name='IceClimberBonusSwaps', type='boolean', label="Ice Climber (NES): Shuffle on failing the bonus game"},
 	{ name='grace', type='number', label='Grace period between swaps (minimum 10 frames)', default=10 },
 }
 
@@ -3633,6 +3634,10 @@ local gamedata = {
 		maxlives=function() return 69 end,
 		ActiveP1=function() return memory.read_u8(0x0020, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
 		ActiveP2=function() return memory.read_u8(0x0021, "RAM") ~= 252 end, -- 0 on start, 252 if player out of lives
+		DisableExtraSwaps=function() return 
+			(memory.read_u8(0x0055, "RAM") == 3 and memory.read_u8(0x001E, "RAM") == 0) or -- p1 fails at bonus
+			(memory.read_u8(0x0055, "RAM") == 3 and memory.read_u8(0x001E, "RAM") == 0) -- p2 fails at bonus
+		end
 	},
 	['DarkwingDuck_NES']={ -- Darkwing Duck (NES)
 		func=singleplayer_withlives_swap,
@@ -4720,6 +4725,15 @@ if type(tonumber(which_level)) == "number" then
 		
 		-- Yoshi's Island (SNES)
 		if tag == "SMW2YI_SNES" and settings.SMW2YI_MiniBonusSwaps ~= true then
+		-- can add "or this game+setting, that game+setting, etc." in the future
+			if gamemeta.DisableExtraSwaps() == true then 
+				return 
+				-- don't swap
+			end
+		end
+		
+		-- Ice Climber (NES)
+		if tag == "IceClimber_NES" and settings.IceClimberBonusSwaps ~= true then
 		-- can add "or this game+setting, that game+setting, etc." in the future
 			if gamemeta.DisableExtraSwaps() == true then 
 				return 
