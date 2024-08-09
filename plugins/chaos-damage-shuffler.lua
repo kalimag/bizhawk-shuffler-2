@@ -4144,10 +4144,11 @@ local gamedata = {
 		-- not on the map
 		get_iframes=function()
 			-- Big Mario took DK's spot, and Small Mario took Diddy's spot.
-			if memory.read_u8(0x00056F, "WRAM") == 1 and memory.read_u8(0x16D5, "WRAM") > 60 then
-				-- Big Mario, note that 60 iframes are awarded on powerups and a small amount of iframes are awarded on stomps
+			if memory.read_u8(0x00056F, "WRAM") == 1 and memory.read_u8(0x16D5, "WRAM") > 60 and memory.read_u8(0x16D5, "WRAM") <= 112 then
+				-- Big Mario, note that 60 iframes are awarded on powerups 
+				-- a small amount of iframes are awarded on stomps, and 255 (!) iframes on successful spin stomps (which skips back to 0 shortly afterward)
 				return memory.read_u8(0x16D5, "WRAM")
-			elseif memory.read_u8(0x00056F, "WRAM") == 2 and memory.read_u8(0x16D7, "WRAM") > 60 then
+			elseif memory.read_u8(0x00056F, "WRAM") == 2 and memory.read_u8(0x16D7, "WRAM") > 60 and memory.read_u8(0x16D7, "WRAM") <= 112 then
 				-- Small Mario
 				return memory.read_u8(0x16D7, "WRAM")
 			end
