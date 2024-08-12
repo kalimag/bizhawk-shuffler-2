@@ -2997,6 +2997,11 @@ local gamedata = {
 			return lives_changed and lives_curr < lives_prev -- we have died
 				and health_prev ~= 0 -- died from instant death
 		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0700 end,
+		maxlives=function() return 8 end,
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['Zelda_LA']={ -- Link's Awakening (DX), GB/GBC
 		-- instead of damage directly lowering health, it's put into a "damage buffer" that then lowers health per frame
