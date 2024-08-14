@@ -125,6 +125,7 @@ plugin.description =
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
+	-PaRappa the Rapper (PSX), 1p - shuffles on dropping a rank
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Rock 'n Roll Racing (SNES), 1p
 	-Rocket Knight Adventures (Genesis/Mega Drive), 1p
@@ -4454,6 +4455,15 @@ local gamedata = {
 		LivesWhichRAM=function() return "WRAM" end,
 		maxlives=function() return 0x98 end, -- Counts as 99
 		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['PaRappa1_PS1']={ -- PaRappa the Rapper, PSX
+		func=singleplayer_withlives_swap,
+		gmode=function() return memory.read_u8(0x1C3670, "MainRAM") > 0 end, -- if no points yet, no shuffle, should help avoid shuffles between rounds and give leeway at the top of a round
+		p1gethp=function() return 0 end, -- for now, we'll only shuffle on dropping a rank
+		-- p1gethp=function() return memory.read_u8(0x1C3670, "MainRAM") end, -- use this to shuffle on losing points for ANY line, very unforgiving
+		p1getlc=function() return memory.read_u8(0x1C368E, "MainRAM")*-1 end, -- u rappin cool (0)/good (1)/bad (2)/awful (3), inverted so worse is lower
+		maxhp=function() return 999 end, -- 999 points is the max
+		CanHaveInfiniteLives=false,
 	},
 }
 
