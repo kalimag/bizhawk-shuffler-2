@@ -4313,12 +4313,7 @@ local gamedata = {
 				return 11 - memory.read_u8(0x5831, "IWRAM") - memory.read_u8(0x57DB, "IWRAM")
 			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xE4 then
 				-- fly swatter
-				if memory.read_u8(0x6366, "IWRAM") == 255 then
-					-- 255 == game over, 0 means 0 extra hands
-					return 0
-				else 
-					return memory.read_u8(0x6366, "IWRAM") + 1
-				end
+					return memory.read_s8(0x6366, "IWRAM") + 1
 			else
 				return 0
 			end
@@ -4335,21 +4330,25 @@ local gamedata = {
 					else
 						return 11 - memory.read_u8(0x5831, "IWRAM")
 					end
-			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xE4 and memory.read_u8(0x0118, "IWRAM") == 1 then
+			elseif memory.read_u8(0x3ADC, "IWRAM") == 0xE4 and memory.read_u8(0x39D3, "IWRAM") == 1 then
 				-- fly swatter: game won't drop extra hands if you have 6 banked, make sure you are in active mode
-					return 6
+					return 7
 			else
 				return 0
 			end
 		end,
 		gettogglecheck=function()
-			local gameon_changed, gameon_curr, gameon_prev = update_prev("gameon", memory.read_u8(0x0118, "IWRAM"))
-			-- value ticks from 0 to 1 and back when you enter a game mode versus stay on the game selection grid
 			local progress_changed, progress_curr, progress_prev = update_prev("progress", memory.read_u8(0x39DC, "IWRAM"))
 			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x39D5, "IWRAM"))
-			-- progress and lives change on the same frame. if you make progress, and you don't lose a life, you should never swap.
-			-- creating this toggle will solve problems like HP for boxing/baseball resetting on the same frame if you progress to next round.
-			return gameon_changed or (progress_changed and not lives_changed)
+			local gameload_changed, gameload_curr, gameload_prev = update_prev("gameload", memory.read_u8(0x39D3, "IWRAM"))
+			-- gameload: 00 when a microgame or bonus minigame is loading, 01 when active, 02 when resulting/closing
+			return (progress_changed and not lives_changed) or 
+				-- progress and lives change on the same frame. if you make progress, and you don't lose a life, you should never swap.
+				-- creating this toggle will solve problems like HP for boxing/baseball resetting on the same frame if you progress to next round.
+				(gameload_curr == 02 and gameload_prev == 01)
+				-- on the same frame that you exit a bonus minigame from the title, the game deducts a life. I don't know why!
+				-- actual lives are NOT deducted until the next game loads (on 00)
+				-- so, if we just ticked over from 01 to 02, and lives drop, that is a fake life lost; don't swap!
 		end,
 		CanHaveInfiniteLives=false,
 		-- may add a option for this in the future, but you don't lose *progress* in the story if you game over (similar to Mega Man)
