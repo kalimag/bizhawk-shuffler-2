@@ -2781,14 +2781,12 @@ local gamedata = {
 	['BLOODLINES_GEN']={ -- Castlevania: Bloodlines, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x9C11, "68K RAM") end,
-		p1getlc=function() return memory.read_u8(0x9075, "68K RAM") end,
-		-- this goes to 1 when death sequence starts, then drops to 0
+		p1getlc=function() return memory.read_u8(0xFB2F, "68K RAM") end,
 		maxhp=function() return 80 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
-		MustDoInfiniteLivesOnFrame=function() return true end,
 		p1livesaddr=function() return 0xFB2F end,
-		maxlives=function() return 105 end,
+		maxlives=function() return 0x69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['DRACULAX_SNES']={ -- Dracula X, SNES
