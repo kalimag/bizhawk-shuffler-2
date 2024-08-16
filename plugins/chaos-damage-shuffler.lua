@@ -11,7 +11,7 @@ plugin.settings =
 	{ name='SuppressLog', type='boolean', label='Suppress "ROM unrecognized"/"on Level 1" logs'},
 	{ name='SMW2YI_MiniBonusSwaps', type='boolean', label="Yoshi's Island: Shuffle on Mini Battle damage/loss", default=true},
 	{ name='IceClimberBonusSwaps', type='boolean', label="Ice Climber (NES): Shuffle on failing the bonus game"},
-	{ name='grace', type='number', label='Grace period between swaps (minimum 10 frames)', default=10 },
+	{ name='grace', type='number', label="Minimum grace period before swapping (won't go < 10 frames)", default=10 },
 }
 
 plugin.description =
@@ -2676,6 +2676,7 @@ local gamedata = {
 		end,
 		gettogglecheck=function() return memory.read_u8(0x0054, "WRAM") end,
 		-- if gamestate is being changed, sometimes health drops to 0, so don't swap on that frame
+		grace=90, -- give 1.5 seconds for reorienting on returning from a swap
 
 		--FUTURE POSSIBLE REVISION
 		--func=fzero_snes_swap,
@@ -4763,7 +4764,7 @@ if type(tonumber(which_level)) == "number" then
 		
 		-- AND NOW WE SWAP
 		local schedule_swap, delay = shouldSwap(prevdata)
-		if schedule_swap and frames_since_restart > math.max(settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
+		if schedule_swap and frames_since_restart > math.max((gamemeta.grace or 0), settings.grace, 10) then -- avoiding super short swaps (<10) as a precaution
 			swap_game_delay(delay or 3)
 			swap_scheduled = true
 		end
