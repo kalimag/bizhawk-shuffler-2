@@ -4405,6 +4405,14 @@ local gamedata = {
 		p1getlc=function() return memory.read_u8(0x0032, "RAM") end,
 		p1gethp=function() return memory.read_u8(0x04CE, "RAM") end,
 		maxhp=function() return 12 end,
+		gettogglecheck=function()
+			-- when you transition to a new level, the game gives you an extra life, then takes it away the next frame
+			-- you only actually lose a life if your hp is 0, this includes fall deaths
+			-- DO NOT shuffle on lives changing if hp == 0
+			local _, p1hp_curr = update_prev("p1hp", memory.read_u8(0x04CE, "RAM"))
+			local lives_changed = update_prev("lives", memory.read_u8(0x0032, "RAM"))
+			return lives_changed and p1hp_curr ~= 0
+		end,
 		delay=10,
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x32 end,
