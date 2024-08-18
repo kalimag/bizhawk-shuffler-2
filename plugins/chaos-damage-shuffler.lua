@@ -101,6 +101,7 @@ plugin.description =
 
 	ADDITIONAL GOODIES
 	-ActRaiser (SNES) (platforming segments only; use Professional or Action Mode, or the arcade ROM)
+	-Alundra (PSX), 1p, US 1.0 or 1.1 (patched or unpatched) or JPN versions
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Banjo-Kazooie (N64), 1p
 	-Batman (NES), 1p
@@ -4470,6 +4471,42 @@ local gamedata = {
 		p1getlc=function() return memory.read_u8(0x1C368E, "MainRAM")*-1 end, -- u rappin cool (0)/good (1)/bad (2)/awful (3), inverted so worse is lower
 		maxhp=function() return 999 end, -- 999 points is the max
 		CanHaveInfiniteLives=false,
+	},
+	['Alundra1_PS1_1.0_USA']={ -- Alundra, PSX (USA, 1.0)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x1AC4AC, "MainRAM") end,
+		p1getlc=function() return 0 end, -- no lives in this game
+		maxhp=function() return memory.read_u8(0x1AC4B0, "MainRAM") end, -- max hp in this game ranges from 10 to 50
+		gettogglecheck=function()
+			-- in some loading zones, hp and maxhp drop to 0 for one frame
+			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
+			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AC4B0, "MainRAM"))
+			return maxhp_changed
+		end
+	},
+	['Alundra1_PS1_1.1_USA']={ -- Alundra, PSX (USA, 1.1)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x1AC70C, "MainRAM") end,
+		p1getlc=function() return 0 end, -- no lives in this game
+		maxhp=function() return memory.read_u8(0x1AC710, "MainRAM") end, -- max hp in this game ranges from 10 to 50
+		gettogglecheck=function()
+			-- in some loading zones, hp and maxhp drop to 0 for one frame
+			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
+			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AC710, "MainRAM"))
+			return maxhp_changed
+		end
+	},
+	['Alundra1_PS1_JPN']={ -- Alundra, PSX (Japan)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x1AE43C, "MainRAM") end,
+		p1getlc=function() return 0 end, -- no lives in this game
+		maxhp=function() return memory.read_u8(0x1AE440, "MainRAM") end, -- max hp in this game ranges from 10 to 50
+		gettogglecheck=function()
+			-- in some loading zones, hp and maxhp drop to 0 for one frame
+			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
+			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AE440, "MainRAM"))
+			return maxhp_changed
+		end
 	},
 }
 
