@@ -4214,39 +4214,89 @@ local gamedata = {
 		maxhp=function() return 0 end,
 	},
 	['StarFox64_N64']={ -- Star Fox 64 (N64)
-		func=iframe_health_swap,
+		func=damage_buffer_swap,
 		is_valid_gamestate=function() return 
-			memory.read_u8(0x11B550, "RDRAM") == 1 or
-			-- story mode
-			memory.read_u8(0x11B550, "RDRAM") == 3 or
-			-- all-range mode, includes versus
-			memory.read_u8(0x11B550, "RDRAM") == 247
-			-- training mode
-			-- this may need additional data points to prevent wrong shuffles
+			memory.read_u8(0x16D6A7, "RDRAM") == 7 and
+			-- 2 == title, 3 == menu, 4 == map, 7 == in-game (includes vs and training)
+			memory.read_u8(0x16D6C7, "RDRAM") == 2
+			-- 0-2 == loading or in gameplay, 100 == paused (so you don't shuffle on choosing to restart a level)
 		end,
 		iframe_minimum=function() return 20 end,
+		-- some combos pop you back up to 15, so don't re-shuffle on those
 		get_iframes=function()
-			if memory.read_u8(0x11B550, "RDRAM") == 247 then
-				-- training mode
-				if memory.read_u8(0x13AAB7, "RDRAM") < 100 then
-				-- some garbage values in other scenarios can make this address run over the minimum 20 iframes you actually receive on damage
-					return memory.read_u8(0x13AAB7, "RDRAM")
+			if memory.read_u8(0x16DB08, "RDRAM") == 1 then
+			-- in a space level - the planet levels have different addresses
+				if memory.read_u8(0x16E627, "RDRAM") > 0 then
+				-- VERSUS if number of VS players > 0 (0 if not in battle mode)
+					return memory.read_u8(0x13AAB7, "RDRAM") +
+					memory.read_u8(0x13AF97, "RDRAM") +
+					memory.read_u8(0x13B477, "RDRAM") +
+					memory.read_u8(0x13B957, "RDRAM")
+					-- you can just add all the iframes together for all four players
+					-- plus this tactic may help with damage combos (e.g., bombs) not immediately shuffling everyone
+				else
+					return memory.read_u8(0x13AAB7, "RDRAM") -- p1, in story mode
 				end
-			elseif memory.read_u8(0x0DB15B, "RDRAM") == 1 then
-				-- 1 == in battle mode, just add all the iframes together for all four players
-				return memory.read_u8(0x137C4B, "RDRAM") +
-					memory.read_u8(0x13835B, "RDRAM") +
-					memory.read_u8(0x13883B, "RDRAM") +
-					memory.read_u8(0x138D1B, "RDRAM")
+			else -- planet levels
+				if memory.read_u8(0x16E627, "RDRAM") > 0 then
+					-- VERSUS, number of VS players, it's 0 if not in battle mode
+					return memory.read_u8(0x137BD7, "RDRAM") +
+					memory.read_u8(0x1380B7, "RDRAM") +
+					memory.read_u8(0x138597, "RDRAM") +
+					memory.read_u8(0x138AA7, "RDRAM")
+				-- you can just add all the iframes together for all four players
+				-- plus this tactic may help with damage combos (e.g., bombs) not immediately shuffling everyone
+				else
+					return memory.read_u8(0x137BD7, "RDRAM") -- p1 alone, in story mode
+				end
 			end
-			-- p1, in story or battle mode
-			if memory.read_u8(0x137BD7, "RDRAM") < 100 then
-				return memory.read_u8(0x137BD7, "RDRAM")
-			end
-			-- otherwise, no iframes are active
-			return 0
 		end,
-		other_swaps=function() return false end, -- the explosion cutscene uses iframes and thus handles p1 deaths in story mode
+		get_damage_buffer=function()
+			if memory.read_u8(0x16DB08, "RDRAM") == 1 then
+			-- in a space level - the planet levels have different addresses
+				if memory.read_u8(0x16E627, "RDRAM") > 0 then
+				-- VERSUS if number of VS players > 0 (0 if not in battle mode)
+					return memory.read_u8(0x13AB2B, "RDRAM") +
+						memory.read_u8(0x13B00B, "RDRAM") +
+						memory.read_u8(0x13B4EB, "RDRAM") +
+						memory.read_u8(0x13B9CB, "RDRAM")
+					-- you can just add all the damage buffers together for all four players
+					-- plus this tactic may help with damage combos (e.g., bombs) not immediately shuffling everyone
+				else
+					return memory.read_u8(0x13AB2B, "RDRAM") -- p1 alone, space stage in story mode
+				end
+			else -- planet levels
+				if memory.read_u8(0x16E627, "RDRAM") > 0 then
+					-- VERSUS, number of VS players, it's 0 if not in battle mode
+					return memory.read_u8(0x137C4B, "RDRAM") +
+						memory.read_u8(0x13835B, "RDRAM") +
+						memory.read_u8(0x13883B, "RDRAM") +
+						memory.read_u8(0x138D1B, "RDRAM")
+				-- you can just add all the damage buffers together for all four players
+				-- plus this tactic may help with damage combos (e.g., bombs) not immediately shuffling everyone
+				else
+					return memory.read_u8(0x137C4B, "RDRAM") -- p1 alone, in story mode
+				end
+			end
+		end,
+		other_swaps=function() 
+			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x157911, "RDRAM"))
+			if (lives_changed and lives_curr == lives_prev - 1) and -- lost a life
+				(memory.read_u8(0x16D6A7, "RDRAM") ~= 7 or memory.read_u8(0x16D6C7, "RDRAM") == 100)
+				-- not in gameplay, like on map or in pause menu, and choosing to retry level
+			then
+				return true
+			end
+			local wins_changed, wins_curr, wins_prev = update_prev("wins", memory.read_u8(0x16DC2B,"RDRAM") + 
+				memory.read_u8(0x16DC2F,"RDRAM") + memory.read_u8(0x16DC33,"RDRAM") + memory.read_u8(0x16DC37,"RDRAM"))
+			if memory.read_u8(0x16E627, "RDRAM") > 0 and -- in multiplayer 
+				wins_changed and wins_curr > wins_prev -- wins go up because of a kill
+			then 
+				return true
+			end
+			
+		end,
+		grace=20, -- just make sure we don't combo on deaths
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x157911 end,
 		-- importantly, we have to write just one byte
