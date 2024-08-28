@@ -360,6 +360,7 @@ local function battletoads_snes_swap(gamemeta)
 		-- BT SNES likes to do a full 0-out of some memory values when you load a level.
 		-- That should NOT shuffle!
 		-- Return false if that is happening.
+		-- TODO: fold this function into twoplayers_withlives_swap, add and use more versatile swap_exceptions for this sort of thing
 		
 		if p1currhp == 0 and p2currhp == 0 and -- values dropped to 0
 			p1currsprite == 0 and p2currsprite == 0 -- if both are 0, neither player is even on screen
@@ -392,13 +393,9 @@ local function battletoads_snes_swap(gamemeta)
 		
 		-- check to see if the life count went down
 		
-		-- When you're in 1P mode, the other toad's life counter is set to 255. When they join, lives then "drop" to 3.
-		-- Thus, we ignore lives transitions from 255, to prevent unnecessary swaps when a toad "joins"
-		-- TODO: maxlc, like maxhp?
-		
-		if p1prevlc ~= nil and p1currlc == (p1prevlc - 1) and p1prevlc < 255 then
+		if p1prevlc ~= nil and p1currlc == (p1prevlc - 1) then
 			return true
-		elseif p2prevlc ~= nil and p2currlc == (p2prevlc - 1) and p2prevlc < 255 then
+		elseif p2prevlc ~= nil and p2currlc == (p2prevlc - 1) then
 			return true
 		end
 		
@@ -408,6 +405,8 @@ local function battletoads_snes_swap(gamemeta)
 		-- I CANNOT IMAGINE WHY, but this does not count up in a linear fashion.
 		
 		-- To simplify things, we will just swap when the "I've been hit" sprite is called.
+		
+		-- TODO: fold this function into twoplayers_withlives_swap, and and use more versatile other_swaps for this sort of thing
 		
 		if memory.read_u8(0x00002C, "WRAM") == 2 or memory.read_u8(0x00002C, "WRAM") == 8 then
 			-- we are in the proper level, 2 (Pins) or 8 (Dominoes)
@@ -1852,21 +1851,19 @@ local gamedata = {
 	},
 	['BT_SNES']={ -- Battletoads in Battlemaniacs for SNES
 		func=battletoads_snes_swap,
-		p1gethp=function() return memory.read_u8(0x000E5E, "WRAM") end,
-		p2gethp=function() return memory.read_u8(0x000E60, "WRAM") end,
-		p1getlc=function() return memory.read_u8(0x000028, "WRAM") end,
-		p2getlc=function() return memory.read_u8(0x00002A, "WRAM") end,
+		p1gethp=function() return memory.read_s8(0x000E5E, "WRAM") end,
+		p2gethp=function() return memory.read_s8(0x000E60, "WRAM") end,
+		p1getlc=function() return memory.read_s8(0x000028, "WRAM") end,
+		p2getlc=function() return memory.read_s8(0x00002A, "WRAM") end,
 		p1getsprite=function() return memory.read_u8(0x000AEE, "WRAM") end, -- this is an address for the sprite called for p1
 		p2getsprite=function() return memory.read_u8(0x000AF0, "WRAM") end, -- this is an address for the sprite called for p2
-		gettogglecheck=function() return
-			memory.read_u16_le(0x000F0A, "WRAM") == 65535
-			and memory.read_u16_le(0x000F0C, "WRAM") == 65535
-			and memory.read_u8(0x00002C, "WRAM") ~= 3 end,
-		-- these addresses are the counters for # of pins/dominoes in bonus rounds
-		-- they pop in or out of FFFF (65535) when entering/exiting a level, and health also drops to 0 at the same time
-		-- so we won't swap on the frame that this toggles on/off!
-		-- the exception is that we SHOULD swap when this drops to 0 upon reaching Turbo Tunnel Rematch (level == 3)!
+		gettogglecheck=function() 
+		local level_changed = update_prev("level", memory.read_u8(0x00002C, "WRAM"))
+			return level_changed
+			-- on level change, HP drops to 0, then springs back up to max, this would otherwise cause a false swap
+		end,
 		maxhp=function() return 16 end,
+		-- note, BT_SNES currently uses a custom Infinite Lives function to allow for level skips to work
 	},
 	['BTDD_SNES']={ -- Battletoads Double Dragon SNES
 		func=twoplayers_withlives_swap,
