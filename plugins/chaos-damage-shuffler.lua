@@ -2595,7 +2595,11 @@ local gamedata = {
 					end
 			end
 			local lives_changed, lives_curr, lives_prev = update_prev("lives", memory.read_u8(0x000379, "WRAM"))
-			return lives_changed and lives_curr < lives_prev
+			local _, bonus_id_curr = update_prev("bonus_id", memory.read_u8(0x0212, "WRAM"))
+			local _, in_bonus_curr = update_prev("in_bonus", memory.read_u8(0x0118, "WRAM"))
+			-- 0x2C == in bonus game, 0x30 == in mini battle
+			return lives_changed and lives_curr < lives_prev and not (bonus_id_curr == 8 and in_bonus_curr == 0x2C)
+			-- don't shuffle for gambling lives in roulette until we get a bonus challenge toggle going
 		end,
 		-- - bonus game notes, if i ever add shuffling on them
 		-- WRAM 0x0212: bonus id
