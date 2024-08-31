@@ -10,7 +10,7 @@
 * Multiplayer shuffling is generally supported.
 * Randomizers should be supported (e.g., ALTTPR, VARIA, ZOoTR, SMZ3) by adding your game's hash to the .dat file alongside other versions of the game.
 * The plugin can run simultaneously with the Mega Man Damage Shuffler.
-* For Battletoads games, you can choose the level where you start and enable other bonuses, like choosing your start level (to shuffle many levels all together, skip Clinger-Winger, and more.
+* For Battletoads games, you can choose the level where you start and enable other bonuses, like choosing your start level (to shuffle many levels all together), skip Clinger-Winger, and more.
 
 ## Chaos Damage Shuffler: Setup
 * First, follow the **[Setup Instructions](https://github.com/authorblues/bizhawk-shuffler-2/wiki/Setup-Instructions)** by authorblues, linked right there and/or at the [main repo](https://github.com/authorblues/bizhawk-shuffler-2).
