@@ -16,24 +16,27 @@ plugin.settings =
 
 plugin.description =
 [[
-	Get swapped to a different level whenever a Battletoad takes damage. Additional games shuffle on 'damage', see below. Multiplayer shuffling supported. If your ROM is not recognized, no damage swap will occur.
-	
-	See instructions to have multiple Battletoads games that start (or continue) at the level you specify.
-	
 	This is a mod of the excellent Mega Man Damage Shuffler plugin by authorblues and kalimag.
+	Get swapped to a different game upon taking damage. Supported games listed below. What is 'damage' depends on the game!
+	If your ROM is not recognized, no damage swap will occur. Most of the time, NTSC-U versions are supported.
+	For Battletoads games, you can choose the level where you start and enable other bonuses.
+	Multiplayer shuffling supported.
+	Randomizers should be supported (e.g., ALTTPR, VARIA, ZOoTR, SMZ3) by adding your game's hash to the .dat file.
 	Additional ideas from the TownEater fork have been implemented.
 	Thank you to Diabetus, Smight and ConstantineDTW for extensive playthroughs that tracked down bugs!
-	
+
 	ENABLE EXPANSION SLOT FOR N64 GAMES!
-	
-	Currently supports (ALL NTSC-U):
-	
+	ENABLE EXPANSION SLOT FOR N64 GAMES!
+	ENABLE EXPANSION SLOT FOR N64 GAMES!
+
+	Supported games:
+
 	BATTLETOADS BLOCK
-	-Battletoads (NES), 1p or 2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
-	-Battletoads in Battlemaniacs (SNES), 1p or 2p
-	-Battletoads-Double Dragon (NES), 1p or 2p
-	-Battletoads-Double Dragon (SNES), 1p or 2p, including if patched to use level select by default (see instructions)
-	
+	-Battletoads (NES), 1-2p - also works with the bugfix patch by Ti: https://www.romhacking.net/hacks/2528/
+	-Battletoads in Battlemaniacs (SNES), 1-2p
+	-Battletoads-Double Dragon (NES), 1-2p
+	-Battletoads-Double Dragon (SNES), 1-2p, including if patched to use level select by default (see instructions)
+
 	MARIO BLOCK
 	-Mario Bros. (NES), 1-2p
 	-Super Mario Bros. (NES), 1-2p
@@ -42,13 +45,13 @@ plugin.description =
 	-Super Mario Bros. 3 (NES), 1-2p (includes battle mode)
 	-Somari (NES, unlicensed), 1p
 	-Super Mario World (SNES), 1-2p
-	-Super Mario World 2: Yoshi's Island (SNES), 1p or 2p (secret mini battles) 
+	-Super Mario World 2: Yoshi's Island (SNES), 1p plus 2p secret mini battles
 	--- check toggle for whether you want mini battle damage/losses to swap!
 	-Super Mario All-Stars (SNES), 1-2p, with or without World (includes SMB3 battle mode)
 	-Super Mario Land (GB or GBC DX patch), 1p
 	-Super Mario Land 2: 6 Golden Coins (GB or GBC DX patch), 1p
 	-Super Mario 64 (N64), 1p
-	
+
 	CASTLEVANIA BLOCK
 	-Castlevania (NES), 1p
 	-Castlevania II (NES), 1p
@@ -65,25 +68,30 @@ plugin.description =
 	-Castlevania: Portrait of Ruin (DS), 1p
 	-Castlevania: Order of Ecclesia (DS), 1p
 
-	METROID BLOCK
+	METROID BLOCK - should not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
 	-Metroid (NES), 1p
 	-Metroid II (GB or GBC color patch), 1p
+	-Super Metroid (SNES) - 1p, US/JP version
 	-Metroid Fusion (GBA), 1p
 	-Metroid Zero Mission (GBA), 1p
 
 	ZELDA BLOCK
 	-The Legend of Zelda (NES), 1p
 	-Zelda II The Adventure of Link (NES), 1p
+	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
 	-Link's Awakening (GB), 1p
 	-Link's Awakening DX (GBC), 1p
-	-Ocarina of Time (N64), 1p (ENABLE EXPANSION SLOT FOR N64 GAMES)
+	-Ocarina of Time (N64), 1p
 	-Oracle of Seasons (GBC), 1p
 	-Oracle of Ages (GBC), 1p
 
+	THE LINK/SAMUS BLOCK
+	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES), 1p
+
 	CONTRA BLOCK
-	-Contra/Probotector (NES), 1p or 2p
-	-Super C/Super Contra/Probotector II (NES), 1p or 2p
-	-Contra III: The Alien Wars/Super Probotector: Alien Rebels/Contra Spirits (SNES), 1p or 2p
+	-Contra/Probotector (NES), 1-2p
+	-Super C/Super Contra/Probotector II (NES), 1-2p
+	-Contra III: The Alien Wars/Super Probotector: Alien Rebels/Contra Spirits (SNES), 1-2p
 
 	KONG BLOCK
 	-Donkey Kong Country (SNES), 1p, 2p Contest, or 2p Team
@@ -91,34 +99,27 @@ plugin.description =
 	-Donkey Kong Country 3: Dixie Kong's Double Trouble (SNES), 1p, 2p Contest, or 2p Team
 	-DKC x Mario (SNES, DKC1 hack by RainbowSprinklez), 1p
 
-	THE LINK/SAMUS BLOCK
-	-The Legend of Zelda: A Link to the Past (SNES) - 1p, US or JP 1.0
-	-Super Metroid (SNES) - 1p, US/JP version - does not shuffle on losing health from being "drained" by acid, heat, shinesparking, certain enemies
-	-Super Metroid x LTTP Crossover Randomizer, aka SMZ3 (SNES)
-
-	These three should work with various revisions INCLUDING RANDOMIZERS if you replace the hash in the .lua file where instructed.
-	Other randomizers (e.g., ZOoTR) haven't been tested yet!!
-
 	ADDITIONAL GOODIES
 	-ActRaiser (SNES) (platforming segments only; use Professional or Action Mode, or the arcade ROM)
-	-Alundra (PSX), 1p, US 1.0 or 1.1 (patched or unpatched) or JPN versions
+	-Alundra (PSX), 1p, supports patched versions (e.g., Unworked Designs)
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
 	-Banjo-Kazooie (N64), 1p
 	-Batman (NES), 1p
-	-Blades of Steel (NES - NA/Europe), 1p or 2p
+	-Blades of Steel (NES - NA/Europe), 1-2p
 	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
 	-Captain Novolin (SNES)
-	-Chip and Dale Rescue Rangers 1 (NES), 1p or 2p
-	-Chip and Dale Rescue Rangers 2 (NES), 1p or 2p
+	-Chip and Dale Rescue Rangers 1 (NES), 1-2p
+	-Chip and Dale Rescue Rangers 2 (NES), 1-2p
 	-Darkwing Duck (NES), 1p
 	-Demon's Crest (SNES), 1p
-	-Double Dragon 1 (NES), 1p or 2p, Mode A or B, shuffles on knockdown and death
-	-Double Dragon 2 (NES), 1p or 2p, shuffles on knockdown and death
+	-Double Dragon 1 (NES), 1-2p, Mode A or B, shuffles on knockdown and death
+	-Double Dragon 2 (NES), 1-2p, shuffles on knockdown and death
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
-	-Family Feud (SNES), 1p or 2p
-	-Ice Climber (NES), 1p or 2p, shuffles on death or bonus game loss
-	-Jackal (NES), 1p or 2p
+	-Family Feud (SNES), 1-2p
+	-Ice Climber (NES), 1-2p
+	--- check toggle for whether you want bonus game losses to swap!
+	-Jackal (NES), 1-2p
 	-Kirby's Adventure (NES), 1p
 	-Last Alert (TG-16 CD), 1p
 	-Little Samson (NES), 1p
@@ -133,75 +134,75 @@ plugin.description =
 	-Rollergames (NES), 1p
 	-Snake Rattle 'n Roll (NES), 1p
 	-Star Fox 64 (N64), 1p-4p
-	-Super Dodge Ball (NES), 1p or 2p, all modes
-	-Super Mario Kart (SNES), 1p or 2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
+	-Super Dodge Ball (NES), 1-2p, all modes
+	-Super Mario Kart (SNES), 1-2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	-Super Monkey Ball Jr. (GBA), 1p
 	-U.N. Squadron (SNES), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
-	
+
 	NICHE ZONE
-	- NES 240p Suite: shuffles on every second that passes in Stopwatch Mode. Can be useful for keeping Infinite Lives and shuffling alive with one "real" game left, or for testing a single game.
-	
+	- NES 240p Suite: shuffles on every second that passes in Stopwatch Mode. Can be useful for testing a single game.
+
+
 	----PREPARATION----
-	-Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
-	-If adding N64 games, enable the Expansion Slot. Some games will fail to shuffle or crash Bizhawk without it.
-	
-	-Non-Battletoads games: just put your game in the games folder.
-	
-	-Battletoads games:
+	Set Min and Max Seconds VERY HIGH, assuming you don't want time swaps in addition to damage swaps.
+	If adding N64 games, enable the Expansion Slot. Some games will fail to shuffle or crash BizHawk without it.
+
+	Non-Battletoads games: just put your game in the games folder.
+
+	Battletoads games:
+	To run the game just like any other game, simply put it in the games folder.
+	If you intend to use the plugin's level skip to shuffle multiple levels at once:
 	-Put multiple copies of your ROM into the games folder - one for every starting level you want to include.
-	-Rename those files to START with two-digit numbers, like 01, 02, 03, etc., as below.
-	
+	-Rename the ROM files to START with two-digit numbers, like 01, 02, 03, etc., as below.
+
 	Battletoads (NES):
 	-Level range: 01 to 13
 	-How to level select: Automatically enabled.
-	
+
 	Battletoads in Battlemaniacs (SNES):
 	-Level range: 01 to 08
-	-How to level select: Pimple will start with 1 HP and no lives if you specify a level higher than 1, OR if you click the "I want Rash" option. Let Pimple die, and then continue (if using Pimple - it gets refunded) or don't (if playing 2P/using Rash). You get an on-screen reminder to do this, and it is gone when you shuffle back.
-	
+	-How to level select: Pimple will start with 1 HP and no lives if you specify a level higher than 1, OR if you click the "I want Rash" option. Let Pimple die. Then, if using Pimple, continue (the continue gets refunded), or if using Rash (1p or 2p), just let the timer run out. You get an on-screen reminder to do this, and the reminder is gone when you shuffle back.
+
 	Battletoads-Double Dragon (NES):
 	-Level range: 01 to 14
-	-How to level select: Level select screen is automatically enabled. A message on screen the first time will tell you which level to pick after character select.
-	
+	-How to level select: the Level select screen is automatically enabled. A message on screen the first time will tell you which level to pick after character select.
+
 	Battletoads-Double Dragon (SNES):
 	-Level range: 01 to 14
 	-How to level select: A message on screen the first time will tell you what level to pick after you choose characters. But, for now, you have to enable level select yourself :(
 	--OPTION ONE: just enter the cheat code at the character select screen. The screen blinks when it's entered correctly.
 	--OPTION TWO: Patch your ROM(s) with the Game Genie code DD6F-1923. Here is a patcher! https://www.romhacking.net/utilities/1054/
-	
 
-	----EXAMPLES AND TIPS----
+	----BATTLETOADS EXAMPLES AND TIPS----
 	To shuffle every single level of Battletoads NES, make 13 copies with filenames starting with 01 through 13.
-	
+
 	You can include one copy each of all these Battletoads games, with no special naming, to simply have damage shuffling starting from level 1.
-	
+
 	If you want a Battletoads-Double Dragon run without mid-level checkpoints (1-1, 2-1, 3-1, ... 7-1), then only add files that start with: 01, 03, 06, 09, 11, 13, 14.
-	
+
 	You could do an "all Turbo Tunnels" run with BT NES = 03, BTDD (either/both) = 05, and BT SNES = 04. Throw in Surf City (BT NES 05), Volkmire's Inferno (BT NES 07), Roller Coaster (BT SNES 06), the awful spaceship levels (BTDD 09 and 10)...
-	
-	Mark a ROM "cleared" whenever you want! I recommend you do so after completing a level.
-	
+
+
 	----OPTIONS----
-	
-	Infinite* Lives will make it far easier to reach and defeat bosses.
-	-- It's not quite infinite. Lives refill ON SWAP. On your LAST game, you're done swapping, so be careful!
-	-- If you truly need infinite lives on your last game, consider applying cheats in Bizhawk, or re-add a game to get a lives refill.
-	-- Infinite* lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since they can't move. Use the patch if you want 2P Clinger-Winger for some reason!
-	-- Several games do not have 'lives' to make infinite, such as Anticipation, Super Metroid, Link to the Past, Super Dodge Ball, original Mario Bros. Nothing will change in these games with this option.
-	
+
+	Infinite Lives will make it far easier to progress. The lives refill on each swap.
+	- Thank you to kalimag for work that made infinite lives persist through your final game!
+	- Infinite lives do not activate for the second player on NES Clinger-Winger on an unpatched ROM, since P2 can't move. Use the patch if you want two-player Clinger-Winger for some reason!
+	- Several games do not have 'lives' to make infinite, such as Anticipation, Super Metroid, A Link to the Past, and others. Nothing will change in these games with this option.
+
 	Auto-Clinger-Winger NES: You can enable max speed and auto-clear the maze (level 11).
-	-- You MUST use an unpatched ROM for this option to activate. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives are disabled for the second player in this scenario.
-	-- You still have to beat the boss. If you use Infinite* Lives, this could make Clinger-Winger fairly trivial.
-	
-	Rash 1-player mode in Battlemaniacs (SNES): see above! Start in 2p, let Pimple die to deathwarp, and make sure your 2p controller is mapped the same as 1p aside from Start.
-	
+	-- You MUST use an unpatched ROM for this option to activate. The second player will not be able to move, so only Rash can get to the boss in 2p. Infinite Lives will be disabled for the second player in this scenario to prevent a softlock.
+	-- You still have to beat the boss. If you use Infinite Lives, this could make Clinger-Winger fairly trivial.
+
+	Rash 1-player mode in Battlemaniacs (SNES): see above! Start in 2p, let Pimple die and let the continue timer run out to deathwarp. Make sure your 2p controller is mapped the same as 1p aside from Start, so you can progress. In the future, this may be more automated.
+
 	Suppress Logs: if you do not want the lua console log to tell you about file naming errors, or unrecognized ROMs. This can help keep the log cleaner if you are also using the Mega Man Damage Shuffler or other plugins!
-	
+
 	Grace period: 10 frames is the default minimum frames between swaps. Adjust up as needed. This idea originated in the TownEater fork of the damage shuffler!
-	
+
 	Enjoy? Send bug reports?
-	
+
 ]]
 
 local NO_MATCH = 'NONE'
