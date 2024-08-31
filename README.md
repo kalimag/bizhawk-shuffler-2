@@ -13,7 +13,7 @@
 * For Battletoads games, you can choose the level where you start and enable other bonuses, like choosing your start level (to shuffle many levels all together, skip Clinger-Winger, and more.
 
 ## Chaos Damage Shuffler: Setup
-* First, follow the [Setup Instructions](https://github.com/authorblues/bizhawk-shuffler-2/wiki/Setup-Instructions)** by authorblues, linked right there and/or at the [main repo](https://github.com/authorblues/bizhawk-shuffler-2).
+* First, follow the **[Setup Instructions](https://github.com/authorblues/bizhawk-shuffler-2/wiki/Setup-Instructions)** by authorblues, linked right there and/or at the [main repo](https://github.com/authorblues/bizhawk-shuffler-2).
 * Then, download the following for the Chaos Shuffler: [hash database](https://github.com/Phiggle/bizhawk-shuffler-2/blob/main/plugins/chaos-shuffler-hashes.dat), [plugin](https://github.com/Phiggle/bizhawk-shuffler-2/blob/main/plugins/chaos-damage-shuffler.lua) (click on the plugin for instructions and a list of supported games!)
 * **TO THOSE PLAYING N64 GAMES: REMEMBER TO ENABLE THE EXPANSION PAK!**
 
