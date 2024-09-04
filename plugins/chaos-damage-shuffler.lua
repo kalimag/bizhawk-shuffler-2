@@ -4529,36 +4529,21 @@ local gamedata = {
 		p1gethp=function() return memory.read_u8(0x1AC4AC, "MainRAM") end,
 		p1getlc=function() return 0 end, -- no lives in this game
 		maxhp=function() return memory.read_u8(0x1AC4B0, "MainRAM") end, -- max hp in this game ranges from 10 to 50
-		gettogglecheck=function()
-			-- in some loading zones, hp and maxhp drop to 0 for one frame
-			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
-			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AC4B0, "MainRAM"))
-			return maxhp_changed
-		end
+		gmode=function() return memory.read_u8(0x1AC4B0, "MainRAM") > 0 end, -- max hp sometimes drops to 0 in loading zones, along with hp, processing should not be done then
 	},
 	['Alundra1_PS1_1.1_USA']={ -- Alundra, PSX (USA, 1.1)
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x1AC70C, "MainRAM") end,
 		p1getlc=function() return 0 end, -- no lives in this game
 		maxhp=function() return memory.read_u8(0x1AC710, "MainRAM") end, -- max hp in this game ranges from 10 to 50
-		gettogglecheck=function()
-			-- in some loading zones, hp and maxhp drop to 0 for one frame
-			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
-			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AC710, "MainRAM"))
-			return maxhp_changed
-		end
+		gmode=function() return memory.read_u8(0x1AC710, "MainRAM") > 0 end,  -- max hp sometimes drops to 0 in loading zones, along with hp, processing should not be done then
 	},
 	['Alundra1_PS1_JPN']={ -- Alundra, PSX (Japan)
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x1AE43C, "MainRAM") end,
 		p1getlc=function() return 0 end, -- no lives in this game
 		maxhp=function() return memory.read_u8(0x1AE440, "MainRAM") end, -- max hp in this game ranges from 10 to 50
-		gettogglecheck=function()
-			-- in some loading zones, hp and maxhp drop to 0 for one frame
-			-- maxhp should never drop anyway, but if it changes in any way, we'll simply suspend swapping on that frame.
-			local maxhp_changed = update_prev("maxhp", memory.read_u8(0x1AE440, "MainRAM"))
-			return maxhp_changed
-		end
+		gmode=function() return memory.read_u8(0x1AE440, "MainRAM") > 0 end,  -- max hp sometimes drops to 0 in loading zones, along with hp, processing should not be done then
 	},
 }
 
