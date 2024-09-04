@@ -3026,6 +3026,7 @@ local gamedata = {
 		-- is_link_grabbed=function() return bit.band(memory.read_u8(0x1DB0A3, "RDRAM"), 0x80) == 0x80 end,
 		-- get_respawn_flag=function() return memory.read_u8(0x11B937, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D8870, "RDRAM") end,
+		grace=50, -- enough frames to react to damage over time, ReDeads
 	},
 	['Zelda_Ocarina_11']={ -- Ocarina of Time, N64 (1.1)
 		func=ocarina_swap,
@@ -3033,6 +3034,7 @@ local gamedata = {
 		get_max_health=function() return memory.read_u16_be(0x11A7BE, "RDRAM") end,
 		get_health=function() return memory.read_u16_be(0x11A7C0, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D8A30, "RDRAM") end,
+		grace=50, -- enough frames to react to damage over time, ReDeads
 	},
 	['Zelda_Ocarina_12']={ -- Ocarina of Time, N64 (1.2)
 		func=ocarina_swap,
@@ -3040,6 +3042,7 @@ local gamedata = {
 		get_max_health=function() return memory.read_u16_be(0x11ACAE, "RDRAM") end,
 		get_health=function() return memory.read_u16_be(0x11ACB0, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D9130, "RDRAM") end,
+		grace=50, -- enough frames to react to damage over time, ReDeads
 	},
 	['Zelda_Ocarina_GC']={ -- Ocarina of Time, N64 (GameCube version)
 		func=ocarina_swap,
@@ -3047,6 +3050,7 @@ local gamedata = {
 		get_max_health=function() return memory.read_u16_be(0x11B176, "RDRAM") end,
 		get_health=function() return memory.read_u16_be(0x11B178, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D9A30, "RDRAM") end,
+		grace=50, -- enough frames to react to damage over time, ReDeads
 	},
 	['Zelda_Ocarina_MQ']={ -- Ocarina of Time, N64 (Master Quest GameCube version)
 		func=ocarina_swap,
@@ -3054,6 +3058,7 @@ local gamedata = {
 		get_max_health=function() return memory.read_u16_be(0x11B156, "RDRAM") end,
 		get_health=function() return memory.read_u16_be(0x11B158, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D99F0, "RDRAM") end,
+		grace=50, -- enough frames to react to damage over time, ReDeads
 	},
 	['Zelda_Seasons']={ -- Oracle of Seasons, GBC
 		-- iframes are set one frame before health is decreased if hit by enemy
