@@ -2973,7 +2973,7 @@ local gamedata = {
 		end,
 		get_iframes=function() return memory.read_u8(0x04F0, "RAM") end,
 		get_health=function()
-			local fullHearts = bit.band(memory.read_u8(0x066F, "RAM"), 0x0F)
+			local fullHearts = memory.read_u8(0x066F, "RAM") & 0x0F
 			-- other half of this byte tracks max health
 			local partialHeart = memory.read_u8(0x0670, "RAM")
 			return fullHearts * 0x100 + partialHeart
@@ -3023,7 +3023,7 @@ local gamedata = {
 		get_max_health=function() return memory.read_u16_be(0x11A5FE, "RDRAM") end,
 		-- get_iframes=function() return memory.read_u8(0x1DB498, "RDRAM") end,
 		get_health=function() return memory.read_u16_be(0x11A600, "RDRAM") end,
-		-- is_link_grabbed=function() return bit.band(memory.read_u8(0x1DB0A3, "RDRAM"), 0x80) == 0x80 end,
+		-- is_link_grabbed=function() return (memory.read_u8(0x1DB0A3, "RDRAM") & 0x80) == 0x80 end,
 		-- get_respawn_flag=function() return memory.read_u8(0x11B937, "RDRAM") end,
 		get_text_id=function() return memory.read_u16_be(0x1D8870, "RDRAM") end,
 		grace=50, -- enough frames to react to damage over time, ReDeads
@@ -3079,7 +3079,7 @@ local gamedata = {
 			local room_bank = memory.read_u8(0x0C49, "WRAM")
 			local room_id = memory.read_u8(0x0C4C, "WRAM")
 			-- shuffle on using revive potion
-			local potion_curr = bit.band(memory.read_u8(0x0697, "WRAM"), 0x80) == 0x80
+			local potion_curr = (memory.read_u8(0x0697, "WRAM") & 0x80) == 0x80
 			local potion_changed, _, _ = update_prev('potion', potion_curr)
 			if potion_changed and not potion_curr then
 				return true
@@ -3116,7 +3116,7 @@ local gamedata = {
 			local room_bank = memory.read_u8(0x0C2D, "WRAM")
 			local room_id = memory.read_u8(0x0C30, "WRAM")
 			-- shuffle on using revive potion
-			local potion_curr = bit.band(memory.read_u8(0x069F, "WRAM"), 0x80) == 0x80
+			local potion_curr = (memory.read_u8(0x069F, "WRAM") & 0x80) == 0x80
 			local potion_changed, _, _ = update_prev('potion', potion_curr)
 			if potion_changed and not potion_curr
 				and not (room_bank == 5 and room_id == 0xAD) -- king zora's throne room
@@ -3153,7 +3153,7 @@ local gamedata = {
 				or (room_bank == 3 and room_id == 0xE7) -- goron shooting gallery
 			then
 				-- shooting gallery ball missed
-				local round_end_curr = bit.band(memory.read_u8(0x0CD6, "WRAM"), 0x80) == 0x80
+				local round_end_curr = (memory.read_u8(0x0CD6, "WRAM") & 0x80) == 0x80
 				local round_end_changed, _, _ = update_prev('round ended', round_end_curr)
 				local strike = memory.read_u8(0x0FD6, "WRAM") == 1
 				return round_end_changed and round_end_curr and strike, 60 -- let strike text show up before shuffle
