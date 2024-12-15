@@ -127,6 +127,7 @@ plugin.description =
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
+	-Ninja Gaiden 1 (NES), 1p
 	-PaRappa the Rapper (PSX), 1p - shuffles on dropping a rank
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Rock 'n Roll Racing (SNES), 1p
@@ -4549,6 +4550,17 @@ local gamedata = {
 		p1getlc=function() return 0 end, -- no lives in this game
 		maxhp=function() return memory.read_u8(0x1AE440, "MainRAM") end, -- max hp in this game ranges from 10 to 50
 		gmode=function() return memory.read_u8(0x1AE440, "MainRAM") > 0 end,  -- max hp sometimes drops to 0 in loading zones, along with hp, processing should not be done then
+	},
+	['NinjaGaiden1_NES']={ -- Ninja Gaiden, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0065, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x0076, "RAM") end,
+		maxhp=function() return 16 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x0076 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
 
