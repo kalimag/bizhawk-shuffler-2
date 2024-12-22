@@ -4523,6 +4523,7 @@ local gamedata = {
 		LivesWhichRAM=function() return "WRAM" end,
 		maxlives=function() return 0x98 end, -- Counts as 99
 		ActiveP1=function() return true end, -- p1 is always active!
+		grace=60, -- professional mode can combo you too rapidly to recover
 	},
 	['PaRappa1_PS1']={ -- PaRappa the Rapper, PSX
 		func=singleplayer_withlives_swap,
