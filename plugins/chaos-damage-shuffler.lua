@@ -2908,9 +2908,12 @@ local gamedata = {
 		end,
 		get_iframes=function() return memory.read_u8(0x1249, "IWRAM") end,
 		get_health=function() return memory.read_u16_le(0x1310, "IWRAM") end,
-		iframe_minimum=function() return 10 end,
+		iframe_minimum=function() return 30 end,
 		-- SRX amoebas, TRO leech boss, TRO plant boss flowers, electric water
-		-- all do damage with short iframes rather than skipping iframes entirely like lava/heat
+		-- all do damage with short iframes (4) rather than skipping iframes entirely like lava/heat
+		-- Ridley's grab does this too, repeatedly popping up to 29 iframes on hitting 0
+		-- normal damage for shuffing triggers 48 iframes
+		-- in other words, requiring iframes >=30 to swap should be fine here
 		other_swaps=function()
 			-- check if we ran out of time (sector 3, secret lab, ending)
 			local time_up_changed, time_up_curr, _ = update_prev('time up', memory.read_u8(0x08D7, "IWRAM") == 2)
