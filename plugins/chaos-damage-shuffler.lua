@@ -965,6 +965,9 @@ end
 
 local function smk_swap(gamemeta)
 	return function()
+		local _, inbattlemode = update_prev('battlemode', gamemeta.getmode() == 14)
+		-- battle mode == 14, if we are in battle mode, then "falls" shouldn't shuffle because they don't deduct HP
+		
 		local p1bumping, p1currbump, p1prevbump = update_prev('p1currbump', gamemeta.p1getbump())
 		-- if > 0, p1 is colliding with something
 		local p1coinschanged, p1currcoins, p1prevcoins = update_prev('p1currcoins', gamemeta.p1getcoins())
@@ -981,6 +984,8 @@ local function smk_swap(gamemeta)
 		-- if > 0, you are shrinking, then it counts down to 0
 		local p1moled, p1currmoled, p1prevmoled = update_prev('p1currmoled', gamemeta.p1getmoled() >= 152)
 		-- if >= 152, a mole just hopped on you, when off it drops to 24, then 0
+		local _, p1finished = update_prev('p1finished', gamemeta.p1getfinished() == 120)
+		-- 120 means last lap completed in a race
 		
 		local p2bumping, p2currbump, p2prevbump = update_prev('p2currbump', gamemeta.p2getbump())
 		-- if > 0, p2 is colliding with something
@@ -998,28 +1003,36 @@ local function smk_swap(gamemeta)
 		-- if > 0, you are shrinking, then it counts down to 0
 		local p2moled, p2currmoled, p2prevmoled = update_prev('p2currmoled', gamemeta.p2getmoled() >= 152)
 		-- if >= 152, a mole just hopped on you, when off it drops to 24, then 0
+		local _, p2finished = update_prev('p2finished', gamemeta.p2getfinished() == 120)
+		-- 120 means last lap completed in a race
 		
 		local p2IsActive = gamemeta.p2getIsActive()
 		-- 2p variables still get updated even if 2p is CPU, so we have to ignore all of those unless we are in 2p mode.
 		
-		return
-			(p1falling and p1currfall) -- p1 just started falling into pit, lava, water
-			-- or (p1shrinking and p1prevshrink == 0) -- p1 just started shrinking, or got run over so frame timer dropped more than 1 unit
-			or (p1moled and p1currmoled) -- p1 just started shrinking
-			or (p1bumping and -- p1 just started colliding AND EITHER
-				((p1coinschanged and p1currcoins < p1prevcoins) -- coins dropped or
-				or (p1currcoins == 0 and p1spinningout)) -- no coins and we just started spinning out
-				or p1prevbump == 0 and p1currbump > 200) -- bump value goes this high when squished
+		return 
+			p1finished == false -- haven't crossed finish line already in a race
+			and (
+				(p1falling and p1currfall and not inbattlemode) -- p1 just started falling into pit, lava, water outside of battle
+				-- or (p1shrinking and p1prevshrink == 0) -- p1 just started shrinking, or got run over so frame timer dropped more than 1 unit
+				or (p1moled and p1currmoled) -- p1 just started shrinking
+				or (p1bumping and -- p1 just started colliding AND EITHER
+					((p1coinschanged and p1currcoins < p1prevcoins) -- coins dropped or
+					or (p1currcoins == 0 and p1spinningout)) -- no coins and we just started spinning out
+					or p1prevbump == 0 and p1currbump > 200) -- bump value goes this high when squished
+				)
 			or
 			p2IsActive == true and (
-			(p2falling and p2currfall) -- p2 just started falling into pit, lava, water
-			-- or (p2shrinking and p2prevshrink == 0) -- p2 just started shrinking, or got run over so frame timer dropped more than 1 unit
-			or (p2moled and p2currmoled) -- p2 just started shrinking
-			or (p2bumping and -- p2 just started colliding AND EITHER
-				((p2coinschanged and p2currcoins < p2prevcoins) -- coins dropped or
-				or (p2currcoins == 0 and p2spinningout)) -- no coins and we just started spinning out
-				or p2prevbump == 0 and p2currbump > 200) -- bump value goes this high when squished
-			)
+				p2finished == false -- haven't crossed finish line already in a race
+				and (
+					(p2falling and p2currfall and not inbattlemode) -- p2 just started falling into pit, lava, water outside of battle
+					-- or (p2shrinking and p2prevshrink == 0) -- p2 just started shrinking, or got run over so frame timer dropped more than 1 unit
+					or (p2moled and p2currmoled) -- p2 just started shrinking
+					or (p2bumping and -- p2 just started colliding AND EITHER
+						((p2coinschanged and p2currcoins < p2prevcoins) -- coins dropped or
+						or (p2currcoins == 0 and p2spinningout)) -- no coins and we just started spinning out
+						or p2prevbump == 0 and p2currbump > 200) -- bump value goes this high when squished
+					)
+				)
 	end
 end
 
@@ -2050,12 +2063,11 @@ local gamedata = {
 	},
 	['SMK_SNES']={ -- Super Mario Kart
 		func=smk_swap,
+		getmode=function() return memory.read_u8(0x000036, "WRAM") end, -- if == 14 then in battle mode
 		p1getbump=function() return memory.read_u8(0x00105E, "WRAM") end, -- if > 0 then p1 is bumping/crashing
 		p2getbump=function() return memory.read_u8(0x00115E, "WRAM") end, -- if > 0 then p2 is bumping/crashing
 		p1getshrink=function() return memory.read_u16_be(0x001084, "WRAM") end, -- if > 0 then you're small and it's counting down
 		p2getshrink=function() return memory.read_u16_be(0x001184, "WRAM") end, -- if > 0 then you're small and it's counting down
-		p1getlava=function() return memory.read_u8(0x00010A, "WRAM") end, -- if == 16 then congrats, you're in lava
-		p2getlava=function() return memory.read_u8(0x00010C, "WRAM") end, -- if == 16 then congrats, you're in lava
 		p1getfall=function() return memory.read_u8(0x0010A0, "WRAM") end, -- if > 2 falling into pit (4), lava (6), deep water (8)
 		p2getfall=function() return memory.read_u8(0x0011A0, "WRAM") end, -- if > 2 falling into pit (4), lava (6), deep water (8)
 		p1getcoins=function() return memory.read_u8(0x000E00, "WRAM") end,
@@ -2066,6 +2078,8 @@ local gamedata = {
 		p2getmoled=function() return memory.read_u8(0x001161, "WRAM") end, -- >=152 means a mole jumped on
 		p1getshrink2=function() return memory.read_u8(0x001030, "WRAM") end, -- if ==128 then you're shrunk
 		p2getshrink2=function() return memory.read_u8(0x001130, "WRAM") end, -- if ==128 then you're shrunk
+		p1getfinished=function() return memory.read_u8(0x001010, "WRAM") end, -- finished racing if kart status == 120, so don't swap if this player gets hurt
+		p2getfinished=function() return memory.read_u8(0x001110, "WRAM") end, -- finished racing if kart status == 120, so don't swap if this player gets hurt
 		p2getIsActive=function() return memory.read_u8(0x0011D2, "WRAM") == 2 end, -- if 2, you are in 2p mode
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x000154 end,
