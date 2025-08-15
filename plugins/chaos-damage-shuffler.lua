@@ -5660,9 +5660,8 @@ local gamedata = {
 	['AerotheAcrobat_SNES']={ -- Aero the Acro-Bat, SNES
 		func=iframe_health_swap,
 		is_valid_gamestate=function()
-			local gamestate = memory.read_u8(0x08C1, "WRAM")
-			return gamestate ~= 2
-			-- 2 for demo
+			return (memory.read_u8(0x08C1, "WRAM") ~= 2 and memory.read_u8(0x1B7E, "WRAM") ~= 255)
+			-- 2 for demo, 255 when unable to control character (like during respawn, cutscenes)
 		end,
 		swap_exceptions=function() return memory.read_u8(0x0CCA, "WRAM") == 0x69 end, -- prevent double swaps on no health (why is no health 0x69??)
 		other_swaps=function() return false end,
