@@ -113,6 +113,7 @@ plugin.description =
 	ADDITIONAL SUPPORTED GAMES
 	-ActRaiser (SNES), 1p
 	-Adventures in the Magic Kingdom (NES), 1p
+	-Adventures of the Gummi Bears (bootleg) (Genesis/Mega Drive), 1p
 	-Aero the Acro-Bat (SNES), 1p
 	-Aladdin (Genesis/Mega Drive), 1p
 	-Aladdin (SNES), 1p
@@ -5671,6 +5672,17 @@ local gamedata = {
 		MustDoInfiniteLivesOnFrame=function() return true end,
 		p1livesaddr=function() return 0x0C71 end,
 		maxlives=function() return 0 end, -- why does 0 result in 69 lives? That's a good question, Mega Man.
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['AdvOfGummiBear_GEN']={ -- Adventures of the Gummi Bears (bootleg), NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_s8(0x37c9, "68K RAM") end,
+		p1getlc=function() return memory.read_s8(0x37d1, "68K RAM") end,
+		maxhp=function() return 3 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "68K RAM" end,
+		p1livesaddr=function() return 0x37d1 end,
+		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 
