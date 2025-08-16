@@ -172,6 +172,7 @@ plugin.description =
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Mega Q*Bert (Genesis/Mega Drive), 1p
 	-Mendel Palace (NES), 1p
+	-Minnesota Fats - Pool Legend (Saturn), 1p story mode
 	-Ms. Pac-Man (Tengen) (NES), 1p
 	-Metal Storm (NES), 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
@@ -5699,6 +5700,27 @@ local gamedata = {
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x0168 end,
 		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['MinnesotaFatsPoolLegend_SAT']={ -- Minnesota Fats - Pool Legend (R) [Saturn]
+		func=function() return 
+		function()
+			local gamestate_changed, gamestate_curr, gamestate_prev = update_prev("gamestate", memory.read_u8(0x0aa527, "Work Ram High"))
+			-- if the game over movie just played, swap
+			if gamestate_changed and gamestate_prev == 0x10 then return true end
+			-- otherwise, we have to be playing, or we should never swap.
+			if gamestate_curr ~= 0x08 then return false end
+			-- we should shuffle if p1 loses their turn - that would be a miss, scratch, anything
+			local p2_turn_changed, p2_turn_curr, p2_turn_prev = update_prev("p2_turn", memory.read_u8(0x0aa53F, "Work Ram High") == 1)
+			if p2_turn_changed and p2_turn_curr then return true end
+			-- otherwise, don't swap
+			return false
+			end
+		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "Work Ram High" end,
+		p1livesaddr=function() return 0x061575 end, -- story continues
+		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 
