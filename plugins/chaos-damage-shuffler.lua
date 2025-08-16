@@ -119,6 +119,7 @@ plugin.description =
 	-Aladdin (SNES), 1p
 	-Alundra (PSX), 1p, supports patched versions (e.g., Unworked Designs)
 	-Anticipation (NES), up to 4 players, shuffles on incorrect player answers, correct CPU answers, and running out of time.
+	-Arkanoid: Doh it Again (SNES), 1p
 	-Banjo-Kazooie (N64), 1p
 	-Bao Qing Tian (Ch) (NES), 1p
 	-Batman (NES), 1p
@@ -152,7 +153,7 @@ plugin.description =
 	-High Seas Havoc (Genesis/Mega Drive), 1p - NEEDS WORK
 	-Ice Climber (NES), 1-2p
 	--- check toggle for whether you want bonus game losses to swap!
-	-Indiana Jones and the Last Crusade (NES), 1p - NEEDS WORK
+	-Indiana Jones and the Last Crusade (Genesis/Mega Drive), 1p - NEEDS WORK
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
 	-Jungle Book, The (NES), 1p
