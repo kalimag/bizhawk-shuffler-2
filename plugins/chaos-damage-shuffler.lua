@@ -5685,6 +5685,17 @@ local gamedata = {
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
+	['ArkanoidDohItAgain_SNES']={ -- Arkanoid - Doh It Again, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_s8(0x0168, "WRAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x0168 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
 
 }
 
