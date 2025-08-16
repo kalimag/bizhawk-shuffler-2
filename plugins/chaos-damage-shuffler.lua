@@ -112,7 +112,7 @@ plugin.description =
 
 	ADDITIONAL SUPPORTED GAMES
 	-ActRaiser (SNES), 1p
-	-Adventures in the Magic Kingdom, (NES), 1p
+	-Adventures in the Magic Kingdom (NES), 1p
 	-Aero the Acro-Bat (SNES), 1p
 	-Aladdin (Genesis/Mega Drive), 1p
 	-Aladdin (SNES), 1p
@@ -4852,7 +4852,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x004C end,
 		maxlives=function() return 127 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-    },
+	},
 	['DynamiteHeaddy_GEN']={ -- Dynamite Headdy, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0xd201, "68K RAM") end,
@@ -4874,7 +4874,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x6c0 end,
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-    },
+	},
 	['GhostsnGoblins_NES']={ -- Ghosts n' Goblins, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x68c, "RAM") end,
@@ -4885,7 +4885,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x715 end,
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-    },
+	},
 	['GhoulsnGhosts_GEN']={ -- Ghouls n' Ghosts, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0xd201, "68K RAM") end,
@@ -4909,7 +4909,7 @@ local gamedata = {
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 		grace=30,
-    },	
+	},
 	['Gimmick_NES']={ -- Gimmick!, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x346, "RAM") end,
@@ -4931,7 +4931,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x71c end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},	
+	},
 	['MetalStorm_NES']={ -- Metal Storm, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x05D0, "RAM") + 1 end, -- add 1 because no armor == 0
@@ -4942,22 +4942,22 @@ local gamedata = {
 		p1livesaddr=function() return 0x716 end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},	
-    ['SuperGnG_SNES']={ -- Super Ghouls'n Ghosts, SNES
+	},
+	['SuperGnG_SNES']={ -- Super Ghouls'n Ghosts, SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_s8(0x44A, "WRAM") + 1 end,
 		p1getlc=function() return memory.read_s8(0x2A4, "WRAM") end,
 		maxhp=function() return 2 end, -- Strictly speaking this CAN go higher and be handled as extra hit points, but the game itself won't do that
 		gmode=function()
-		    mode = memory.read_s8(0x278, "WRAM")
-		    return mode == 0x4 or mode == 0x5
+			mode = memory.read_s8(0x278, "WRAM")
+			return mode == 0x4 or mode == 0x5
 		end,
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x2A4 end,
 		LivesWhichRAM=function() return "WRAM" end,
 		maxlives=function() return 9 end, -- Anything higher starts displaying letters or random graphic tiles
 		ActiveP1=function() return true end, -- p1 is always active!
-    },
+	},
 	['Castlevania2_GB']={ -- Castlevania II - Belmont's Revenge, GB
 		func=singleplayer_withlives_swap,
 		gmode=function() return memory.read_u8(0xC90, "WRAM") > 0 end, 
@@ -4981,7 +4981,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x66d end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},	
+	},
 	['GunstarHeroes_GEN']={ -- Gunstar Heroes, Genesis
 	func=health_swap,
 		is_valid_gamestate=function() return memory.read_u16_be(0xA284, "68K RAM") == 0x38 end,
@@ -5121,7 +5121,7 @@ local gamedata = {
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-		},	
+		},
 	['BugsBunnyBB_NES']={ -- Bugs Bunny: Birthday Blowout, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x0428, "RAM") end,
@@ -5132,7 +5132,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x0429 end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},	
+	},
 	['BugsBunnyCC_NES']={ -- Bugs Bunny: Crazy Castle, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 1 end,
@@ -5143,7 +5143,7 @@ local gamedata = {
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-		},
+	},
 	['DuckTales_NES']={ -- Ducktales, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return ((1 - memory.read_u8(0x0342, "RAM")) + (1 - memory.read_u8(0x0346, "RAM")) + (1 - memory.read_u8(0x034a, "RAM")) + ((1 - memory.read_u8(0x034c, "RAM")//192) * (1 - memory.read_u8(0x034e, "RAM"))) + ((1 - memory.read_u8(0x034c, "RAM")//192) * (1 - memory.read_u8(0x0350, "RAM")//192) * (1 - memory.read_u8(0x0352, "RAM")))) end, 
@@ -5155,7 +5155,7 @@ local gamedata = {
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 		gmode=function() return memory.read_u8(0x002b, "RAM") == 8 end, --game state is 8 in level. add " or memory.read_u8(0x002b,"RAM") == 4" if swapping needed in Gyro's secret area.
-    },
+	},
 	['DuckTales2_NES']={ -- Duck Tales 2, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x00CF, "RAM") end,
@@ -5201,7 +5201,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x0104 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},	
+	},
 	['MarbleMadness_NES']={ -- Marble Madness, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 1 end ,
@@ -5245,7 +5245,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x036a end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},			
+	},
 	['HighSeasHavoc_GEN']={ -- High Seas Havoc, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_s8(0xdca5, "68K RAM") end,
@@ -5282,8 +5282,8 @@ local gamedata = {
 		maxlives=function() return 5 end,
 		ActiveP1=function() return memory.read_u8(0x006a, "WRAM") > 0 end,
 		ActiveP2=function() return memory.read_u8(0x006b, "WRAM") > 0 end,
-		grace=40,		
-	},		
+		grace=40,
+	},
 	['PowerBlade_NES']={ -- Power Blade, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x04ab, "RAM") end,
@@ -5294,7 +5294,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x0027 end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},	
+	},
 	['RainbowIslands_NES']={ -- Rainbow Islands - The Story of Bubble Bobble 2, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 1 end,
@@ -5327,7 +5327,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x00b6 end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},	
+	},
 	['ShinobiIII_GEN']={ -- Shinobi III, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x37e9, "68K RAM") end,
@@ -5349,7 +5349,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x06c1 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},	
+	},
 	['Sparkster_SNES']={ -- Sparkster, SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_s8(0x0691, "WRAM") end,
@@ -5382,7 +5382,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x00b5 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},	
+	},
 	['StreetsOfRage2_GEN']={ -- Streets Of Rage II, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_s16_be(0xef80, "68K RAM") end,
@@ -5404,7 +5404,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x7F5B end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},					
+	},
 	['GarfieldAWoG_NES']={ -- Garfield: A Week of Garfield, NES
 		func=health_swap,
 		is_valid_gamestate=function() return true end,
@@ -5479,7 +5479,7 @@ local gamedata = {
 		p1livesaddr=function() return 0x0095 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!	
-	},	
+	},
 	['SuperAladdin_NES']={ -- Super Aladdin (bootleg), NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_s8(0x063c, "RAM") end,
@@ -5640,14 +5640,14 @@ local gamedata = {
 			end
 		return false
 		end,
-    },
-		['TaleSpin_NES']={ -- TaleSpin, NES
+	},
+	['TaleSpin_NES']={ -- TaleSpin, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 
-		    (memory.read_u8(0x05B2, "RAM") + 
-		    memory.read_u8(0x05B4, "RAM") + 
-		    memory.read_u8(0x05B6, "RAM") + 
-		    memory.read_u8(0x05B8, "RAM")) end,  --kind of like ducktales but with less nonsense. each memory address has a value of 96 if a heart is there, 0 otherwise. 
+			(memory.read_u8(0x05B2, "RAM") + 
+			memory.read_u8(0x05B4, "RAM") + 
+			memory.read_u8(0x05B6, "RAM") + 
+			memory.read_u8(0x05B8, "RAM")) end,  --kind of like ducktales but with less nonsense. each memory address has a value of 96 if a heart is there, 0 otherwise. 
 		p1getlc=function() return (((memory.read_u8(0x05D9, "RAM") - 112) * 10) + (memory.read_u8(0x05DB,"RAM") - 112)) end,  --lives stored as tens and ones in lower4 bits
 		maxhp=function() return 384 end,
 		CanHaveInfiniteLives=true,
@@ -5673,6 +5673,7 @@ local gamedata = {
 		maxlives=function() return 0 end, -- why does 0 result in 69 lives? That's a good question, Mega Man.
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
+
 }
 
 local backupchecks = {
