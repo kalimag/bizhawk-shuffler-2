@@ -198,6 +198,7 @@ plugin.description =
 	-Pocky & Rocky (SNES), 1p - NEEDS WORK
 	-Pocky & Rocky 2 (SNES), 1p - NEEDS WORK
 	-Power Blade (NES), 1p
+	-Power Blade 2 (NES), 1p
 	-Rainbow Islands - The Story of Bubble Bobble 2 (NES), 1p
 	-Ristar (Genesis/Mega Drive), 1p
 	-Rock 'n Roll Racing (SNES), 1p
@@ -230,6 +231,7 @@ plugin.description =
 	-Teenage Mutant Ninja Turtles IV: Turtles in Time (SNES), 1-2p
 	-Titenic (bootleg) (NES), 1p
 	-U.N. Squadron (SNES), 1p
+	-Vice: Project Doom (NES), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
 
 	NICHE ZONE
@@ -5409,17 +5411,6 @@ local gamedata = {
 		ActiveP2=function() return memory.read_u8(0x006b, "WRAM") > 0 end,
 		grace=40,
 	},
-	['PowerBlade_NES']={ -- Power Blade, NES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x04ab, "RAM") end,
-		p1getlc=function() return memory.read_s8(0x0027, "RAM") end,
-		maxhp=function() return 255 end,
-		CanHaveInfiniteLives=true,
-		LivesWhichRAM=function() return "RAM" end,
-		p1livesaddr=function() return 0x0027 end,
-		maxlives=function() return 69 end,
-		ActiveP1=function() return true end, -- p1 is always active!	
-	},
 	['RainbowIslands_NES']={ -- Rainbow Islands - The Story of Bubble Bobble 2, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 1 end,
@@ -6059,6 +6050,41 @@ local gamedata = {
 		LivesWhichRAM=function() return "DRAM" end,
 		p1livesaddr=function() return 0x2D163 end,
 		maxlives=function() return 0x68 end, -- Will show as 69
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['PowerBlade_NES']={ -- Power Blade, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x04ab, "RAM")+memory.read_u8(0x009c, "RAM") end,
+		p1getlc=function() return memory.read_s8(0x0027, "RAM") end,
+		maxhp=function() return 19 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0027 end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+		grace=30,
+	},
+	['PowerBlade2_NES']={ -- Power Blade 2, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x049a, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x009f, "RAM") end,
+		maxhp=function() return 16 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x009f end,
+		maxlives=function() return 106 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+		grace=30,
+	}, 
+	['ViceProjectDoom_NES']={ -- Vice: Project Doom, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0280, "RAM") end,
+		p1getlc=function() return memory.read_s8(0x0362, "RAM") end,
+		maxhp=function() return 20 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0362 end,
+		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
