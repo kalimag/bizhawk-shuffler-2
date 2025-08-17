@@ -27,7 +27,7 @@ plugin.description =
 
 	ENABLE EXPANSION SLOT FOR N64 GAMES! This should be the default configuration, but check!
 
-	YOU WILL NEED BizHawk 2.10 MINIMUM for Sega Saturn games to be recognized and shuffled correctly!
+	YOU WILL NEED BizHawk 2.10 MINIMUM for Sega CD and Sega Saturn games to be recognized and shuffled correctly!
 
 	Supported games:
 
@@ -109,6 +109,18 @@ plugin.description =
 	-Kirby: Super Star (SNES), 1p
 	-Kirby: Nightmare in Dream Land (GBA), 1p - NEEDS WORK
 	-Kirby and the Amazing Mirror (GBA), 1p
+	
+	SONIC BLOCK
+	-Sonic the Hedgehog (Genesis/Mega Drive), 1p
+	-Sonic the Hedgehog 2 (Genesis/Mega Drive), 1p (2p support someday)
+	-Sonic the Hedgehog 3 (Genesis/Mega Drive), 1p (2p support someday)
+	-Sonic & Knuckles (Genesis/Mega Drive), 1p
+	-Sonic the Hedgehog 3 & Knuckles (Genesis/Mega Drive), 1p (2p support someday)
+	-Knuckles the Echidna in Sonic the Hedgehog 2 (Genesis/Mega Drive), 1p
+	-Sonic the Hedgehog Spinball (Genesis) (Genesis/Mega Drive), 1p (multiplayer someday?)
+	-Sonic the Hedgehog CD (Sega [Mega] CD), 1p
+	-Sonic 3D Blast: Flickies' Island (Genesis/Mega Drive), 1p
+	-Sonic 3D Blast (Saturn), 1p
 
 	ADDITIONAL SUPPORTED GAMES
 	-ActRaiser (SNES), 1p
@@ -125,7 +137,9 @@ plugin.description =
 	-Batman (NES), 1p
 	-Blades of Steel (NES - NA/Europe), 1-2p
 	-Bubble Bobble (NES), 1p
-	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES)
+	-Bubsy in Claws Encounters of the Furred Kind (aka Bubsy 1) (SNES), 1p
+	-Bubsy in Fractured Furry Tales (Jaguar), 1p
+	-Bubsy 3D: Furbitten Planet (PS1), 1p
 	-Bucky O'Hare (NES), 1p
 	-Bugs Bunny: Birthday Blowout (NES), 1p
 	-Bugs Bunny: Crazy Castle (NES), 1p
@@ -154,6 +168,7 @@ plugin.description =
 	-Ice Climber (NES), 1-2p
 	--- check toggle for whether you want bonus game losses to swap!
 	-Indiana Jones and the Last Crusade (Genesis/Mega Drive), 1p - NEEDS WORK
+	-I.Q.: Intelligent Qube (PS1), 1p (2p someday?)
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
 	-Jungle Book, The (NES), 1p
@@ -1705,7 +1720,7 @@ local function Pebble_Beach_Golf_Links_swap(gamemeta)
 			local temp = player1ScoreArray[i];
 			player1ScoreArray[i] = player1ScoreArray[i+1];
 			player1ScoreArray[i+1] = temp;
-		+		end]] -- No longer necessary, dev builds (and presumably 2.10/3.0/whatever onward) fix the byte swap
+		end]] -- No longer necessary, dev builds (and presumably 2.10/3.0/whatever onward) fix the byte swap
 		local player1StrokesChanged, player1Strokes, prevPlayer1Strokes = update_prev('p1HoleStrokes', player1ScoreArray[hole]);
 		if (player1StrokesChanged) then
 			--console.log("P1 Strokes on hole "..hole.." has changed from "..prevPlayer1Strokes.." to "..player1Strokes);
@@ -1911,6 +1926,110 @@ local function castlevania_n64_swap(gamemeta)
 	end
 end
 
+local function sonic_swap(gamemeta)
+	return function(data)
+--[[	Logic:
+			Swap if I-frames went up AND (rings lost OR shield lost)
+			Swap if lives go down by 1
+		There's probably some extra niceties to consider like delaying the swap on life loss to account for fades, but just get this working first ]]
+
+		-- Log changes even if we're not in the right game mode, so resets to 0 when the game isn't active don't shuffle
+		local p1_rings_changed, p1_rings_curr, p1_rings_prev = update_prev('p1rings', gamemeta.get_rings())
+		local p1_shield_changed, p1_shield_curr, p1_shield_prev = update_prev('p1shield', gamemeta.get_shield())
+		local p1_lives_changed, p1_lives_curr, p1_lives_prev = update_prev('p1lives', gamemeta.get_lives())
+		local p1_iframes_changed, p1_iframes_curr, p1_iframes_prev = update_prev('p1iframes', gamemeta.get_iframes())
+
+		-- Debugging block
+		--[[iframes_cond = (p1_iframes_changed and p1_iframes_prev == 0)
+		rings_cond = (p1_rings_changed and p1_rings_curr < p1_rings_prev)
+		shield_cond = (p1_shield_changed and p1_shield_curr < p1_shield_prev)
+		if (p1_rings_changed and p1_rings_curr == 0) then
+			console.log("Rings: "..p1_rings_prev.." -> "..p1_rings_curr)
+		end
+		if (p1_shield_changed and p1_shield_curr == 0) then
+			console.log("Shield: "..p1_shield_prev.." -> "..p1_shield_curr)
+		end
+		if (p1_iframes_changed and p1_iframes_prev == 0) then
+			console.log("I-Frames: "..p1_iframes_prev.." -> "..p1_iframes_curr)
+		end
+		if (p1_lives_changed and p1_lives_curr == p1_lives_prev - 1) then
+			console.log("Lives: "..p1_lives_prev.." -> "..p1_lives_curr)
+		end
+		if (iframes_cond or rings_cond or shield_cond) then
+			console.log("--------------------")
+			--iframes_cond = (p1_iframes_changed and p1_iframes_prev == 0)
+			--rings_cond = (p1_rings_changed and p1_rings_curr < p1_rings_prev)
+			--shield_cond = (p1_shield_changed and p1_shield_curr < p1_shield_prev)
+			console.log("Iframes non-zero: "..tostring(iframes_cond))
+			console.log("Ring(s) lost: "..tostring(rings_cond))
+			console.log("Shield lost: "..tostring(shield_cond))
+			console.log("Overall: "..tostring(iframes_cond and (rings_cond or shield_cond)))
+			if gamemeta.gmode then
+				console.log("Valid Game Mode: "..tostring(gamemeta.gmode()))
+			end
+			console.log("")
+		end]]
+
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
+
+		if (p1_iframes_changed and p1_iframes_prev == 0) -- I-frames changed from 0
+			and ( -- either of the below must be true, can't be a dummy knockback (which the games sometimes do)
+				(p1_rings_changed and p1_rings_curr < p1_rings_prev) -- rings lost
+				or (p1_shield_changed and p1_shield_curr < p1_shield_prev) -- shield lost
+			) -- but also I-frames MUST go up, i.e.: ring drain should not cause shuffles
+		then
+			return true
+		end
+
+		if (p1_lives_changed and p1_lives_curr == p1_lives_prev - 1) then -- Lives went down
+			return true
+		end
+
+		return false
+	end
+end
+
+local function iq_swap(gamemeta)
+	return function(data)
+		local p1_rows_changed, p1_rows_curr, p1_rows_prev = update_prev('p1_rows', gamemeta.get_rows())
+		local p1_cube_limit_changed, p1_cube_limit_curr, p1_cube_limit_prev = update_prev('p1_cube_limit', gamemeta.get_cube_limit())
+		local p1_gamemode_changed, p1_gamemode_curr, p1_gamemode_prev = update_prev('p1_gamemode', gamemeta.get_gamemode())
+		local p1_squished_changed, p1_squished_curr, p1_squished_prev = update_prev('p1_squished', gamemeta.get_squished())
+
+		-- if a method is provided and we are not in normal gameplay, don't ever swap
+		-- TODO: find relevant values and make such a method
+		if gamemeta.gmode and not gamemeta.gmode() then
+			return false
+		end
+
+		if (p1_squished_changed and p1_squished_prev == 0 and p1_squished_curr == 1) then
+			return true -- squimsh
+		end
+		if (p1_squished_curr == 1) then
+			return false -- Don't process more cube or row deductions until all the cubes have fallen off the stage
+		end
+
+		if (p1_cube_limit_changed and p1_cube_limit_curr < p1_cube_limit_prev) then
+			return true -- You let a Cube fall!
+		end
+		if (p1_rows_changed and p1_rows_curr < p1_rows_prev) then
+			return true -- You let too many Cubes fall or captured a Forbidden Cube!
+		end
+		if (p1_gamemode_changed and p1_gamemode_curr == 0x13 and p1_gamemode_prev == 0x12) then
+			return true -- You died! Shift before the IQ screen appears
+		end
+		return false
+	end
+end
+
+local function always_swap(gamemeta)
+	return function(data)
+		return true -- Always swap!
+	end
+end
 
 -- Modified version of the gamedata for Mega Man games on NES.
 -- Battletoads NES and BTDD each show 6 "boxes" that look like HP.
@@ -4948,12 +5067,14 @@ local gamedata = {
 	},
 	['SuperGnG_SNES']={ -- Super Ghouls'n Ghosts, SNES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_s8(0x44A, "WRAM") + 1 end,
+		p1gethp=function() return memory.read_s8(0x44A, "WRAM") end,
 		p1getlc=function() return memory.read_s8(0x2A4, "WRAM") end,
-		maxhp=function() return 2 end, -- Strictly speaking this CAN go higher and be handled as extra hit points, but the game itself won't do that
+		maxhp=function() return 1 end, -- Strictly speaking this CAN go higher and be handled as extra hit points, but the game itself won't do that
+		minhp=-1,
 		gmode=function()
 			mode = memory.read_s8(0x278, "WRAM")
-			return mode == 0x4 or mode == 0x5
+			demo = memory.read_s8(0x1FB9, "WRAM")
+			return demo ~= 2 and (mode == 0x2 or mode == 0x4 or mode == 0x5) -- Modes are Map, Gameplay, or Game Over, respectively
 		end,
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x2A4 end,
@@ -5723,7 +5844,223 @@ local gamedata = {
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
-
+	['Sonic1_GEN']={ -- Sonic the Hedgehog (Genesis/Mega Drive)
+		func=sonic_swap,
+		gmode=function() return memory.read_u8(0xF600, "68K RAM") == 0xC end,
+		get_rings=function() return memory.read_u16_be(0xFE20, "68K RAM") end,
+		get_shield=function() return memory.read_u8(0xFE2C, "68K RAM") end,
+		get_lives=function() return memory.read_u8(0xFE12, "68K RAM") end,
+		get_iframes=function() return memory.read_u16_be(0xD030, "68K RAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0xFE12 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Sonic2_GEN']={ -- Sonic the Hedgehog 2/Knuckles in Sonic the Hedgehog 2 (Genesis/Mega Drive)
+		func=sonic_swap,
+		gmode=function() return memory.read_u8(0xF600, "68K RAM") == 0xC end,
+		get_rings=function() return memory.read_u16_be(0xFE20, "68K RAM") end,
+		get_shield=function() return memory.read_u8(0xB02B, "68K RAM") & 0x1 end,
+		get_lives=function() return memory.read_u8(0xFE12, "68K RAM") end,
+		get_iframes=function() return memory.read_u16_be(0xB030, "68K RAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0xFE12 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Sonic3K_GEN']={ -- Sonic the Hedgehog 3, Sonic & Knuckles, Sonic the Hedgehog 3 & Knuckles, Sonic 3 Complete (Genesis/Mega Drive)
+		func=sonic_swap,
+		gmode=function() return memory.read_u8(0xF600, "68K RAM") == 0xC end,
+		get_rings=function() return memory.read_u16_be(0xFE20, "68K RAM") end,
+		get_shield=function() return memory.read_u8(0xB02B, "68K RAM") & 0x1 end,
+		get_lives=function() return memory.read_u8(0xFE12, "68K RAM") end,
+		get_iframes=function() return memory.read_u8(0xB034, "68K RAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0xFE12 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SonicCD_SCD']={ -- Sonic the Hedgehog CD (Sega [Mega] CD)
+		func=sonic_swap,
+		gmode=function() return memory.read_u8(0x1957, "68K RAM") == 1 end,
+		get_rings=function() return memory.read_u16_be(0x1512, "68K RAM") end,
+		get_shield=function() return memory.read_u8(0x151E, "68K RAM") end,
+		get_lives=function() return memory.read_u8(0x1508, "68K RAM") end,
+		get_iframes=function() return memory.read_u8(0xD031, "68K RAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x1508 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 69 end, -- HUD caps at 9, but internally goes higher
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Sonic3D_GEN']={ -- Sonic 3D Blast: Flickies' Island (Genesis/Mega Drive)
+		func=sonic_swap,
+		gmode=function()
+			mode = memory.read_u16_be(0x3FE, "68K RAM")
+			return mode == 0x5F8 -- Gameplay
+				or mode == 0x5A0 -- Stage loading; lives are subtracted the same time this mode is set, so we need to use it
+		end,
+		get_rings=function() return memory.read_u16_be(0xA5A, "68K RAM") end,
+		get_shield=function() return memory.read_u8(0xAC2, "68K RAM") & 0x40 end,
+		get_lives=function()
+			mode = memory.read_u16_be(0x3FE, "68K RAM")
+			if mode == 0x91E or mode == 0x88C then -- Game Over or Continue; both are handled if you die with 0 lives, which is otherwise a valid life number
+				return -1
+			end
+			return memory.read_u16_be(0x680, "68K RAM") -- Just return the actual lives counter
+		end,
+		get_iframes=function() return memory.read_s16_be(0xC224, "68K RAM") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x681 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 9 end, --TODO: Check if 9 really is the maximum
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Sonic3D_SAT']={ -- Sonic 3D Blast (Saturn)
+		func=sonic_swap,
+		gmode=function()
+			mode = memory.read_u8(0xFF06, "Work Ram High")
+			return (mode >= 0x4 and mode <= 0x16) -- RA asserts this is gameplay, but it appears to be music tracks? Well, here's all the gameplay ones, at least
+				or mode == 0x1D -- Loading? At any rate this mode accompanies a life loss
+				or mode == 0x18 -- Continue
+				or mode == 0x3 -- Game Over
+		end,
+		get_rings=function() return memory.read_u16_be(0x9800C, "Work Ram High") end,
+		get_shield=function() return memory.read_u8(0x9807D, "Work Ram High") & 0x40 end,
+		get_lives=function()
+			mode = memory.read_u8(0xFF06, "Work Ram High")
+			if mode == 0x3 or mode == 0x18 then -- Game Over or Continue; both are handled if you die with 0 lives, which is otherwise a valid life number
+				return -1
+			end
+			return memory.read_u16_be(0x97C2E, "Work Ram High") -- Just return the actual lives counter
+		end,
+		get_iframes=function() return memory.read_s16_be(0xA44AC, "Work Ram High") end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x97C2F end,
+		LivesWhichRAM=function() return "Work Ram High" end,
+		maxlives=function() return 9 end, --TODO: Check if 9 really is the maximum
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SonicSpinball_GEN']={ -- Sonic the Hedgehog Spinball (Genesis)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 0 end, -- Game does not have HP
+		maxhp=function() return 0 end, -- Game does not have HP
+		p1getlc=function()
+			if memory.read_u16_be(0x3CA8, "68K RAM") == 1 then
+				return memory.read_u8(0xF20D, "68K RAM") -- In bonus stage, read bonus lives
+			elseif memory.read_u16_be(0x3CA8, "68K RAM") == 2 and memory.read_u16_be(0x547C, "68K RAM") ~= 1 then
+				return -1 -- Bonus stage ending and the win flag isn't triggered, treat as a life loss
+			end
+			return memory.read_u8(0x579E, "68K RAM") -- Bonus not being relevant, use the normal life value
+		end,
+		gmode=function()
+			demomode = memory.read_u8(0x6, "68K RAM")
+			gamestate = memory.read_u16_be(0x3CB6, "68K RAM")
+			bonusstate = memory.read_u16_be(0x3CA8, "68K RAM")
+			if demomode == 1 then
+				return false -- In demo, ignore
+			end
+			if gamestate == 2 then
+				return true -- In main game
+			end
+			if bonusstate == 1 or bonusstate == 2 then
+				return true -- In a bonus stage, or one is just now ending
+			end
+			return false
+		end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x579E end, -- Only bother with main lives, making bonus lives infinite would be too much hassle
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 9 end, -- Anything higher does not display
+		ActiveP1=function() return true end, -- TODO: this actually supports 4P turn-taking...
+	},
+	['IQ_PS1_NA']={ -- I.Q.: Intelligent Qube, PS1 (TODO: PAL? Japan?)
+		func=iq_swap,
+		gmode=function()
+			gamemode = memory.read_u8(0x6C7F8, "MainRAM")
+			return gamemode == 0x04 -- Gameplay
+				or gamemode == 0x0A -- Gameplay? (RA says this can happen)
+				or gamemode == 0x12 -- Death
+				or gamemode == 0x13 -- Game Over
+		end,
+		get_gamemode=function() return memory.read_u8(0x6C7F8, "MainRAM") end,
+		get_rows=function() return memory.read_u8(0x6C700, "MainRAM") end,
+		get_cube_limit=function() return memory.read_u16_le(0x6C6F2, "MainRAM") end,
+		get_squished=function() return memory.read_u16_le(0x6C6E4, "MainRAM") end,
+		grace=180, -- 3 seconds is a lot, but it's better than rapid-fire damage-taking from multiple missed cubes
+	},
+	['Bubsy3D_PS1']={ -- Bubsy 3D: Furbitten Planet (PS1)
+		func=singleplayer_withlives_swap,
+		gmode=function()
+			return memory.read_u32_le(0x1FFFD0, "MainRAM") == 0x801FFFD8
+				and memory.read_u32_le(0x1FFFEC, "MainRAM") ~= 0x00000000 -- Need something to point to
+		end,
+		p1gethp=function()
+			statePtr = memory.read_u32_le(0x1FFFEC, "MainRAM")
+			if (statePtr == 0x00000000) then
+				return 0
+			else
+				statePtr = statePtr & 0x00FFFFFF -- BizHawk only cares about the lower 24 bits of the address, not the initial "0x80" in the MSB
+			end
+			return memory.read_s32_le(statePtr + 0x24, "MainRAM")
+		end,
+		maxhp=function() return 0x7FFFFFFF end, -- There is seemingly no actual cap, but the value is signed and the minus character is garbage data
+		minhp=-1, -- You can live with 0 health
+		p1getlc=function()
+			statePtr = memory.read_u32_le(0x1FFFEC, "MainRAM")
+			if (statePtr == 0x00000000) then
+				return 0
+			else
+				statePtr = statePtr & 0x00FFFFFF -- BizHawk only cares about the lower 24 bits of the address, not the initial "0x80" in the MSB
+			end
+			return memory.read_s32_le(statePtr + 0x20, "MainRAM")
+		end,
+		--[[gettogglecheck=function()
+			return memory.read_s32_le(0xE02C, "MainRAM") == 0
+		end,]]
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function()
+			statePtr = memory.read_u32_le(0x1FFFEC, "MainRAM")
+			if (statePtr == 0x00000000) then
+				return nil -- Do not set lives this shuffle
+			else
+				statePtr = statePtr & 0x00FFFFFF -- BizHawk only cares about the lower 24 bits of the address, not the initial "0x80" in the MSB
+			end
+			return statePtr + 0x20
+		end,
+		LivesWhichRAM=function() return "MainRAM" end,
+		maxlives=function() return 69 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['BubsyFFT_JAG']={ -- Bubsy in Fractured Furry Tales (Atari Jaguar)
+		func=singleplayer_withlives_swap,
+		gmode=function() return memory.read_u16_be(0xF172A, "DRAM") == 3 end, -- Absent anything more obvious, this SEEMS reliable...
+		p1gethp=function() return 0 end,
+		maxhp=function() return 0 end,
+		p1getlc=function()
+			-- Need to convert binary-coded decimal hexadecimal value to just plain decimal
+			local livesHex = memory.read_s16_be(0x2D162, "DRAM")
+			if (livesHex == 0xFF99) then
+				return 0 -- This is what this value displays as in-game, though you never get to see it
+			end
+			-- Get upper nybble, bit-shift right 4 bits
+			local tens = (livesHex & 0xF0)>>4
+			-- Just the lower nybble
+			local ones = livesHex & 0x0F
+			-- Merge 'em
+			local lives = (tens * 10) + ones
+			-- Bubsy actually offsets lives by 1 for some reason
+			return lives+1
+		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "DRAM" end,
+		p1livesaddr=function() return 0x2D163 end,
+		maxlives=function() return 0x68 end, -- Will show as 69
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
 }
 
 local backupchecks = {
