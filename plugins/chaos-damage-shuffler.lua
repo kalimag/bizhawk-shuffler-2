@@ -183,7 +183,7 @@ plugin.description =
 	-Lion King 2 (bootleg) (Genesis/Mega Drive), 1p - NEEDS WORK
 	-Lion King, The (SNES), 1p - NEEDS WORK
 	-Magical Kid's Doropie / Krion Conquest (NES), 1p
-	-Marble Madness (NES), 1p
+	-Marble Madness (NES), 1-2p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Mega Q*Bert (Genesis/Mega Drive), 1p
 	-Mendel Palace (NES), 1p
@@ -5109,7 +5109,7 @@ local gamedata = {
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['GunstarHeroes_GEN']={ -- Gunstar Heroes, Genesis
-	func=health_swap,
+		func=health_swap,
 		is_valid_gamestate=function() return memory.read_u16_be(0xA284, "68K RAM") == 0x38 end,
 		other_swaps=function() return false end,
 		get_health=function() return memory.read_u16_le(0xA424, "68K RAM") end,
@@ -5328,17 +5328,6 @@ local gamedata = {
 		p1livesaddr=function() return 0x0104 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	},
-	['MarbleMadness_NES']={ -- Marble Madness, NES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return 1 end ,
-		p1getlc=function() return memory.read_u8(0x07f2, "RAM") end,
-		maxhp=function() return 1 end,
-		CanHaveInfiniteLives=false,
-		LivesWhichRAM=function() return "RAM" end,
-		p1livesaddr=function() return 0x07f2 end,
-		maxlives=function() return 69 end,
-		ActiveP1=function() return true end, -- p1 is always active!	
 	},
 	['MendelPalace_NES']={ -- Mendel Palace, NES
 		func=singleplayer_withlives_swap,
@@ -6086,6 +6075,34 @@ local gamedata = {
 		p1livesaddr=function() return 0x0362 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['MarbleMadness_NES']={ -- Marble Madness, NES
+		func=iframe_health_swap,
+		is_valid_gamestate=function() return memory.read_u8(0x0003, "RAM") == 0x02 end,
+		-- double check game states but 0x02 == playing, 0xFF == loading, 0x0E == name entry etc. 
+		swap_exceptions=function() return false end,
+		-- check if this is needed for out of time/game over
+		get_iframes=function() return
+		-- dizzy timers are 0x005B (p1) and 0x005C (p2)
+		-- respawn timers are 0x0410 (p1) and 0x0411 (p2)
+		-- if we add these together, we should have proper support for dizzies and deaths for both characters
+		memory.read_u8(0x005B, "RAM") + memory.read_u8(0x005C, "RAM") +
+		memory.read_u8(0x0410, "RAM") +	memory.read_u8(0x0411, "RAM")
+		end,
+		iframe_minimum=function() return 10 end,
+		CanHaveInfiniteLives=false, -- already a feature of the game
+		other_swaps=function()
+		-- timers: 0x0044 (p1), 0x0045 (p2)
+		local p1_timer_changed, p1_timer_curr, p1_timer_prev = update_prev("p1_timer", memory.read_u8(0x0044, "RAM"))
+		local p2_timer_changed, p2_timer_curr, p2_timer_prev = update_prev("p2_timer", memory.read_u8(0x0045, "RAM"))
+			if 
+				(p1_timer_changed and p1_timer_curr == 0 and p1_timer_prev == 1) or
+				(p2_timer_changed and p2_timer_curr == 0 and p2_timer_prev == 1)
+			then 
+				return true
+			end
+		return false
+		end,
 	},
 }
 
