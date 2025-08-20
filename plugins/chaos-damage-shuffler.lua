@@ -2026,6 +2026,41 @@ local function iq_swap(gamemeta)
 		return false
 	end
 end
+local function resident_evil_1(gamemeta)
+	return function(data)
+
+		-- To avoid swapping when poisoned since poison does not inflict any sort of hit other than drain your health. We will use the address for when the player is in control.
+		-- This address will also have unique values for what damages the player. A value of 2 is for typical hits, 5 is for when grabbed by zombies, 6 is for when grabbed by animals. 3 is when you die normally & 7 is for instakills
+
+		local playercontrol = gamemeta.hit()
+		local previouscontrol = data.hit
+		data.hit = playercontrol
+
+		-- This is for the in-game state. 0 is for when you are in-game and 1 is for when you are in the main menu/game over/load file screen. We will use this for cutscene deaths if the player fails a condition that forces a game over.
+
+		local ingamestate = gamemeta.state()
+		local previousstate = data.state
+		data.state = ingamestate
+
+		-- This is for the end fight against Tyrant. A timer starts once you get to the roof. If timer goes to 0, a cutscene of the mansion exploding is shown. This is unique to only this scenario so we can use this to tell if player fails.
+		local cutscene = gamemeta.cut()
+		data.cut = cutscene
+
+		if playercontrol == 5 and playercontrol ~= previouscontrol 
+		or playercontrol == 2 and playercontrol ~= previouscontrol 
+		or playercontrol == 6 and playercontrol ~= previouscontrol then
+			return true
+			elseif playercontrol == 3 and ingamestate == 1 and ingamestate ~= previousstate
+			or playercontrol == 7 and ingamestate == 1 and ingamestate ~= previousstate
+			or playercontrol == 8 and ingamestate == 1 and ingamestate ~= previousstate then
+			return true
+			elseif ingamestate == 1 and ingamestate ~= previousstate and cutscene == 2 then
+			return true
+			else
+			return false
+		end
+	end
+end
 
 local function always_swap(gamemeta)
 	return function(data)
@@ -6119,6 +6154,13 @@ local gamedata = {
 			end
 		return false
 		end,
+	},
+	['ResidentEvil_PS1']={ -- Resident Evil [PS1 - NSTC]
+		func=resident_evil_1,
+		hit=function() return memory.read_u8(0x0C51A8, "MainRAM") end,
+		state=function() return memory.read_u8(0x0C8454, "MainRAM") end,
+		cut=function() return memory.read_u8(0x0CF63B, "MainRAM") end,
+		delay=60
 	},
 }
 
