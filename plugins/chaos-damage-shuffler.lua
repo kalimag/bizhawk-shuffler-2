@@ -6082,12 +6082,22 @@ local gamedata = {
 		-- double check game states but 0x02 == playing, 0xFF == loading, 0x0E == name entry etc. 
 		swap_exceptions=function() return false end,
 		-- check if this is needed for out of time/game over
-		get_iframes=function() return
-		-- dizzy timers are 0x005B (p1) and 0x005C (p2)
-		-- respawn timers are 0x0410 (p1) and 0x0411 (p2)
-		-- if we add these together, we should have proper support for dizzies and deaths for both characters
-		memory.read_u8(0x005B, "RAM") + memory.read_u8(0x005C, "RAM") +
-		memory.read_u8(0x0410, "RAM") +	memory.read_u8(0x0411, "RAM")
+		get_iframes=function()
+			-- dizzy timers are 0x005B (p1) and 0x005C (p2)
+			-- respawn timers are 0x0410 (p1) and 0x0411 (p2)
+			-- if we add these together, we should have proper support for dizzies and deaths for both characters
+			-- HEY! if you want to get shuffled on dizzy, set this to true!
+			local MarbleMadness_NES_ShuffleOnDizzy = false
+			-- and leave the rest alone!
+			local MarbleMadness_NES_DizzyTimers = memory.read_u8(0x005B, "RAM") + memory.read_u8(0x005C, "RAM")
+			local MarbleMadness_NES_RespawnTimers = memory.read_u8(0x0410, "RAM") + memory.read_u8(0x0411, "RAM")
+			-- this will update the dizzy timers if they are enabled
+			-- TODO: integrate into a global BonusSwaps option
+			if MarbleMadness_NES_ShuffleOnDizzy == true then
+				return MarbleMadness_NES_DizzyTimers + MarbleMadness_NES_RespawnTimers
+			else
+				return MarbleMadness_NES_RespawnTimers
+			end
 		end,
 		iframe_minimum=function() return 10 end,
 		CanHaveInfiniteLives=false, -- already a feature of the game
