@@ -4164,6 +4164,9 @@ local gamedata = {
 		maxhp=function() return 5 + 1 end,
 		-- hp is going to cover fights and Gradius losses, and lives will cover goals
 		p1gethp=function()
+			-- HEY! change this to 1 if you want to shuffle every time a human player takes a punch!
+			-- HEY HEY! You have to do this twice if you're playing with two players, look below!
+			local BladesofSteel_NES_HowManyHPLostBeforeSwap = 5
 			if memory.read_u8(0x0648, "RAM") > 5 and memory.read_u8(0x0648, "RAM") <= 40
 				-- gradius cutscene ramps this up to 40 for some reason?? let's just drop the health until you get into a fight again
 				-- and the health drop itself will cause you to swap on the ship exploding if you lose at Gradius!
@@ -4175,13 +4178,16 @@ local gamedata = {
 			elseif memory.read_u8(0x0648, "RAM") > 0 or memory.read_u8(0x0649, "RAM") > 0
 				-- we are in a fight
 			then
-				return memory.read_u8(0x0648, "RAM") + 1
+				return math.ceil(memory.read_u8(0x0648, "RAM")/BladesofSteel_NES_HowManyHPLostBeforeSwap) + 1
 			else
 				return 0
 				-- outside of fights and Gradius, rely on goals
 			end
 		end,
 		p2gethp=function()
+			-- HEY! change this to 1 if you want to shuffle every time a human player takes a punch!
+			-- HEY HEY! You have to do this twice if you're playing with two players, look above!
+			local BladesofSteel_NES_HowManyHPLostBeforeSwap = 5
 			if (memory.read_u8(0x0080, "RAM") >=6 and memory.read_u8(0x0080, "RAM") <=8)
 				-- this address marks out a game mode, and 6 through 8 apply to penalty shots to break a tie
 				-- we need this because Blades of Steel has once again reused the fight health address! cool!
@@ -4191,7 +4197,7 @@ local gamedata = {
 				(memory.read_u8(0x0648, "RAM") > 0 or memory.read_u8(0x0649, "RAM") > 0)
 				-- we are in a 2p game AND a fight
 			then 
-				return memory.read_u8(0x0649, "RAM") + 1
+				return math.ceil(memory.read_u8(0x0649, "RAM")/BladesofSteel_NES_HowManyHPLostBeforeSwap) + 1
 			else
 				return 0
 				-- outside of fights, rely on goals
