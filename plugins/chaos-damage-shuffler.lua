@@ -192,7 +192,9 @@ plugin.description =
 	-Metal Storm (NES), 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
-	-Ninja Gaiden 1 (NES), 1p
+	-Ninja Gaiden (NES), 1p
+	-Ninja Gaiden II - The Dark Sword of Chaos (NES), 1p
+	-Ninja Gaiden III - The Ancient Ship of Doom (NES), 1p
 	-PaRappa the Rapper (PSX), 1p - shuffles on dropping a rank
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Pocky & Rocky (SNES), 1p - NEEDS WORK
