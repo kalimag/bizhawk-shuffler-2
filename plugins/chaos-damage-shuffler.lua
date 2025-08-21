@@ -200,6 +200,7 @@ plugin.description =
 	-Power Blade (NES), 1p
 	-Power Blade 2 (NES), 1p
 	-Rainbow Islands - The Story of Bubble Bobble 2 (NES), 1p
+	-Resident Evil (PSX), 1p - includes OG, Director's Cut, Dualshock and True Director's Cut Hack
 	-Ristar (Genesis/Mega Drive), 1p
 	-Rock 'n Roll Racing (SNES), 1p
 	-Rocket Knight Adventures (Genesis/Mega Drive), 1p
