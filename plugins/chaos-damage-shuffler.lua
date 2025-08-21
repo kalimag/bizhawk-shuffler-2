@@ -4997,6 +4997,28 @@ local gamedata = {
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
+	['NinjaGaiden2_NES']={ -- Ninja Gaiden II, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0080, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x00a5, "RAM") end,
+		maxhp=function() return 16 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x00a5 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['NinjaGaiden3_NES']={ -- Ninja Gaiden III, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x00a7, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x00c4, "RAM") end,
+		maxhp=function() return 16 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x00c4 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
 	['SunsetRiders_SNES']={ -- Sunset Riders, SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return 1 end,
