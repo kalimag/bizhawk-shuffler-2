@@ -6274,6 +6274,11 @@ local gamedata = {
 				return state_changed and prev_state == 1 and (state > 1) and not hamton_screen
 			end
 		end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x7E0 end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end,
 	},
 }
 
