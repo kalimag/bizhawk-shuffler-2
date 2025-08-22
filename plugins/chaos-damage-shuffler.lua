@@ -197,6 +197,7 @@ plugin.description =
 	-Ninja Gaiden III - The Ancient Ship of Doom (NES), 1p
 	-PaRappa the Rapper (PSX), 1p - shuffles on dropping a rank
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
+	-Pictionary (NES)
 	-Pocky & Rocky (SNES), 1p - NEEDS WORK
 	-Pocky & Rocky 2 (SNES), 1p - NEEDS WORK
 	-Power Blade (NES), 1p
@@ -6186,6 +6187,29 @@ local gamedata = {
 		state=function() return memory.read_u8(0x0C8454, "MainRAM") end,
 		cut=function() return memory.read_u8(0x0CF63B, "MainRAM") end,
 		delay=60
+	},
+	['Pictionary_NES']={ -- Pictionary NES
+		func=function()
+			return function()
+				-- Ignoring firefighter minigame because it's too RNG
+				local firefighter = memory.read_u8(0x105, "RAM") == 0x10 -- color palette entry
+				-- Pending 'damage' in minigames. This is also regularly incremented by 1 to tick down the timer
+				local _, pending, prev_pending = update_prev("pending", memory.read_u8(0x87, "RAM"))
+				if prev_pending and (pending - prev_pending) > 1 and not firefighter then return true end
+
+				-- Address of last played sound effect data. Does not change until a different sound is played
+				local sound_effect = memory.read_u16_le(0xF6, "RAM")
+				-- Changes from 0 to 0xFF while sound is playing on that channel (?)
+				local channel5_changed, channel5 = update_prev("channel5", memory.read_u8(0x7D7, "RAM") == 0xFF)
+				-- Failure sound, wrong answer, out of time, or swear word
+				-- This won't catch repeated failures while the sound effect is still playing, but that's probably not a real issue
+				if channel5_changed and channel5 and sound_effect == 0xB75A then return true end
+
+				-- "Not even a gu>ess!<" in the tilemap
+				local no_guess_changed, no_guess = update_prev("no_guess", memory.read_u32_be(0x0715, "CIRAM (nametables)") == 0x0E1C1C24)
+				if no_guess_changed and no_guess then return true end
+			end
+		end,
 	},
 }
 
