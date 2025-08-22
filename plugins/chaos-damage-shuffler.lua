@@ -311,6 +311,7 @@ local prevdata
 local swap_scheduled
 local shouldSwap
 local gamesleft
+local prev_framecount
 
 
 local bt_nes_level_names = { "Ragnarok's Canyon",
@@ -6225,6 +6226,8 @@ function plugin.on_game_load(data, settings)
 	prevdata = {}
 	swap_scheduled = false
 	shouldSwap = function() return false end
+
+	prev_framecount = emu.framecount()
 	
 	tag = tags[gameinfo.getromhash()] or get_game_tag()
 	tags[gameinfo.getromhash()] = tag or NO_MATCH
@@ -6427,6 +6430,14 @@ function plugin.on_game_load(data, settings)
 end
 
 function plugin.on_frame(data, settings)
+	-- Detect resets, savestate load or rewind (or turbo if "Run lua scripts when turboing" is disabled)
+	local inputs = joypad.get()
+	local new_framecount = emu.framecount()
+	if inputs.Reset or inputs.Power or new_framecount ~= prev_framecount + 1 then
+		prevdata = {} -- reset prevdata to avoid swaps
+	end
+	prev_framecount = new_framecount
+
 	-- Which level to patch into on game load?
 	-- Grab the first two characters of the filename, turned into a number.
 	local which_level_filename = string.sub((tostring(config.current_game)),1,2)
