@@ -1,7 +1,7 @@
 local plugin = {}
 
 plugin.name = "Chaos Damage Shuffler"
-plugin.author = "authorblues and kalimag (MMDS), Phiggle, Rogue_Millipede, Shadow Hog, Smight, endrift, ZoSym"
+plugin.author = "authorblues and kalimag (MMDS), Phiggle, Rogue_Millipede, Shadow Hog, Smight, endrift, ZoSym, Extreme0"
 plugin.minversion = "2.6.3"
 plugin.settings =
 {

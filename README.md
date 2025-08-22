@@ -23,6 +23,6 @@
 
 ## Chaos Damage Shuffler: Thanks
 * **This plugin is a mod of the excellent work by authorblues and kalimag on the Mega Man damage shuffler.** I'd have no idea what I was doing (well, moreso) without their work.
-* A massive **thank you to Rogue_Millipede, Shadow Hog, Smight, endrift, ZoSym, and Extremezero** is also in order for their work, adding shuffling for many new games and vastly improving the plugin.
+* A massive **thank you to Rogue_Millipede, Shadow Hog, kalimag, Smight, endrift, ZoSym, and Extreme0** is also in order for their work on this plugin, adding shuffling for many new games and vastly improving it!
 * Finally, thank you to Diabetus, Smight, and ConstantineDTW for extensive playthroughs that tracked down bugs.
 * Did I mention I am a novice and do this on a pretty sporadic basis? I am very grateful for reports of any bugs or general mistakes/bad ideas!
