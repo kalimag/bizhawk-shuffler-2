@@ -217,7 +217,7 @@ plugin.description =
 	-Sparkster (SNES), 1p
 	-StarTropics (NES), 1p
 	-Street Fighter 2010: The Final Fight (NES), 1p
-	-Streets of Rage II (Genesis/Mega Drive), 1p
+	-Streets of Rage II (Genesis/Mega Drive), 1-2p (includes duel mode)
 	-Star Fox 64 (N64), 1p-4p
 	-Sunset Riders (SNES), 1p
 	-Super Aladdin (bootleg) (NES), 1p
@@ -5558,16 +5558,68 @@ local gamedata = {
 		ActiveP1=function() return true end, -- p1 is always active!	
 	},
 	['StreetsOfRage2_GEN']={ -- Streets Of Rage II, Genesis
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_s16_be(0xef80, "68K RAM") end,
-		p1getlc=function() return memory.read_u8(0xef82, "68K RAM") end,
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return memory.read_s8(0xEF81, "68K RAM") end,
+		p1getlc=function() return memory.read_s8(0xEF83, "68K RAM") end,
+		p2gethp=function() return memory.read_s8(0xF081, "68K RAM") end,
+		p2getlc=function() 
+			if memory.read_s8(0xFC19, "68K RAM") > 0 -- not in 1p mode
+				then 
+					return memory.read_s8(0xF083, "68K RAM")
+				else
+					return 0 -- don't shuffle because 2p lives dropped to -1 on starting 1p game
+			end
+		end,
 		maxhp=function() return 104 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
-		p1livesaddr=function() return 0xef82 end,
+		p1livesaddr=function() return 0xEF83 end,
+		p2livesaddr=function() return 0xF083 end,
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+		ActiveP2=function() return (memory.read_u8(0xFC19, "68K RAM") == 1 -- 1 == 2p mode
+		or memory.read_u8(0xFC19, "68K RAM") == 2) -- 2 == duel
+		end,
 		grace=60,
+		swap_exceptions=function()
+		-- special moves cost HP on their finishing frame (one requires landing a hit, one doesn't)
+		-- so, if player status is "special," or goes back from special to normal, don't swap
+		-- you do have to account for being able to be hit out of your special move, though
+			local special_move_states = {
+				[70] = true, -- standing special, left
+				[71] = true, -- standing special, right
+				[74] = true, -- moving special, left
+				[75] = true, -- moving special, right
+			}
+			local hit_states = {
+				[18] = true, -- recoiling, right
+				[19] = true, -- recoiling, left
+				[20] = true, -- falling, right
+				[21] = true, -- falling, left
+			}
+			local game_mode = memory.read_u8(0xFC19, "68K RAM") -- 0 == 1p, 1 == 2p, 2 == duel
+			local _, p1_move_curr, p1_move_prev = update_prev("p1_move", memory.read_u8(0xEF0F, "68K RAM"))
+			local _, p2_move_curr, p2_move_prev = update_prev("p2_move", memory.read_u8(0xF00F, "68K RAM"))
+			if 
+				game_mode == 0 and -- 1p mode
+				(special_move_states[p1_move_prev] and not hit_states[p1_move_curr])
+			then
+				return true
+			elseif
+				game_mode == 1 and -- 2p mode
+				((special_move_states[p1_move_prev] and not hit_states[p1_move_curr]) or
+				(special_move_states[p2_move_prev] and not hit_states[p2_move_curr]))
+			then
+				return true
+			elseif
+				game_mode == 2 and -- duel mode: if you use a special and it whiffs, don't shuffle - don't make exceptions for getting hit
+				((special_move_states[p1_move_prev]) and not (hit_states[p2_move_curr]) or 
+				(special_move_states[p2_move_prev]) and not (hit_states[p1_move_curr]))
+			then
+				return true
+			end
+		return false
+		end,
 	},
 	['IndianaJonesLC_GEN']={ -- Indiana Jones & The Last Crusade, Genesis
 		func=singleplayer_withlives_swap,
