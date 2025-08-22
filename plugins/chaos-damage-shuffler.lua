@@ -232,6 +232,7 @@ plugin.description =
 	-Teenage Mutant Ninja Turtles II: The Arcade Game (NES), 1-2p
 	-Teenage Mutant Ninja Turtles III: The Manhattan Project (NES), 1-2p
 	-Teenage Mutant Ninja Turtles IV: Turtles in Time (SNES), 1-2p
+	-Tiny Toon Adventures (NES), 1p
 	-Titenic (bootleg) (NES), 1p
 	-U.N. Squadron (SNES), 1p
 	-Vice: Project Doom (NES), 1p
@@ -6186,6 +6187,16 @@ local gamedata = {
 		state=function() return memory.read_u8(0x0C8454, "MainRAM") end,
 		cut=function() return memory.read_u8(0x0CF63B, "MainRAM") end,
 		delay=60
+	},
+	['TinyToonAdventures_NES']={ -- Tiny Toon Adventures, NES
+		func=function()
+			return function()
+				-- 1 = normal; 2 = hitstun, caught by Elmyra, Hamton carrot exchange; 3 = dead
+				local state_changed, state, prev_state = update_prev("state", memory.read_u8(0x066, "RAM"))
+				local hamton_screen = memory.read_u32_be(0x6DD, "RAM") == 0x0F352025 -- part of color palette
+				return state_changed and prev_state == 1 and (state > 1) and not hamton_screen
+			end
+		end,
 	},
 }
 
