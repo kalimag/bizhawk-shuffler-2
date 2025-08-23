@@ -5067,6 +5067,16 @@ local gamedata = {
 		p1livesaddr=function() return 0x6c0 end,
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+		swap_exceptions=function()
+			-- end of level, ticks down time, then health
+			-- if timer is all zeros, and you didn't lose a life from time up, don't swap
+			local lives_changed = update_prev ("lives", memory.read_u8(0x6c0, "RAM"))
+			return 
+			(memory.read_u8(0x691, "RAM") == 0 and 
+			memory.read_u8(0x692, "RAM") == 0 and
+			memory.read_u8(0x693, "RAM") == 0 and not
+			lives_changed)
+		end,
 	},
 	['GhostsnGoblins_NES']={ -- Ghosts n' Goblins, NES
 		func=singleplayer_withlives_swap,
