@@ -5895,8 +5895,19 @@ local gamedata = {
 	['AerotheAcrobat_SNES']={ -- Aero the Acro-Bat, SNES
 		func=iframe_health_swap,
 		is_valid_gamestate=function()
-			return (memory.read_u8(0x08C1, "WRAM") ~= 2 and memory.read_u8(0x1B7E, "WRAM") ~= 255)
-			-- 2 for demo, 255 when unable to control character (like during respawn, cutscenes)
+			local hp_changed, hp_curr, hp_prev = update_prev("hp", memory.read_u8(0x0CCA, "WRAM"))
+			return (memory.read_u8(0x08C1, "WRAM") ~= 2 and 
+			-- 2 for demo
+			memory.read_u8(0x1B7E, "WRAM") ~= 255 and
+			-- 255 when unable to control character (like during respawn, cutscenes)
+			hp_curr > 0x67 and
+			hp_curr < 0x6E and
+			hp_prev ~= 0)
+			-- why does the game LOAD IFRAMES TO 120 A SECOND OR SO AFTER STARTING THE GAME??
+			-- well, it also loads in FROM an impossible health value, 0
+			-- health can't dip below 0x68 or go above 0x6D, this game stores HP in insane ways
+			-- so we'll just not shuffle if the previous or current health value is impossible.
+			-- this will catch when it has those garbage values loaded in the title/loading screens, cool!
 		end,
 		swap_exceptions=function() return memory.read_u8(0x0CCA, "WRAM") == 0x69 end, -- prevent double swaps on no health (why is no health 0x69??)
 		other_swaps=function() return false end,
