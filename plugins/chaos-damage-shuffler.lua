@@ -161,6 +161,7 @@ plugin.description =
 	-Ghosts'n Goblins (NES), 1p
 	-Ghouls'n Ghosts (Genesis/Mega Drive), 1p
 	-Gimmick! (NES/Famicom), 1p
+	-Goof Troop (SNES), 1p - NEEDS WORK (to recognize the cherries for damage)
 	-Gunstar Heroes (Genesis/Mega Drive), 1p
 	-Hammerin' Harry (NES), 1p - NEEDS WORK
 	-Hercules II (Bootleg) (Genesis/Mega Drive), 1p
@@ -171,10 +172,9 @@ plugin.description =
 	-I.Q.: Intelligent Qube (PS1), 1p (2p someday?)
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
+	-Jaws (NES), 1p - NEEDS WORK (some hit detection)
 	-Journey to Silius (NES), 1p
-	-Jungle Book, The (NES), 1p
-	-Jungle Book, The (SNES), 1p
-	-Jungle Book, The (Genesis/Mega Drive), 1p
+	-Jungle Book, The (NES, SNES, Genesis/Mega Drive), 1p
 	-Kabuki Quantum Fighter (NES), 1p
 	-Kuru Kuru Kururin (GBA), 1p
 	-Last Alert (TG-16 CD), 1p
@@ -188,10 +188,11 @@ plugin.description =
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
 	-Mega Q*Bert (Genesis/Mega Drive), 1p
 	-Mendel Palace (NES), 1p
+	-Metal Storm (NES), 1p
 	-Minnesota Fats - Pool Legend (Saturn), 1p story mode
 	-Ms. Pac-Man (Tengen) (NES), 1p
-	-Metal Storm (NES), 1p
 	-Monopoly (NES), 1-8p (on one controller), shuffles on any human player going bankrupt, going or failing to roll out of jail, and losing money (not when buying, trading, or setting up game)
+	-Mystic Warriors (Arcade), 1p
 	-NBA JAM Tournament Edition (PSX), 1p - shuffles on points scored by opponent and on end of quarter
 	-Ninja Gaiden (NES), 1p
 	-Ninja Gaiden II - The Dark Sword of Chaos (NES), 1p
@@ -210,6 +211,7 @@ plugin.description =
 	-Rocket Knight Adventures (Genesis/Mega Drive), 1p
 	-Rollergames (NES), 1p
 	-Rubble Saver II (GB), 1p
+	-Saturday Night Slam Masters (SNES), 1p - NEEDS WORK (to recognize pins as damage)
 	-Shatterhand (NES), 1p
 	-Shinobi III (Genesis/Mega Drive), 1p
 	-Simpsons: Bart vs. the World (NES), 1p
@@ -220,7 +222,7 @@ plugin.description =
 	-Street Fighter 2010: The Final Fight (NES), 1p
 	-Streets of Rage II (Genesis/Mega Drive), 1-2p (includes duel mode)
 	-Star Fox 64 (N64), 1p-4p
-	-Sunset Riders (SNES), 1p
+	-Sunset Riders (SNES, Genesis, Arcade), 1p
 	-Super Aladdin (bootleg) (NES), 1p
 	-Super Contra 7 (bootleg) (NES), 1p - NEEDS WORK
 	-Super Dodge Ball (NES), 1-2p, all modes
@@ -228,6 +230,7 @@ plugin.description =
 	-Super Mario Kart (SNES), 1-2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	-Sonic Mario Bros., Squirrel King mechanics (bootleg) (Genesis/Mega Drive), 1p
 	-Super Monkey Ball Jr. (GBA), 1p
+	-Super Smash TV (SNES), 1p - IN PROGRESS
 	-TaleSpin (NES), 1p
 	-Tarzan: Lord of the Jungle (unreleased) (SNES), 1p
 	-Teenage Mutant Ninja Turtles (NES), 1p
@@ -239,6 +242,8 @@ plugin.description =
 	-U.N. Squadron (SNES), 1p
 	-Vice: Project Doom (NES), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
+	-Wild Guns (SNES), 1p
+	-Wit's (NES), 1p - NEEDS WORK (to recognize losing bike as damage)
 
 	NICHE ZONE
 	- NES 240p Suite: shuffles on every second that passes in Stopwatch Mode. Can be useful for testing a single game.
@@ -5025,17 +5030,6 @@ local gamedata = {
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
-	['SunsetRiders_SNES']={ -- Sunset Riders, SNES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return 1 end,
-		p1getlc=function() return memory.read_u8(0x1FBA, "WRAM") end,
-		maxhp=function() return 1 end,
-		CanHaveInfiniteLives=false,
-		p1livesaddr=function() return 0x1FBA end,
-		LivesWhichRAM=function() return "WRAM" end,
-		maxlives=function() return 69 end,
-		ActiveP1=function() return true end, -- p1 is always active!
-	},
 	['BuckyOHare_NES']={ -- Bucky O'Hare, NES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x5a0, "RAM") end,
@@ -6301,6 +6295,116 @@ local gamedata = {
 		p1livesaddr=function() return 0x0053 end,
 		LivesWhichRAM=function() return "RAM" end,
 		maxlives=function() return 9 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SunsetRiders_SNES']={ -- Sunset Riders, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_u8(0x1FBA, "WRAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x1FBA end,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SunsetRiders_GEN']={ -- Sunset Riders, Genesis
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_u8(0xb099, "68K RAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0xb099 end,
+		LivesWhichRAM=function() return "68K RAM" end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SunsetRiders_ARC'] = { -- Sunset Riders (Arcade)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_u8(0x0200, "m68000 : ram : 0x104000-0x107FFF") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x0200 end,
+		LivesWhichRAM=function() return "m68000 : ram : 0x104000-0x107FFF" end,
+		maxlives=function() return 70 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['MysticWarriors_ARC'] = { -- Mystic Warriors (Arcade)
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0201, "m68000 : ram : 0x200000-0x20FFFF") end,
+		p1getlc=function() return memory.read_u8(0x0200, "m68000 : ram : 0x200000-0x20FFFF") end,
+		maxhp=function() return 5 end,
+		CanHaveInfiniteLives=false,
+		p1livesaddr=function() return 0x0200 end,
+		LivesWhichRAM=function() return "m68000 : ram : 0x200000-0x20FFFF" end,
+		maxlives=function() return 3 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['GoofTroop_SNES']={ -- Goof Troop, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x011D, "WRAM") end,
+		p1getlc=function() return memory.read_u8(0x0157, "WRAM") end,
+		maxhp=function() return 6 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x0157 end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},	
+	['SatNightSlamMasters_SNES']={ -- Saturday Night Slam Masters, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x011D, "WRAM") end,
+		p1getlc=function() return memory.read_u8(0x0157, "WRAM") end,
+		maxhp=function() return 255 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x0157 end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['WildGuns_SNES']={ -- Wild Guns, SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_u8(0x1fb2, "WRAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=false,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x1fb2 end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['SuperSmashTV_SNES']={ -- Super Smash T.V., SNES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x0531, "WRAM") end,
+		p1getlc=function() return memory.read_u8(0x0533, "WRAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x0533 end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Jaws_NES']={ -- Jaws, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x038a, "RAM")+ memory.read_u8(0x0393, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x0387, "RAM") end,
+		maxhp=function() return 4 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0387 end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active!
+	},
+	['Wits_NES']={ -- Wit's, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x038a, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x0380, "RAM") end,
+		maxhp=function() return 1 end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "RAM" end,
+		p1livesaddr=function() return 0x0380 end,
+		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
