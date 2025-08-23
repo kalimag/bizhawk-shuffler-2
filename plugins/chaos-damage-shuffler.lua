@@ -5126,6 +5126,7 @@ local gamedata = {
 	},
 	['Shatterhand_NES']={ -- Shatterhand, NES
 		func=singleplayer_withlives_swap,
+		gmode=function() return memory.read_u8(0x0002, "RAM") == 0 end, -- in-stage only
 		p1gethp=function() return memory.read_u8(0x5c5, "RAM") end,
 		p1getlc=function() return memory.read_u8(0x71c, "RAM") end,
 		maxhp=function() return 255 end,
