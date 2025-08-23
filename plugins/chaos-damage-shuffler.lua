@@ -175,7 +175,7 @@ plugin.description =
 	-Jungle Book, The (NES), 1p
 	-Jungle Book, The (SNES), 1p
 	-Jungle Book, The (Genesis/Mega Drive), 1p
-	-Kabuki Quantum Fighter (NES), 1p - NEEDS WORK
+	-Kabuki Quantum Fighter (NES), 1p
 	-Kuru Kuru Kururin (GBA), 1p
 	-Last Alert (TG-16 CD), 1p
 	-Little Samson (NES), 1p
