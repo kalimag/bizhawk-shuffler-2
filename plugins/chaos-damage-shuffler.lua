@@ -1,7 +1,7 @@
 local plugin = {}
 
 plugin.name = "Chaos Damage Shuffler"
-plugin.author = "authorblues and kalimag (MMDS), Phiggle, Rogue_Millipede, Shadow Hog, Smight, endrift, ZoSym, Extreme0"
+plugin.author = "authorblues and kalimag (MMDS), Phiggle, Rogue_Millipede, Shadow Hog, Smight, endrift, ZoSym, Extreme0, L Thammy"
 plugin.minversion = "2.6.3"
 plugin.settings =
 {
@@ -171,6 +171,7 @@ plugin.description =
 	-I.Q.: Intelligent Qube (PS1), 1p (2p someday?)
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
+	-Journey to Silius (NES), 1p
 	-Jungle Book, The (NES), 1p
 	-Jungle Book, The (SNES), 1p
 	-Jungle Book, The (Genesis/Mega Drive), 1p
@@ -6290,6 +6291,17 @@ local gamedata = {
 		p1livesaddr=function() return 0x7E0 end,
 		maxlives=function() return 9 end,
 		ActiveP1=function() return true end,
+	},
+	['JourneyToSilius_NES']={ -- Journey to Silius, NES
+		func=singleplayer_withlives_swap,
+		p1gethp=function() return memory.read_u8(0x00B0, "RAM") end,
+		p1getlc=function() return memory.read_u8(0x0053, "RAM") end,
+		maxhp=function() return 15 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x0053 end,
+		LivesWhichRAM=function() return "RAM" end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 }
 
