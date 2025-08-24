@@ -5956,13 +5956,22 @@ local gamedata = {
 		func=function() return 
 		function()
 			local gamestate_changed, gamestate_curr, gamestate_prev = update_prev("gamestate", memory.read_u8(0x0aa527, "Work Ram High"))
+			local p2_turn_changed, p2_turn_curr, p2_turn_prev = update_prev("p2_turn", memory.read_u8(0x0aa53F, "Work Ram High") == 1)
+			local lag_changed, lag_curr, lag_prev = update_prev("lag", memory.read_u8(0x0aa53B, "Work Ram High") == 6)
+			local money_changed, money_curr, money_prev = update_prev("money", memory.read_u32_be(0x0aa56C, "Work Ram High")) -- how much money does Fats have in Story?
+			-- in Story, if we lose, we will typically shuffle when the "you-lost" movie for a given opponent plays
+			-- however, if we are in Story, and we lose to Junior after winning Game 1, we'll go down from $8,000,000 back to $4,000,000
+			-- so, we have to make a special case of shuffling if we lose that specific game
+			-- which we'll do by swapping if your money goes down specifically from that amount
+			if money_changed and money_curr < money_prev and money_prev == 8000000 then return true end
+			-- if we are in the middle of lag contest, do not swap, wait until lag ends
+			if lag_curr then return false end
 			-- if the game over movie just played, swap
 			if gamestate_changed and gamestate_prev == 0x10 then return true end
 			-- otherwise, we have to be playing, or we should never swap.
 			if gamestate_curr ~= 0x08 then return false end
-			-- we should shuffle if p1 loses their turn - that would be a miss, scratch, anything
-			local p2_turn_changed, p2_turn_curr, p2_turn_prev = update_prev("p2_turn", memory.read_u8(0x0aa53F, "Work Ram High") == 1)
-			if p2_turn_changed and p2_turn_curr then return true end
+			-- we should shuffle if p1 loses their turn - that would be a miss, scratch, loss in lag, loss of game, anything
+			if p2_turn_curr and (p2_turn_changed or (lag_changed and lag_prev)) then return true end
 			-- otherwise, don't swap
 			return false
 			end
