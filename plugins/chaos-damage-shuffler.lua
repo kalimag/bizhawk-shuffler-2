@@ -594,6 +594,11 @@ local function singleplayer_withlives_swap(gamemeta)
 			return true
 		end
 
+		-- sometimes you want to swap for things that don't take standard health or lives, like non-standard game overs
+		if gamemeta.other_swaps and gamemeta.other_swaps() then
+			data.p1hpcountdown = gamemeta.delay or 3
+		end
+		
 		return false
 	end
 end
@@ -780,6 +785,12 @@ local function twoplayers_withlives_swap(gamemeta)
 		
 		if p2prevlc ~= nil and p2currlc == p2prevlc - 1 then
 			return true
+		end
+
+		-- sometimes you want to swap for things that don't take standard health or lives, like non-standard game overs
+		if gamemeta.other_swaps and gamemeta.other_swaps() then
+			data.p1hpcountdown = gamemeta.delay or 3
+			data.p2hpcountdown = gamemeta.delay or 3
 		end
 
 		return false
