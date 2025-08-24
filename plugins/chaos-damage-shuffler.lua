@@ -161,7 +161,7 @@ plugin.description =
 	-Ghosts'n Goblins (NES), 1p
 	-Ghouls'n Ghosts (Genesis/Mega Drive), 1p
 	-Gimmick! (NES/Famicom), 1p
-	-Goof Troop (SNES), 1p - NEEDS WORK (to recognize the cherries for damage)
+	-Goof Troop (SNES), 1p - NEEDS WORK (shuffles on trading 6 hearts for 1 life)
 	-Gunstar Heroes (Genesis/Mega Drive), 1p
 	-Hammerin' Harry (NES), 1p - NEEDS WORK
 	-Hercules II (Bootleg) (Genesis/Mega Drive), 1p
@@ -230,7 +230,7 @@ plugin.description =
 	-Super Mario Kart (SNES), 1-2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
 	-Sonic Mario Bros., Squirrel King mechanics (bootleg) (Genesis/Mega Drive), 1p
 	-Super Monkey Ball Jr. (GBA), 1p
-	-Super Smash TV (SNES), 1p - IN PROGRESS
+	-Super Smash TV (SNES), 1p
 	-TaleSpin (NES), 1p
 	-Tarzan: Lord of the Jungle (unreleased) (SNES), 1p
 	-Teenage Mutant Ninja Turtles (NES), 1p
@@ -6357,6 +6357,7 @@ local gamedata = {
 		p1gethp=function() return memory.read_u8(0x011D, "WRAM") end,
 		p1getlc=function() return memory.read_u8(0x0157, "WRAM") end,
 		maxhp=function() return 6 end,
+		minhp=-1, -- if hearts drop to 0, a swap should happen
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x0157 end,
@@ -6387,12 +6388,12 @@ local gamedata = {
 	},
 	['SuperSmashTV_SNES']={ -- Super Smash T.V., SNES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x0531, "WRAM") end,
-		p1getlc=function() return memory.read_u8(0x0533, "WRAM") end,
+		p1gethp=function() return 1 end,
+		p1getlc=function() return memory.read_u8(0x0531, "WRAM") end,
 		maxhp=function() return 1 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
-		p1livesaddr=function() return 0x0533 end,
+		p1livesaddr=function() return 0x0531 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
@@ -6409,7 +6410,7 @@ local gamedata = {
 	},
 	['Wits_NES']={ -- Wit's, NES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x038a, "RAM") end,
+		p1gethp=function() return 1 end, -- TODO: work out bike loss as swap
 		p1getlc=function() return memory.read_u8(0x0380, "RAM") end,
 		maxhp=function() return 1 end,
 		CanHaveInfiniteLives=true,
