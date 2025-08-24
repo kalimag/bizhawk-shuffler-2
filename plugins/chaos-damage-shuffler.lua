@@ -161,7 +161,7 @@ plugin.description =
 	-Ghosts'n Goblins (NES), 1p
 	-Ghouls'n Ghosts (Genesis/Mega Drive), 1p
 	-Gimmick! (NES/Famicom), 1p
-	-Goof Troop (SNES), 1p - NEEDS WORK (shuffles on trading 6 hearts for 1 life)
+	-Goof Troop (SNES), 1-2p
 	-Gunstar Heroes (Genesis/Mega Drive), 1p
 	-Hammerin' Harry (NES), 1p - NEEDS WORK
 	-Hercules II (Bootleg) (Genesis/Mega Drive), 1p
@@ -6364,17 +6364,22 @@ local gamedata = {
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['GoofTroop_SNES']={ -- Goof Troop, SNES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x011D, "WRAM") end,
-		p1getlc=function() return memory.read_u8(0x0157, "WRAM") end,
-		maxhp=function() return 6 end,
-		minhp=-1, -- if hearts drop to 0, a swap should happen
+		func=function(gamemeta)
+			return function()
+				local p1hit_changed, p1hit, p1hit_prev = update_prev("p1hit", memory.read_u8(0x0100))
+				local p2hit_changed, p2hit, p2hit_prev = update_prev("p2hit", memory.read_u8(0x0180))
+				return (gamemeta.ActiveP1() and p1hit_changed and (p1hit == 3 or p1hit == 4) and (p1hit_prev == 2)) or
+				       (gamemeta.ActiveP2() and p2hit_changed and (p2hit == 3 or p2hit == 4) and (p2hit_prev == 2))
+			end
+		end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x0157 end,
-		maxlives=function() return 5 end,
-		ActiveP1=function() return true end, -- p1 is always active!
-	},	
+		p2livesaddr=function() return 0x01D7 end,
+		maxlives=function() return 10 end,
+		ActiveP1=function() return memory.read_u8(0x00BD, "WRAM") & 1 ~= 0 end,
+		ActiveP2=function() return memory.read_u8(0x00BD, "WRAM") & 2 ~= 0 end,
+	},
 	['SatNightSlamMasters_SNES']={ -- Saturday Night Slam Masters, SNES
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x011D, "WRAM") end,
