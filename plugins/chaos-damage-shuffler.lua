@@ -5054,9 +5054,9 @@ local gamedata = {
 	},
 	['KabukiQuantumFighter_NES']={ -- Kabuki Quantum Fighter, NES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x68c, "RAM") end,
-		p1getlc=function() return memory.read_u8(0x6c0, "RAM") end,
-		maxhp=function() return 255 end,
+		p1gethp=function() return memory.read_s8(0x68c, "RAM") end,
+		p1getlc=function() return memory.read_s8(0x6c0, "RAM") end,
+		maxhp=function() return 15 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "RAM" end,
 		p1livesaddr=function() return 0x6c0 end,
@@ -5065,7 +5065,7 @@ local gamedata = {
 		swap_exceptions=function()
 			-- end of level, ticks down time, then health
 			-- if timer is all zeros, and you didn't lose a life from time up, don't swap
-			local lives_changed = update_prev ("lives", memory.read_u8(0x6c0, "RAM"))
+			local lives_changed = update_prev ("lives", memory.read_s8(0x6c0, "RAM"))
 			return 
 			(memory.read_u8(0x691, "RAM") == 0 and 
 			memory.read_u8(0x692, "RAM") == 0 and
