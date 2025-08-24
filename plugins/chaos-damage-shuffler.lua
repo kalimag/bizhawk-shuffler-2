@@ -243,7 +243,7 @@ plugin.description =
 	-Vice: Project Doom (NES), 1p
 	-WarioWare, Inc.: Mega Microgame$! (GBA), 1p - bonus games including 2p are pending
 	-Wild Guns (SNES), 1p
-	-Wit's (NES), 1p - NEEDS WORK (to recognize losing bike as damage)
+	-Wit's (NES), 1p
 
 	NICHE ZONE
 	- NES 240p Suite: shuffles on every second that passes in Stopwatch Mode. Can be useful for testing a single game.
@@ -6421,7 +6421,7 @@ local gamedata = {
 	},
 	['Wits_NES']={ -- Wit's, NES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return 1 end, -- TODO: work out bike loss as swap
+		p1gethp=function() return 1 end, -- let's do vehicle loss in other_swaps rather than here
 		p1getlc=function() return memory.read_u8(0x0380, "RAM") end,
 		maxhp=function() return 1 end,
 		CanHaveInfiniteLives=true,
@@ -6429,6 +6429,20 @@ local gamedata = {
 		p1livesaddr=function() return 0x0380 end,
 		maxlives=function() return 5 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+		other_swaps=function()
+			-- vehicle notes:
+			-- 0x0400 is the byte for p1 status, all zeroes if the game hasn't started yet! 
+			-- bits 2-5 hold the base value for each level, minus 1 (so, 0 through 5)
+			-- bits 6-8 hold player status in a way that is relevant to us.
+			-- if we take this address mod 8, we get:
+			-- 3 default, 4 jump, 5 vehicle, 6 vehicle jump, 7 dying animation
+			-- the relevant bit is, if you go from vehicle to a no-vehicle jump - as in, 5 to 4 - swap
+			local vehicle_changed, vehicle_curr, vehicle_prev = update_prev("vehicle", (memory.read_u8(0x400, "RAM") % 8))
+			if vehicle_changed and vehicle_curr == 4 and vehicle_prev == 5 then 
+				return true
+			end
+			return false
+		end,
 	},
 }
 
