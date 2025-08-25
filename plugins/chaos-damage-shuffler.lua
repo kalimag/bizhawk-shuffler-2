@@ -1965,7 +1965,8 @@ local function sonic_swap(gamemeta)
 		local p1_iframes_changed, p1_iframes_curr, p1_iframes_prev = update_prev('p1iframes', gamemeta.get_iframes())
 
 		-- Debugging block
-		--[[iframes_cond = (p1_iframes_changed and p1_iframes_prev == 0)
+		--[[iframes_display_cond = (p1_iframes_changed and p1_iframes_curr > p1_iframes_prev)
+		iframes_cond = (p1_iframes_curr ~= 0) -- I-frames are non-zero
 		rings_cond = (p1_rings_changed and p1_rings_curr < p1_rings_prev)
 		shield_cond = (p1_shield_changed and p1_shield_curr < p1_shield_prev)
 		if (p1_rings_changed and p1_rings_curr == 0) then
@@ -1974,17 +1975,14 @@ local function sonic_swap(gamemeta)
 		if (p1_shield_changed and p1_shield_curr == 0) then
 			console.log("Shield: "..p1_shield_prev.." -> "..p1_shield_curr)
 		end
-		if (p1_iframes_changed and p1_iframes_prev == 0) then
+		if (p1_iframes_changed and p1_iframes_curr > p1_iframes_prev) then
 			console.log("I-Frames: "..p1_iframes_prev.." -> "..p1_iframes_curr)
 		end
 		if (p1_lives_changed and p1_lives_curr == p1_lives_prev - 1) then
 			console.log("Lives: "..p1_lives_prev.." -> "..p1_lives_curr)
 		end
-		if (iframes_cond or rings_cond or shield_cond) then
+		if (iframes_display_cond or rings_cond or shield_cond) then
 			console.log("--------------------")
-			--iframes_cond = (p1_iframes_changed and p1_iframes_prev == 0)
-			--rings_cond = (p1_rings_changed and p1_rings_curr < p1_rings_prev)
-			--shield_cond = (p1_shield_changed and p1_shield_curr < p1_shield_prev)
 			console.log("Iframes non-zero: "..tostring(iframes_cond))
 			console.log("Ring(s) lost: "..tostring(rings_cond))
 			console.log("Shield lost: "..tostring(shield_cond))
@@ -2000,11 +1998,11 @@ local function sonic_swap(gamemeta)
 			return false
 		end
 
-		if (p1_iframes_changed and p1_iframes_prev == 0) -- I-frames changed from 0
+		if p1_iframes_curr ~= 0 -- I-frames non-zero
 			and ( -- either of the below must be true, can't be a dummy knockback (which the games sometimes do)
 				(p1_rings_changed and p1_rings_curr < p1_rings_prev) -- rings lost
 				or (p1_shield_changed and p1_shield_curr < p1_shield_prev) -- shield lost
-			) -- but also I-frames MUST go up, i.e.: ring drain should not cause shuffles
+			) -- but also I-frames MUST be non-zero, i.e.: ring drain should not cause shuffles
 		then
 			return true
 		end
@@ -3756,9 +3754,9 @@ local gamedata = {
 		getCurrentPlayer = function() return memory.read_bytes_as_array(0x03BA3C, 10, "Work Ram High") end,
 		getPlayer1 = function() return memory.read_bytes_as_array(0x03ABA4, 10, "Work Ram High") end,
 		getPlayer1Scores = function() return memory.read_bytes_as_array(0x03ABFA, 18, "Work Ram High") end,
-		getHole = function() return memory.read_u8(0x00C002, "Work Ram Low") end,
+		getHole = function() return memory.read_u8(0x00C003, "Work Ram Low") end,
 		getGameMode = function() return memory.read_u16_be(0x00A988, "Work Ram Low") end,
-		gmode = function() return memory.read_u16_be(0x00A988, "Work Ram Low") == 262 end,
+		gmode = function() return memory.read_u16_be(0x00A988, "Work Ram Low") == 0x601 end,
 		delay = 20,
 	},
 	['NBA_JAM_PS1']= { -- NBA Jam Tournament Edition, PS1
@@ -5164,6 +5162,14 @@ local gamedata = {
 			demo = memory.read_s8(0x1FB9, "WRAM")
 			return demo ~= 2 and (mode == 0x2 or mode == 0x4 or mode == 0x5) -- Modes are Map, Gameplay, or Game Over, respectively
 		end,
+		swap_exceptions=function(gamemeta)
+			local lives_changed, lives_curr, lives_prev = update_prev("lives", gamemeta.p1getlc())
+			local mode = memory.read_s8(0x278, "WRAM")
+			if (mode == 0x2 and lives_curr ~= nil and lives_prev ~= nil and lives_curr >= lives_prev) then
+				return true -- Do not shuffle on the map screen unless lives went down
+			end
+			return false
+		end,
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x2A4 end,
 		LivesWhichRAM=function() return "WRAM" end,
@@ -6050,7 +6056,7 @@ local gamedata = {
 			end
 			return memory.read_u16_be(0x680, "68K RAM") -- Just return the actual lives counter
 		end,
-		get_iframes=function() return memory.read_s16_be(0xC224, "68K RAM") end,
+		get_iframes=function() return memory.read_u16_be(0xC224, "68K RAM") end,  -- Strictly speaking getting hit goes DOWN to -2, but debugging only displays if this goes UP
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x681 end,
 		LivesWhichRAM=function() return "68K RAM" end,
@@ -6075,7 +6081,7 @@ local gamedata = {
 			end
 			return memory.read_u16_be(0x97C2E, "Work Ram High") -- Just return the actual lives counter
 		end,
-		get_iframes=function() return memory.read_s16_be(0xA44AC, "Work Ram High") end,
+		get_iframes=function() return memory.read_u16_be(0xA44AC, "Work Ram High") end, -- Strictly speaking getting hit goes DOWN to -2, but debugging only displays if this goes UP
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x97C2F end,
 		LivesWhichRAM=function() return "Work Ram High" end,
