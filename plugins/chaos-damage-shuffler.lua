@@ -165,7 +165,7 @@ plugin.description =
 	-Gunstar Heroes (Genesis/Mega Drive), 1p
 	-Hammerin' Harry (NES), 1p - NEEDS WORK
 	-Hercules II (Bootleg) (Genesis/Mega Drive), 1p
-	-High Seas Havoc (Genesis/Mega Drive), 1p - NEEDS WORK
+	-High Seas Havoc (Genesis/Mega Drive), 1p
 	-Ice Climber (NES), 1-2p
 	--- check toggle for whether you want bonus game losses to swap!
 	-Indiana Jones and the Last Crusade (Genesis/Mega Drive), 1p - NEEDS WORK
@@ -5456,12 +5456,12 @@ local gamedata = {
 	},
 	['HighSeasHavoc_GEN']={ -- High Seas Havoc, Genesis
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_s8(0xdca5, "68K RAM") end,
-		p1getlc=function() return memory.read_s8(0xdca0, "68K RAM") end,
-		maxhp=function() return 255 end,
+		p1gethp=function() return memory.read_u16_be(0xdca4, "68K RAM") end,
+		p1getlc=function() return memory.read_u16_be(0xdca0, "68K RAM") end,
+		maxhp=function() return 0xFFFF end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
-		p1livesaddr=function() return 0xdca0 end,
+		p1livesaddr=function() return 0xdca1 end, -- low byte of 16 bit BE word
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
