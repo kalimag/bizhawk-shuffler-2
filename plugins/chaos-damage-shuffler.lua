@@ -224,7 +224,7 @@ plugin.description =
 	-Star Fox 64 (N64), 1p-4p
 	-Sunset Riders (SNES, Genesis, Arcade), 1p
 	-Super Aladdin (bootleg) (NES), 1p
-	-Super Contra 7 (bootleg) (NES), 1p - NEEDS WORK
+	-Super Contra 7 (bootleg) (NES), 1-2p
 	-Super Dodge Ball (NES), 1-2p, all modes
 	-Super Ghouls'n Ghosts (SNES), 1p
 	-Super Mario Kart (SNES), 1-2p - shuffles on collisions with other karts (lost coins or have 0 coins), falls
@@ -5755,16 +5755,21 @@ local gamedata = {
 		ActiveP1=function() return true end, -- p1 is always active!	
 	},
 	['SuperContra7_NES']={ -- Super Contra 7 (bootleg), NES
-		func=singleplayer_withlives_swap,
-		p1gethp=function() return 1 end,
-		p1getlc=function() return memory.read_s8(0x0053, "RAM") end,
-		maxhp=function() return 1 end,
+		func=twoplayers_withlives_swap,
+		gmode=function() return memory.read_s8(0x87, "RAM") == 1 -- only == 1 if actively playing, toggles on at same frame as lives "drop" on starting level
+			and memory.read_s8(0x3b, "RAM") == 0 end, -- not in demo
+		p1gethp=function() return 1 end, -- hp does not apply
+		p1getlc=function() return memory.read_s8(0x53, "RAM") end,
+		p2gethp=function() return 1 end, -- hp does not apply
+		p2getlc=function() return memory.read_s8(0x54, "RAM") end,
+		maxhp=function() return 1 end, -- hp does not apply
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "RAM" end,
 		p1livesaddr=function() return 0x0053 end,
-		maxlives=function() return 5 end,
-		ActiveP1=function() return true end, -- p1 is always active!	
-		--gmode = function() return memory.read_u8(0x0019, "RAM") == 3 end,		
+		p2livesaddr=function() return 0x0054 end,
+		maxlives=function() return 68 end,
+		ActiveP1=function() return true end, -- p1 is always active in this case!
+		ActiveP2=function() return memory.read_u8(0xA1, "RAM") > 0 end, -- if 0, p2 is dead or not playing
 	},
 	['SuperMarioWorldSK_GEN']={ -- Super Mario Bros. (unl, w Squirrel King Mechanics), GEN
 		func=singleplayer_withlives_swap,
