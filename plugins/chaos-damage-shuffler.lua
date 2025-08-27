@@ -3972,18 +3972,18 @@ local gamedata = {
 	},
 	['SOTN_SATURN']={ -- Akumajou Dracula X: Gekka no Yasoukyoku (Saturn)
 		func=sotn_swap,
-		get_health=function() return memory.read_u16_le(0x5C942, "Work Ram High") end,
-		max_health=function() return memory.read_u16_le(0x5C946, "Work Ram High") end,
-		get_iframes=function() return memory.read_u16_le(0x5C524, "Work Ram High") end,
-		get_player_state=function() return memory.read_u16_le(0x99824, "Work Ram High") end,
+		get_health=function() return memory.read_u16_be(0x5C942, "Work Ram High") end,
+		max_health=function() return memory.read_u16_be(0x5C946, "Work Ram High") end,
+		get_iframes=function() return memory.read_u16_be(0x5C524, "Work Ram High") end,
+		get_player_state=function() return memory.read_u16_be(0x99824, "Work Ram High") end,
 		stone_state=11,
 		is_valid_gamestate=function()
-			gamestate = memory.read_u16_le(0x5CD72, "Work Ram High") -- May not be the actual gamestate addr, but works for our purpose
+			gamestate = memory.read_u16_be(0x5CD72, "Work Ram High") -- May not be the actual gamestate addr, but works for our purpose
 			return gamestate == 1 -- Gameplay
 				or gamestate == 5 -- Game Over
 		end,
 		game_over_check=function()
-			gamestate = memory.read_u16_le(0x5CD72, "Work Ram High")
+			gamestate = memory.read_u16_be(0x5CD72, "Work Ram High")
 			if gamestate == 5 then -- Changes as soon as the fade-to-white starts
 				return true -- Game Over
 			else
