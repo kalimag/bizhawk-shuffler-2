@@ -201,7 +201,7 @@ plugin.description =
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Pictionary (NES)
 	-Pocky & Rocky (SNES), 1-2p
-	-Pocky & Rocky 2 (SNES), 1p - NEEDS WORK
+	-Pocky & Rocky 2 (SNES), 1-2p
 	-Power Blade (NES), 1p
 	-Power Blade 2 (NES), 1p
 	-Rainbow Islands - The Story of Bubble Bobble 2 (NES), 1p
@@ -5516,6 +5516,39 @@ local gamedata = {
 		maxlives=function() return 5 end,
 		ActiveP1=function() return memory.read_u8(0x006a, "WRAM") > 0 end,
 		ActiveP2=function() return memory.read_u8(0x006b, "WRAM") > 0 end,
+		grace=40,
+	},
+	['PockyRocky2_SNES']={ -- Pocky & Rocky 2, SNES
+		func=twoplayers_withlives_swap,
+		-- the two players work VERY DIFFERENTLY from one another in this game
+		-- p1 appears to have their health stored at 0x19CE in an insane way (between 2 and 12, or 0x02 and 0x0C) that we will transform
+		gmode=function() return memory.read_u8(0x19CE, "WRAM") < 0x0E end, -- just ignore nonsense values
+		p1gethp=function()
+			local pocky_states = {
+				[0x04] = 1, -- none
+				[0x02] = 2, -- kimono
+				[0x06] = 3, -- kimono + armor item
+				[0x08] = 4, -- bunny ears
+				[0x0C] = 5, -- kimono + bunny ears
+				[0x0A] = 6, -- kimono + armor + bunny ears
+			}
+			return pocky_states[memory.read_u8(0x19CE, "WRAM")] or 0
+		end,
+		p1getlc=function() return memory.read_u8(0x19F4, "WRAM") end, -- the only thing that is normal in this game!
+		p2gethp=function() 
+			if memory.read_u8(0x18CE, "WRAM") == 1 -- 2p is human-controlled
+				then return memory.read_u8(0x05EA, "WRAM") + 1 -- we do want to shuffle on 0, because there are no lives
+			else
+				return -1 -- if 2p is a CPU, just return HP as something that won't shuffle (below minhp)
+			end
+		end,
+		p2getlc=function() return 0 end, -- the second player respawns after a cooldown
+		maxhp=function() return 6 end,
+		CanHaveInfiniteLives=true,
+		p1livesaddr=function() return 0x19F4 end,
+		LivesWhichRAM=function() return "WRAM" end,
+		maxlives=function() return 5 end,
+		ActiveP1=function() return true end, -- p1 is always active! p2 doesn't need lives so don't specify anything for them!
 		grace=40,
 	},
 	['RainbowIslands_NES']={ -- Rainbow Islands - The Story of Bubble Bobble 2, NES
