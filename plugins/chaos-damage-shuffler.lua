@@ -5191,9 +5191,21 @@ local gamedata = {
 	},
 	['DonkeyKongLand_GB']={ -- Donkey Kong Land, GB
 		func=singleplayer_withlives_swap,
+		-- 0x064E: Which Kong on screen? 0 == DK, 1 == Diddy
+		-- 0x065D: Have a spare Kong? 0 == no, 1 == yes (DK barrel in lower right)
 		p1gethp=function() return memory.read_u8(0x65d, "WRAM") end,
 		p1getlc=function() return memory.read_u8(0x66d, "WRAM") end,
-		maxhp=function() return 255 end,
+		maxhp=function() return 1 end,
+		minhp=-1,
+		other_swaps=function()
+			-- 0x066A: riding an Animal Buddy? 0 == no
+			-- 0x613: iframes
+			-- if you dismount and got iframes, you got bonked off your animal buddy, so swap
+			local animal_buddy_changed, animal_buddy_curr = update_prev("animal_buddy", memory.read_u8(0x66A, "WRAM"))
+			local iframes_changed, iframes_curr = update_prev("iframes", memory.read_u8(0x613, "WRAM"))
+			if animal_buddy_changed and animal_buddy_curr == 0 and iframes_curr > 0 then return true end
+			return false
+		end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "WRAM" end,
 		p1livesaddr=function() return 0x66d end,
