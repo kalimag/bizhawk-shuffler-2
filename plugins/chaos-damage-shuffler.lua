@@ -200,7 +200,7 @@ plugin.description =
 	-PaRappa the Rapper (PSX), 1p - shuffles on dropping a rank
 	-Pebble Beach Golf Links (Sega Saturn), 1p - Tournament Mode, shuffles after stroke
 	-Pictionary (NES)
-	-Pocky & Rocky (SNES), 1p - NEEDS WORK
+	-Pocky & Rocky (SNES), 1-2p
 	-Pocky & Rocky 2 (SNES), 1p - NEEDS WORK
 	-Power Blade (NES), 1p
 	-Power Blade 2 (NES), 1p
