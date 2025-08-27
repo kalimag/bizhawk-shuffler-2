@@ -237,6 +237,9 @@ plugin.description =
 	-Teenage Mutant Ninja Turtles II: The Arcade Game (NES), 1-2p
 	-Teenage Mutant Ninja Turtles III: The Manhattan Project (NES), 1-2p
 	-Teenage Mutant Ninja Turtles IV: Turtles in Time (SNES), 1-2p
+	-The Magical Quest Starring Mickey Mouse (SNES), 1-2p
+	-The Magical Quest 2: The Great Circus Mystery Starring Mickey & Minnie (SNES), 1-2p
+	-The Magical Quest 3: Mickey to Donald - Magical Adventure 3 (SNES), 1-2p
 	-Tiny Toon Adventures (NES), 1p
 	-Titenic (bootleg) (NES), 1p
 	-U.N. Squadron (SNES), 1p
@@ -6491,6 +6494,47 @@ local gamedata = {
 			end
 			return false
 		end,
+	},
+	['MagicalQuestMickey1_SNES']={ -- The Magical Quest Starring Mickey Mouse (SNES)
+		func=health_swap,
+		get_health=function() return mainmemory.read_u8(0x2B1) end,
+		is_valid_gamestate=function() return mainmemory.read_u8(0x2B0) >= 1 and mainmemory.read_u8(0x2B0) <= 10 end,
+		other_swaps=function() return false end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x372 end,
+		maxlives=function() return 9 end,
+		ActiveP1=function() return true end,
+	},
+	['MagicalQuestMickey2_SNES']={ -- The Great Circus Mystery Starring Mickey & Minnie (SNES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return mainmemory.read_u8(0x220) end,
+		p2gethp=function() return mainmemory.read_u8(0x320) end,
+		p1getlc=function() return mainmemory.read_u8(0x29F) end,
+		p2getlc=function() return mainmemory.read_u8(0x39F) end,
+		maxhp=function() return math.min(math.max(mainmemory.read_u8(0x27F), mainmemory.read_u8(0x37F)), 10) end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x29F end,
+		p2livesaddr=function() return 0x39F end,
+		maxlives=function() return 10 end, -- one more than displayed
+		ActiveP1=function() return mainmemory.read_u8(0x200) > 0 end,
+		ActiveP2=function() return mainmemory.read_u8(0x300) > 0 end,
+	},
+	['MagicalQuestMickey3_SNES']={ -- Mickey to Donald - Magical Adventure 3 (SNES)
+		func=twoplayers_withlives_swap,
+		p1gethp=function() return mainmemory.read_u8(0x46F) end,
+		p2gethp=function() return mainmemory.read_u8(0x56F) end,
+		p1getlc=function() return mainmemory.read_u8(0x486) end,
+		p2getlc=function() return mainmemory.read_u8(0x586) end,
+		maxhp=function() return math.min(math.max(mainmemory.read_u8(0x483), mainmemory.read_u8(0x583)), 10) end,
+		CanHaveInfiniteLives=true,
+		LivesWhichRAM=function() return "WRAM" end,
+		p1livesaddr=function() return 0x486 end,
+		p2livesaddr=function() return 0x586 end,
+		maxlives=function() return 10 end, -- one more than displayed
+		ActiveP1=function() return mainmemory.read_u8(0x400) > 0 end,
+		ActiveP2=function() return mainmemory.read_u8(0x500) > 0 end,
 	},
 }
 
