@@ -5490,11 +5490,22 @@ local gamedata = {
 	},
 	['PockyRocky_SNES']={ -- Pocky & Rocky, SNES
 		func=twoplayers_withlives_swap,
+		gmode=function() return memory.read_u8(0x0130, "WRAM") == 0 end, -- if > 0, tallying up end of level bonuses incl. health (ticks down)
 		p1gethp=function() return memory.read_u8(0x0068, "WRAM") end,
 		p2gethp=function() return memory.read_u8(0x0069, "WRAM") end,
 		p1getlc=function() return memory.read_u8(0x006a, "WRAM") end,
 		p2getlc=function() return memory.read_u8(0x006b, "WRAM") end,
 		maxhp=function() return 16 end,
+		swap_exceptions=function()
+			local pocky_state_changed, pocky_state_curr, pocky_state_prev = update_prev("pocky_state", memory.read_u8(0x5A))
+			local rocky_state_changed, rocky_state_curr, rocky_state_prev = update_prev("rocky_state", memory.read_u8(0x9A))
+			-- don't swap if the player status just changed to "respawning" from "out but allowed to steal a life"
+			if (pocky_state_changed and pocky_state_curr == 0x1D and pocky_state_prev == 0x16) or 
+			   (rocky_state_changed and rocky_state_curr == 0x1D and rocky_state_prev == 0x16)
+				then return true 
+			end
+			return false
+		end,
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x006a end,
 		p2livesaddr=function() return 0x006b end,
