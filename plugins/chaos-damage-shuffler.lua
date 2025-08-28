@@ -107,7 +107,7 @@ plugin.description =
 	-Kirby's Dream Land (GB), 1p
 	-Kirby's Adventure (NES), 1p
 	-Kirby: Super Star (SNES), 1p
-	-Kirby: Nightmare in Dream Land (GBA), 1p - NEEDS WORK
+	-Kirby: Nightmare in Dream Land (GBA), 1p
 	-Kirby and the Amazing Mirror (GBA), 1p
 	
 	SONIC BLOCK
