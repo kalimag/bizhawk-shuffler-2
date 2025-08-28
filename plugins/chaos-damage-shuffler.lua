@@ -5460,14 +5460,15 @@ local gamedata = {
 	},
 	['HammerinHarry_NES']={ -- Hammerin' Harry, NES
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x04fe, "RAM") end,
-		p1getlc=function() return memory.read_u8(0x036a, "RAM") end,
-		maxhp=function() return 255 end,
+		-- add the hard hat flag (0/1) to health; hard hat gets spent if you would have lost your last HP
+		p1gethp=function() return memory.read_s8(0x04fe, "RAM") + memory.read_s8(0x036c, "RAM") end,
+		p1getlc=function() return memory.read_s8(0x036a, "RAM") end,
+		maxhp=function() return 5 end, -- 4 + 1 for hard hat
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "RAM" end,
 		p1livesaddr=function() return 0x036a end,
 		maxlives=function() return 69 end,
-		ActiveP1=function() return true end, -- p1 is always active!	
+		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['HighSeasHavoc_GEN']={ -- High Seas Havoc, Genesis
 		func=singleplayer_withlives_swap,
