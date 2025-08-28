@@ -5286,7 +5286,14 @@ local gamedata = {
 		LivesWhichRAM=function() return "EWRAM" end,
 		maxlives=function() return 69 end,
 		ActiveP1=function() return true end, -- p1 is always active!
-	-- gmode=function() return memory.read_u8(0x1CE, "IWRAM") == 85 end, -- Not 100% sure about this, but seems good
+		-- on loading a save, when the title card for the chapter disappears, you "spend" a life and go to max HP
+		-- so don't shuffle whenever the title card transitions
+		-- it sure looks like 0xAF04 only toggles up to 1 during a title card cutscene and is 0 otherwise!
+		swap_exceptions=function() 
+			local title_card_changed = update_prev("title_card", memory.read_u8(0xAF04, "EWRAM"))
+			if title_card_changed then return true end
+			return false
+		end,
 	},
 	['AdvMagicKingdom_NES']={ -- Adventures in the Magic Kingdom, NES
 		func=singleplayer_withlives_swap,
