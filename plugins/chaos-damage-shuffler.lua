@@ -101,7 +101,7 @@ plugin.description =
 	-Donkey Kong Country 2: Diddy's Kong Quest (SNES), 1p, 2p Contest, or 2p Team
 	-Donkey Kong Country 3: Dixie Kong's Double Trouble (SNES), 1p, 2p Contest, or 2p Team
 	-DKC x Mario (SNES, DKC1 hack by RainbowSprinklez), 1p
-	-Donkey Kong Land (GB), 1p - NEEDS WORK
+	-Donkey Kong Land (GB), 1p
 
 	KIRBY BLOCK
 	-Kirby's Dream Land (GB), 1p
@@ -163,7 +163,7 @@ plugin.description =
 	-Gimmick! (NES/Famicom), 1p
 	-Goof Troop (SNES), 1-2p
 	-Gunstar Heroes (Genesis/Mega Drive), 1p
-	-Hammerin' Harry (NES), 1p - NEEDS WORK
+	-Hammerin' Harry (NES), 1p
 	-Hercules II (Bootleg) (Genesis/Mega Drive), 1p
 	-High Seas Havoc (Genesis/Mega Drive), 1p
 	-Ice Climber (NES), 1-2p
@@ -172,7 +172,7 @@ plugin.description =
 	-I.Q.: Intelligent Qube (PS1), 1p (2p someday?)
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
-	-Jaws (NES), 1p - NEEDS WORK (some hit detection)
+	-Jaws (NES), 1p
 	-Journey to Silius (NES), 1p
 	-Jungle Book, The (NES, SNES, Genesis/Mega Drive), 1p
 	-Kabuki Quantum Fighter (NES), 1p
