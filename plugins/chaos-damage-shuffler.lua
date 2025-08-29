@@ -94,7 +94,7 @@ plugin.description =
 	-Contra/Probotector (NES), 1-2p
 	-Super C/Super Contra/Probotector II (NES), 1-2p
 	-Contra III: The Alien Wars/Super Probotector: Alien Rebels/Contra Spirits (SNES), 1-2p
-	-Contra: Hard Corps (Genesis/Mega Drive), 1-2p - NEEDS WORK
+	-Contra: Hard Corps (Genesis/Mega Drive), 1-2p
 
 	KONG BLOCK
 	-Donkey Kong Country (SNES), 1p, 2p Contest, or 2p Team
@@ -5223,15 +5223,30 @@ local gamedata = {
 		maxhp=function() return 100 end,
 	},
 	['ContraHardCorps_GEN']={ -- Contra - Hard Corps, Genesis
-		func=singleplayer_withlives_swap,
+		func=twoplayers_withlives_swap,
 		p1gethp=function() return memory.read_u8(0xFA0D, "68K RAM") end,
-		p1getlc=function() return memory.read_u8(0xA1F9, "68K RAM") end,
+		p1getlc=function() return memory.read_u8(0xFA0C, "68K RAM") end,
+		p2gethp=function() return memory.read_u8(0xFA2D, "68K RAM") end,
+		p2getlc=function() return memory.read_u8(0xFA2C, "68K RAM") end,
 		maxhp=function() return 3 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
-		p1livesaddr=function() return 0xFA45 end,
-		maxlives=function() return 69 end,
-		ActiveP1=function() return true end, -- p1 is always active!
+		p1livesaddr=function() return 0xFA0C end,
+		p2livesaddr=function() return 0xFA2C end,
+		maxlives=function() return 70 end,
+		ActiveP1=function() return memory.read_u8(0xFA0C, "68K RAM") > 0 end,
+		ActiveP2=function() return memory.read_u8(0xFA2C, "68K RAM") > 0 end,
+		-- need to account for tag in
+		swap_exceptions=function()
+			local p1_lives_changed, p1_lives_curr, p1_lives_prev = update_prev("p1_lives", memory.read_u8(0xFA0C, "68K RAM"))
+			local p2_lives_changed, p2_lives_curr, p2_lives_prev = update_prev("p2_lives", memory.read_u8(0xFA2C, "68K RAM"))
+			if (p1_lives_changed and (p1_lives_curr == p1_lives_prev - 1) and p2_lives_prev == 0 and p2_lives_curr == 1) or
+			   (p2_lives_changed and (p2_lives_curr == p2_lives_prev - 1) and p1_lives_prev == 0 and p1_lives_curr == 1)
+			then
+				return true
+			end
+			return false
+		end,
 	},
 	['KurukuruKururin_GBA']={ -- KuruKuru Kururin, GBA
 		func=health_swap,
