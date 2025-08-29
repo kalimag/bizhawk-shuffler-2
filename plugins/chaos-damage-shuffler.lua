@@ -5422,8 +5422,8 @@ local gamedata = {
 		maxhp=function() return 255 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "RAM" end,
-		p1livesaddr=function() return 0x009a end,
-		maxlives=function() return 69 end,
+		p1livesaddr=function() return 0x00CE end,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	};	
 	['JungleBook_GEN']={ -- Jungle Book, G
