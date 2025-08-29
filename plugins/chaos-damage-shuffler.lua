@@ -181,8 +181,8 @@ plugin.description =
 	-Little Samson (NES), 1p
 	-Lion King, The (NES), 1p
 	-Lion King, The (bootleg) (NES), 1p
-	-Lion King 2 (bootleg) (Genesis/Mega Drive), 1p - NEEDS WORK
 	-Lion King, The (SNES), 1p
+	-Lion King 2 (bootleg) (Genesis/Mega Drive), 1p
 	-Magical Kid's Doropie / Krion Conquest (NES), 1p
 	-Marble Madness (NES), 1-2p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
@@ -5784,9 +5784,18 @@ local gamedata = {
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
 		p1livesaddr=function() return 0x7219 end,
-		maxlives=function() return 69 end,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 		grace=60,
+		other_swaps=function()
+			-- track status of Simba at 0x7215, if you get a star it's like a mushroom and you become Super Simba/Mufasa/non-peewee Simba
+			-- that usually sets this to 4, you can still be at 0 if you enter a new stage
+			-- either way, getting hit in this state set this address to 5 without costing hp
+			-- so, if this address just changed to 5, swap
+			local super_simba_lost_changed, super_simba_lost_curr = update_prev("super_simba_lost", memory.read_u8(0x7215, "68K RAM") == 5)
+			if super_simba_lost_changed and super_simba_lost_curr then return true end
+			return false
+		end,
 	},
 	['SonicJam6_GEN']={ -- Sonic Jam 6 (bootleg), Genesis
 		func=singleplayer_withlives_swap,
