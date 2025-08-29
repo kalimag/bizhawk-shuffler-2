@@ -182,7 +182,7 @@ plugin.description =
 	-Lion King, The (NES), 1p
 	-Lion King, The (bootleg) (NES), 1p
 	-Lion King 2 (bootleg) (Genesis/Mega Drive), 1p - NEEDS WORK
-	-Lion King, The (SNES), 1p - NEEDS WORK
+	-Lion King, The (SNES), 1p
 	-Magical Kid's Doropie / Krion Conquest (NES), 1p
 	-Marble Madness (NES), 1-2p
 	-Mario Paint (SNES), joystick hack, Gnat Attack, 1p
@@ -5333,12 +5333,15 @@ local gamedata = {
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x2004, "WRAM") end,
 		p1getlc=function() return memory.read_u8(0x1ffaa, "WRAM") end,
-		maxhp=function() return memory.read_u8(0x1FFAC, "WRAM") end,
+		maxhp=function() return memory.read_s8(0x1FFAC, "WRAM") end, -- ignore garbage values like 0xFF
 		CanHaveInfiniteLives=true,
 		p1livesaddr=function() return 0x1ffaa end,
 		LivesWhichRAM=function() return "WRAM" end,
-		maxlives=function() return 69 end,
+		maxlives=function() return 9 end,
 		ActiveP1=function() return true end, -- p1 is always active!
+		swap_exceptions=function() return memory.read_u8(0xA8B, "WRAM") == 0 end,
+		-- addr is set to 0 if pausing is not permitted
+		-- if allowed to pause, you are actually playing, otherwise ignore random HP/lives changes
 	},
 	['LionKing_NES']={ -- The Lion King, NES
 		func=singleplayer_withlives_swap,
