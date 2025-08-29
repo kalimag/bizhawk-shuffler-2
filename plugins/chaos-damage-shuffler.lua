@@ -5732,12 +5732,15 @@ local gamedata = {
 	['IndianaJonesLC_GEN']={ -- Indiana Jones & The Last Crusade, Genesis
 		func=singleplayer_withlives_swap,
 		p1gethp=function() return memory.read_u8(0x7F59, "68K RAM") end,
-		p1getlc=function() return memory.read_u8(0x7F5B, "68K RAM") end,
+		-- Values are 8 (2 lives), 0 (1 life), -8 (0 lives), -16 (game over)... obviously.
+		p1getlc=function() return memory.read_s16_be(0x7F5A, "68K RAM") end,
 		maxhp=function() return 32 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
+		-- This is not right (see above) but it'll probably work?
+		-- This address does not affect the UI (hats) but it does prevent game overs
 		p1livesaddr=function() return 0x7F5B end,
-		maxlives=function() return 5 end,
+		maxlives=function() return 8 end,
 		ActiveP1=function() return true end, -- p1 is always active!
 	},
 	['GarfieldAWoG_NES']={ -- Garfield: A Week of Garfield, NES
