@@ -152,12 +152,12 @@ plugin.description =
 	-Double Dragon 1 (NES), 1-2p, Mode A or B, shuffles on knockdown and death
 	-Double Dragon 2 (NES), 1-2p, shuffles on knockdown and death
 	-DuckTales (NES), 1p
-	-DuckTales 2 (NES), 1p - NEEDS WORK
+	-DuckTales 2 (NES), 1p
 	-Dynamite Headdy (Genesis/Mega Drive), 1p
 	-Einhänder (PSX), 1p
 	-F-Zero (SNES), 1p
 	-Family Feud (SNES), 1-2p
-	-Garfield: A Week of Garfield (NES), 1p - NEEDS WORK
+	-Garfield: A Week of Garfield (NES), 1p
 	-Ghosts'n Goblins (NES), 1p
 	-Ghouls'n Ghosts (Genesis/Mega Drive), 1p
 	-Gimmick! (NES/Famicom), 1p
@@ -168,7 +168,7 @@ plugin.description =
 	-High Seas Havoc (Genesis/Mega Drive), 1p
 	-Ice Climber (NES), 1-2p
 	--- check toggle for whether you want bonus game losses to swap!
-	-Indiana Jones and the Last Crusade (Genesis/Mega Drive), 1p - NEEDS WORK
+	-Indiana Jones and the Last Crusade (Genesis/Mega Drive), 1p
 	-I.Q.: Intelligent Qube (PS1), 1p (2p someday?)
 	-Jackal (NES), 1-2p
 	-Jackie Chan's Action Kung-Fu (NES), 1p
