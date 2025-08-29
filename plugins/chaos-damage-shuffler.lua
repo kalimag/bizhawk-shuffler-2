@@ -5731,9 +5731,10 @@ local gamedata = {
 	},
 	['IndianaJonesLC_GEN']={ -- Indiana Jones & The Last Crusade, Genesis
 		func=singleplayer_withlives_swap,
-		p1gethp=function() return memory.read_u8(0x7F59, "68K RAM") end,
+		p1gethp=function() return memory.read_s16_be(0x7F58, "68K RAM") end,
 		-- Values are 8 (2 lives), 0 (1 life), -8 (0 lives), -16 (game over)... obviously.
-		p1getlc=function() return memory.read_s16_be(0x7F5A, "68K RAM") end,
+		p1getlc=function() return memory.read_s16_be(0x7F5A, "68K RAM") / 8 end,
+		minhp=-1,
 		maxhp=function() return 32 end,
 		CanHaveInfiniteLives=true,
 		LivesWhichRAM=function() return "68K RAM" end,
