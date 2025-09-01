@@ -71,7 +71,7 @@ local function clear_drawings()
 		--gui.clearGraphics(SYNC_MARKER_SURFACE)
 		-- drawings from previous frames stay on screen until something else is drawn
 		-- doing this instead of clearGraphics potentially avoids clobbering drawings from other plugins
-		gui.drawPixel(-10, -10, 0x0, SYNC_MARKER_SURFACE)
+		gui.drawPixel(-1, -1, 0x01000000, SYNC_MARKER_SURFACE)
 		drawing_active = false
 	end
 end
