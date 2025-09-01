@@ -5,7 +5,7 @@ plugin.author = "kalimag"
 plugin.settings = {
 	{ name = 'session_timestamp', type = 'boolean', label = 'Show session timestamp on start/resume', default = true },
 	{ name = 'swap_sync_marker', type = 'boolean', label = 'Show sync marker for one frame on every swap' },
-	{ name = 'swap_sync_timer', type = 'boolean', label = 'Show sync timer for one frame occasionally' },
+	{ name = 'swap_sync_timer', type = 'boolean', label = 'Show sync timer for one frame occasionally', default = true },
 }
 
 plugin.description =
@@ -21,7 +21,7 @@ local ISO_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S%z"
 local SYNC_TIMESTAMP_FRAMES = 60
 local SYNC_MARKER_COLOR = 0xFF0066FF
 local SYNC_MARKER_SURFACE = "client"
-local SYNC_TIMER_TRESHOLD = 300.0
+local SYNC_TIMER_TRESHOLD = 3600.0
 
 local logfile
 local log_timestamp
@@ -95,7 +95,8 @@ local function draw_sync_helpers(clock, settings)
 		drawing_active = true
 	end
 	if settings.swap_sync_timer and os.clock() >= last_sync_timer + SYNC_TIMER_TRESHOLD then
-		gui.drawString(client.screenwidth(), client.screenheight(), string.format("%.3f", clock), SYNC_MARKER_COLOR, 0xFF000000,
+		local str = string.format("%s C:%.3f F:%i", os.date(FILE_DATE_FORMAT, log_timestamp), clock, config.frame_count)
+		gui.drawString(client.screenwidth(), client.screenheight(), str, SYNC_MARKER_COLOR, 0xFF000000,
 			nil, nil, nil, "right", "bottom", SYNC_MARKER_SURFACE)
 		drawing_active = true
 		last_sync_timer = os.clock()
