@@ -16,7 +16,7 @@ function module.make_plugin_window(plugins)
 		['boolean'] = {
 			make = function(plugin, win, setting, x, y)
 				setting.input = forms.checkbox(win, setting.label, x, y)
-				if setting.default or setting._value then forms.setproperty(setting.input, "Checked", true) end
+				if (setting._value == nil and setting.default) or setting._value then forms.setproperty(setting.input, "Checked", true) end
 				forms.setproperty(setting.input, "Width", 330)
 
 				table.insert(plugin._ui, setting.input)
