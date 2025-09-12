@@ -8,6 +8,7 @@ function module.make_plugin_window(plugins)
 
 	local selected_plugin = nil
 	local plugin_map = {}
+	local settings_height = 0
 
 	local SETTINGS_TYPES =
 	{
@@ -108,9 +109,11 @@ function module.make_plugin_window(plugins)
 			local meta = SETTINGS_TYPES[setting.type:lower()]
 			if meta ~= nil then y = y + meta.make(plugin, win, setting, x, y) end
 		end
+		settings_height = math.max(settings_height, y)
 	end
 
 	local plugin_window = forms.newform(700, 600, "Plugins Setup")
+	forms.setproperty(plugin_window, "AutoScroll", true)
 
 	local plugin_error_text = forms.label(plugin_window, "", SETTINGS_X, 43, 300, 200)
 	forms.setproperty(plugin_error_text, "Visible", false)
@@ -196,7 +199,7 @@ function module.make_plugin_window(plugins)
 		setup_plugin_settings(plugin_window, SETTINGS_X, plugin)
 		plugin._ui._enabled = forms.checkbox(plugin_window, "Enabled", SETTINGS_X, 10)
 		forms.setproperty(plugin._ui._enabled, "Visible", false)
-		forms.setproperty(plugin._ui._enabled, "Width", 330)
+		forms.setproperty(plugin._ui._enabled, "Width", 140)
 		forms.setproperty(plugin._ui._enabled, "Checked", plugin._enabled)
 		forms.addclick(plugin._ui._enabled, correct_enabled_misclick)
 
@@ -211,8 +214,10 @@ function module.make_plugin_window(plugins)
 	info_box = forms.textbox(plugin_window, "", 350, 450, nil, 10, 40, true, false, "Vertical")
 	forms.setproperty(info_box, "ReadOnly", true)
 
-	enabled_label = forms.label(plugin_window, "", 10, 500, 500, 50)
-	forms.button(plugin_window, "Save and Close", save_plugin_settings, 520, 530, 150, 20)
+	local enablled_label_width = settings_height < 500 and 500 or 350
+	enabled_label = forms.label(plugin_window, "", 10, 500, enablled_label_width, 50)
+	local close_button_y = settings_height < 530 and 530 or 10
+	forms.button(plugin_window, "Save and Close", save_plugin_settings, 520, close_button_y, 150, 20)
 
 	update_plugins()
 	return plugin_window
