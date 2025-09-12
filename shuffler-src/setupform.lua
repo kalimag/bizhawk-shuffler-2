@@ -9,6 +9,7 @@ function module.make_plugin_window(plugins)
 	local selected_plugin = nil
 	local plugin_map = {}
 	local settings_height = 0
+	local unsaved_changes = false
 
 	local SETTINGS_TYPES =
 	{
@@ -112,7 +113,11 @@ function module.make_plugin_window(plugins)
 		settings_height = math.max(settings_height, y)
 	end
 
-	local plugin_window = forms.newform(700, 600, "Plugins Setup")
+	local plugin_window = forms.newform(700, 600, "Plugins Setup", function()
+		if unsaved_changes then
+			log_console("Plugin setup was closed without saving changes.")
+		end
+	end)
 	forms.setproperty(plugin_window, "AutoScroll", true)
 
 	local plugin_error_text = forms.label(plugin_window, "", SETTINGS_X, 43, 300, 200)
@@ -132,6 +137,8 @@ function module.make_plugin_window(plugins)
 		end
 
 		module.update_plugin_label()
+
+		unsaved_changes = false
 
 		-- close plugin window if open
 		forms.destroy(plugin_window)
@@ -173,6 +180,9 @@ function module.make_plugin_window(plugins)
 			for _,ui in ipairs(plugin._ui) do
 				forms.setproperty(ui, "Visible", plugin_selected and plugin_enabled)
 			end
+
+			-- we don't know if any settings are *actually* being changed, but it's possible
+			unsaved_changes = unsaved_changes or (plugin_selected and plugin_enabled and #plugin._ui > 0)
 		end
 
 		forms.settext(enabled_label, string.format("Enabled Plugins (%d): %s", enabled_count, enabled_list:sub(3)))
@@ -188,6 +198,7 @@ function module.make_plugin_window(plugins)
 			forms.setproperty(curr_plugin._ui._enabled, "Checked", target_state)
 		end
 		update_plugins()
+		unsaved_changes = true -- enabled state probably changed
 	end
 
 	local plugin_names = {'[ Choose a Plugin ]'}
