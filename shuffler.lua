@@ -109,13 +109,14 @@ end
 
 -- dump lua object
 function dump(o)
-	function _dump(o, a, b, n)
+	local NO_INDENT = -999999999
+	function _dump(o, newline, level)
 		if type(o) == 'table' then
 			local s = ''
 			for k,v in pairs(o) do
-				s = s..string.rep(a, n)..string.format('[%s] = %s,', _dump(k, "", "", 0), _dump(v, a, b, n+1))..b
+				s = s..string.rep("\t", level)..string.format('[%s] = %s,', _dump(k, "", NO_INDENT), _dump(v, newline, level+1))..newline
 			end
-			return (s == '' and '{}' or '{'..b..s..string.rep(a, n-1)..'}')..(n == 1 and b or '')
+			return (s == '' and '{}' or '{'..newline..s..string.rep("\t", level-1)..'}')..(level == 1 and newline or '')
 		elseif type(o) == 'number' or type(o) == 'boolean' or o == nil then
 			return tostring(o)
 		elseif type(o) == 'string' then
@@ -126,7 +127,7 @@ function dump(o)
 		end
 	end
 
-	return _dump(o, "\t", "\n", 1)
+	return _dump(o, "\n", 1)
 end
 
 -- saves primary config file
