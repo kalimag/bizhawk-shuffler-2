@@ -111,11 +111,27 @@ end
 function dump(o)
 	local NO_INDENT = -999999999
 	local function indent(level) return string.rep('\t', level) end
+	local function is_sequential(t) -- is table a sequential 1..n 'array'
+		local count = 0
+		local sequential = true
+		for key in pairs(t) do
+			if type(key) ~= 'number' or key < 1 or key % 1 ~= 0 then return false end
+			count = count + 1
+			sequential = sequential and key == count
+		end
+		return sequential or count == #t -- sequential may be a false negative, so double check
+	end
 	local function _dump(o, newline, level)
 		if type(o) == 'table' then
 			local s = ''
-			for k,v in pairs(o) do
-				s = string.format('%s%s[%s] = %s,%s', s, indent(level), _dump(k, "", NO_INDENT), _dump(v, newline, level+1), newline)
+			if is_sequential(o) then
+				for _,v in ipairs(o) do
+					s = string.format('%s%s%s,%s', s, indent(level), _dump(v, newline, level+1), newline)
+				end
+			else
+				for k,v in pairs(o) do
+					s = string.format('%s%s[%s] = %s,%s', s, indent(level), _dump(k, "", NO_INDENT), _dump(v, newline, level+1), newline)
+				end
 			end
 			return s == '' and '{}' or string.format('{%s%s%s}', newline, s, indent(level-1))
 		elseif type(o) == 'number' or type(o) == 'boolean' or o == nil then
