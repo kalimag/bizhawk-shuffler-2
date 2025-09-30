@@ -111,7 +111,7 @@ end
 function dump(o)
 	local NO_INDENT = -999999999
 	local function indent(level) return string.rep('\t', level) end
-	function _dump(o, newline, level)
+	local function _dump(o, newline, level)
 		if type(o) == 'table' then
 			local s = ''
 			for k,v in pairs(o) do
