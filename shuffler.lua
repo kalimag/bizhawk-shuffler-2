@@ -110,13 +110,14 @@ end
 -- dump lua object
 function dump(o)
 	local NO_INDENT = -999999999
+	local function indent(level) return string.rep('\t', level) end
 	function _dump(o, newline, level)
 		if type(o) == 'table' then
 			local s = ''
 			for k,v in pairs(o) do
-				s = s..string.rep("\t", level)..string.format('[%s] = %s,', _dump(k, "", NO_INDENT), _dump(v, newline, level+1))..newline
+				s = string.format('%s%s[%s] = %s,%s', s, indent(level), _dump(k, "", NO_INDENT), _dump(v, newline, level+1), newline)
 			end
-			return (s == '' and '{}' or '{'..newline..s..string.rep("\t", level-1)..'}')..(level == 1 and newline or '')
+			return s == '' and '{}' or string.format('{%s%s%s}', newline, s, indent(level-1))
 		elseif type(o) == 'number' or type(o) == 'boolean' or o == nil then
 			return tostring(o)
 		elseif type(o) == 'string' then
