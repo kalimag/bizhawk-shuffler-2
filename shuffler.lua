@@ -119,7 +119,11 @@ function dump(o)
 			count = count + 1
 			sequential = sequential and key == count
 		end
-		return sequential or count == #t -- sequential may be a false negative, so double check
+		if sequential then return true end
+		for i = 1, count do -- `sequential` may be a false negative, double check
+			if t[i] == nil then return false end
+		end
+		return true
 	end
 	local function _dump(o, newline, level)
 		if type(o) == 'table' then
