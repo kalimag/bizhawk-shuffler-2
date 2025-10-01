@@ -125,6 +125,24 @@ function dump(o)
 		end
 		return true
 	end
+	local function ordered_pairs(t)
+		local keys = {}
+		for key in pairs(t) do table.insert(keys, key) end
+		table.sort(keys, function(a, b)
+			local ta, tb = type(a), type(b)
+			if ta ~= tb then return ta < tb end
+			if ta == 'string' then return a:lower() < b:lower() end
+			if ta == 'number' then return a < b end
+			if ta == 'boolean' then return b end
+			return false
+		end)
+		local i = 0
+		return function()
+			i = i + 1
+			local key = keys[i]
+			if key ~= nil then return key, t[key] end
+		end
+	end
 	local function _dump(o, newline, level)
 		if type(o) == 'table' then
 			local s = ''
@@ -133,7 +151,7 @@ function dump(o)
 					s = string.format('%s%s%s,%s', s, indent(level), _dump(v, newline, level+1), newline)
 				end
 			else
-				for k,v in pairs(o) do
+				for k,v in ordered_pairs(o) do
 					s = string.format('%s%s[%s] = %s,%s', s, indent(level), _dump(k, "", NO_INDENT), _dump(v, newline, level+1), newline)
 				end
 			end
