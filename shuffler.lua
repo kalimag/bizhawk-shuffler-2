@@ -140,6 +140,7 @@ function dump(o)
 			return s == '' and '{}' or string.format('{%s%s%s}', newline, s, indent(level-1))
 		elseif type(o) == 'string' then
 			-- %q encloses in double quotes and escapes according to lua rules
+			-- in Lua 5.4 this can handle all primitive types, clean this up whenever support for old BizHawks is dropped
 			return string.format('%q', o)
 		elseif type(o) == 'number' then
 			if o == math.huge then return '1e9999' end
