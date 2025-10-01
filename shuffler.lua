@@ -134,11 +134,16 @@ function dump(o)
 				end
 			end
 			return s == '' and '{}' or string.format('{%s%s%s}', newline, s, indent(level-1))
-		elseif type(o) == 'number' or type(o) == 'boolean' or o == nil then
-			return tostring(o)
 		elseif type(o) == 'string' then
 			-- %q encloses in double quotes and escapes according to lua rules
 			return string.format('%q', o)
+		elseif type(o) == 'number' then
+			if o == math.huge then return '1e9999' end
+			if o == -math.huge then return '-1e9999' end
+			if o ~= o then return '0/0' end -- NaN
+			return tostring(o)
+		elseif type(o) == 'boolean' or o == nil then
+			return tostring(o)
 		else -- functions, native objects, coroutines
 			error(string.format('Unsupported value of type "%s" in config.', type(o)))
 		end
